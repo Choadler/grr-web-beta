@@ -5,6 +5,7 @@ import { cupSchedule as cupCalendar, indycarSchedule as indyCalendar } from './c
 import { LeagueCountdown } from './components/league/LeagueCountdown'
 import { ChampionshipLeaders } from './components/league/ChampionshipLeaders'
 import { cupStandings, gtSchedule, gtStandings, indyStandings } from './services/dataSources'
+import { AdminPage } from './pages/AdminPage'
 import {
   CupBroadcastPage,
   CupLandingPage,
@@ -71,7 +72,7 @@ function Header() {
           aria-controls="main-navigation"
           onClick={() => setOpen(!open)}
         >
-          <span aria-hidden="true">{open ? '×' : '☰'}</span>
+          <span aria-hidden="true">{open ? 'Ã—' : 'â˜°'}</span>
           <span className="sr-only">{open ? 'Close menu' : 'Open menu'}</span>
         </button>
         <nav
@@ -88,7 +89,7 @@ function Header() {
                   onClick={() => setOpen(false)}
                 >
                   {g.label}
-                  {g.items && <span aria-hidden="true"> ▾</span>}
+                  {g.items && <span aria-hidden="true"> â–¾</span>}
                 </NavLink>
                 {g.items && (
                   <ul className="dropdown">
@@ -122,9 +123,10 @@ function Footer() {
           <External href={externalLinks.discord}>Discord</External>
           <External href={externalLinks.twitch}>Twitch</External>
           <External href={externalLinks.merchandise}>Merch</External>
+          <Link to="/admin">Admin</Link>
         </nav>
       </div>
-      <p className="copyright">© {new Date().getFullYear()} Grassroots Racing</p>
+      <p className="copyright">Â© {new Date().getFullYear()} Grassroots Racing</p>
     </footer>
   )
 }
@@ -293,6 +295,7 @@ export function App() {
           <Route path="pages/indycar-standings" element={<IndyStandingsPage />} />
           <Route path="pages/indycar-schedule" element={<IndySchedulePage />} />
           <Route path="pages/indycar-results" element={<IndyResultsPage />} />
+          <Route path="admin" element={<AdminPage />} />
           <Route path="*" element={<Missing />} />
         </Routes>
       </main>
@@ -300,3 +303,4 @@ export function App() {
     </>
   )
 }
+
