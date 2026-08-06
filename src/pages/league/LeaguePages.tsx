@@ -1,9 +1,13 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { DataTable, EmptyTableRow } from '../../components/league/DataTable'
+import { LiveDataTable, type LiveColumn } from '../../components/league/LiveDataTable'
 import { LeagueNav, type LeagueNavItem } from '../../components/league/LeagueNav'
 import { PageMeta } from '../../components/league/PageMeta'
 import { EmptyState } from '../../components/league/States'
 import { externalLinks } from '../../config/site'
+import { cupRecentResults, cupStandings, gtResults, gtSchedule, gtStandings, gtTeamStandings, indyStandings } from '../../services/dataSources'
+import type { DataLoader } from '../../types/league'
 
 const cupNav: LeagueNavItem[] = [
   { label: 'Cup Sporting Code', href: '/pages/cup-series-sporting-code' },
@@ -83,7 +87,7 @@ function LinkGrid({ links }: { links: LeagueNavItem[] }) {
       {links.map((item) => (
         <Link key={item.href} to={item.href}>
           {item.label}
-          <span aria-hidden="true">→</span>
+          <span aria-hidden="true">â†’</span>
         </Link>
       ))}
     </div>
@@ -127,7 +131,7 @@ const cupSections = [
   ['3. Season / Race Rules', 'The 2026 regular season is 26 weeks, followed by a 10-race Chase.'],
   [
     '4. Car Setups / Liveries',
-    'Open setups are permitted within iRacing’s rules. All setups must be legal.',
+    'Open setups are permitted within iRacingâ€™s rules. All setups must be legal.',
   ],
   [
     '5. License Points and Penalties',
@@ -139,7 +143,7 @@ const cupSections = [
   ],
   [
     '7. Filing a Protest',
-    'Protests are filed through the protest channel in the league’s Discord server.',
+    'Protests are filed through the protest channel in the leagueâ€™s Discord server.',
   ],
   ['8. Teams (Optional)', 'Each team may consist of up to four full-time drivers.'],
   ['9. League and Admin Authority', 'The race director and appointed stewards enforce the rules.'],
@@ -221,46 +225,40 @@ type DataPageProps = {
   league: LeagueKey
   title: string
   eyebrow?: string
-  columns: string[]
+  columns: LiveColumn[]
   filters?: string[]
   search?: boolean
   caption?: string
+  loader?: DataLoader
+  loaders?: DataLoader[]
 }
-function DataPage({ league, title, eyebrow, columns, filters, search, caption }: DataPageProps) {
+function DataPage({ league, title, eyebrow, columns, filters, search, caption, loader, loaders }: DataPageProps) {
+  const [activeFilter, setActiveFilter] = useState(0)
+  const activeLoader = loaders?.[activeFilter] ?? loader
   return (
     <PageShell league={league} title={title} eyebrow={eyebrow}>
-      <div className="data-toolbar">
-        {search && (
-          <label className="search-field">
-            <span>Search driver</span>
-            <input type="search" placeholder="Search driver…" />
-          </label>
-        )}
-        {filters && (
+      {filters && <div className="data-toolbar">
           <fieldset className="filter-group">
             <legend>Filter results</legend>
             {filters.map((filter, index) => (
               <button
-                className={index === 0 ? 'filter-button is-active' : 'filter-button'}
+                className={index === activeFilter ? 'filter-button is-active' : 'filter-button'}
                 type="button"
                 key={filter}
+                onClick={() => setActiveFilter(index)}
+                aria-pressed={index === activeFilter}
               >
                 {filter}
               </button>
             ))}
           </fieldset>
-        )}
-        <button className="button button--compact" type="button" disabled>
-          Refresh
-        </button>
-      </div>
-      <DataTable caption={caption ?? title} columns={columns}>
+      </div>}
+      {activeLoader ? <LiveDataTable key={activeFilter} title={caption ?? title} columns={columns} loader={activeLoader} search={search} /> : <DataTable caption={caption ?? title} columns={columns.map((column) => column.label)}>
         <EmptyTableRow
           columns={columns.length}
-          message="Live data connection is scheduled for Stage 3."
+          message="TODO(integration): Confirm the current public data endpoint before connecting this table."
         />
-      </DataTable>
-      <p className="table-hint">Mobile: swipe left/right</p>
+      </DataTable>}
     </PageShell>
   )
 }
@@ -271,22 +269,8 @@ export const CupStandingsPage = () => (
     title="GRR Cup Series Standings"
     eyebrow="GRR Cup Series 2026"
     search
-    columns={[
-      'Pos',
-      'Driver',
-      'Pts',
-      '-Leader',
-      '+/- Cutoff',
-      'Starts',
-      'W',
-      'Stg W',
-      'Poles',
-      'T5',
-      'T10',
-      'Led',
-      'Rating',
-      'Link',
-    ]}
+    loader={cupStandings}
+    columns={[{ key: 'rank', label: 'Pos' }, { key: 'driver', label: 'Driver' }, { key: 'points', label: 'Pts' }, { key: 'starts', label: 'Starts' }, { key: 'wins', label: 'W' }, { key: 'stageWins', label: 'Stg W' }, { key: 'poles', label: 'Poles' }, { key: 'top5', label: 'T5' }, { key: 'top10', label: 'T10' }, { key: 'lapsLed', label: 'Led' }, { key: 'rating', label: 'Rating' }, { key: 'link', label: 'Link', link: true }]}
   />
 )
 export const CupSchedulePage = () => (
@@ -294,7 +278,7 @@ export const CupSchedulePage = () => (
     league="cup"
     title="GRR Cup Series 2026 Calendar"
     eyebrow="Race schedule, winners, and pole sitters"
-    columns={['Rd', 'Date', 'Track', 'Type', 'Winner', 'Pole']}
+    columns={[{ key: 'round', label: 'Rd' }, { key: 'date', label: 'Date' }, { key: 'track', label: 'Track' }, { key: 'type', label: 'Type' }, { key: 'winner', label: 'Winner' }, { key: 'pole', label: 'Pole' }]}
   />
 )
 export const CupResultsPage = () => (
@@ -302,24 +286,8 @@ export const CupResultsPage = () => (
     league="cup"
     title="GRR Cup Series Race Results"
     eyebrow="GRR Cup Series 2026"
-    filters={['Overall Race Finish', 'Stage 1', 'Stage 2']}
-    columns={[
-      'Pos',
-      'Driver',
-      'Start',
-      'Int',
-      'Laps',
-      'Led',
-      'Race Pts',
-      'Stg Pts',
-      'Bonus',
-      'Pen',
-      'Total',
-      'Inc',
-      'Status',
-      'Passes',
-      'Quality',
-    ]}
+    loader={cupRecentResults}
+    columns={[{ key: 'position', label: 'Recent' }, { key: 'track', label: 'Track' }, { key: 'date', label: 'Date' }, { key: 'winner', label: 'Winner' }, { key: 'scheduleId', label: 'Schedule ID' }]}
   />
 )
 export function CupBroadcastPage() {
@@ -340,8 +308,8 @@ export const GtSchedulePage = () => (
   <DataPage
     league="gt"
     title="GT League Schedule"
-    filters={['Next Race', 'Completed']}
-    columns={['Round', 'Date', 'Track', 'GT3 AM Winner', 'GT3 Pro Winner', 'GTP Winner']}
+    loader={gtSchedule}
+    columns={[{ key: 'round', label: 'Round' }, { key: 'date', label: 'Date' }, { key: 'track', label: 'Track' }, { key: 'am', label: 'GT3 AM Winner' }, { key: 'pro', label: 'GT3 Pro Winner' }, { key: 'gtp', label: 'GTP Winner' }]}
   />
 )
 export const GtStandingsPage = () => (
@@ -349,7 +317,9 @@ export const GtStandingsPage = () => (
     league="gt"
     title="GT League Standings"
     filters={['GT3 AM', 'GT3 Pro', 'GTP']}
-    columns={['Rank', 'Driver', 'Car', 'Race Starts', 'Points', 'Wins', 'Podiums']}
+    loaders={[gtStandings('am'), gtStandings('pro'), gtStandings('gtp')]}
+    search
+    columns={[{ key: 'rank', label: 'Rank' }, { key: 'driver', label: 'Driver' }, { key: 'car', label: 'Car' }, { key: 'starts', label: 'Race Starts' }, { key: 'points', label: 'Points' }, { key: 'wins', label: 'Wins' }, { key: 'podiums', label: 'Podiums' }]}
   />
 )
 export const GtTeamStandingsPage = () => (
@@ -357,7 +327,9 @@ export const GtTeamStandingsPage = () => (
     league="gt"
     title="GT League Team Standings"
     filters={['GT3 AM', 'GT3 Pro', 'GTP']}
-    columns={['Rank', 'Driver', 'Car', 'Race Starts', 'Points', 'Wins', 'Podiums']}
+    loaders={[gtTeamStandings('am'), gtTeamStandings('pro'), gtTeamStandings('gtp')]}
+    search
+    columns={[{ key: 'rank', label: 'Rank' }, { key: 'driver', label: 'Team' }, { key: 'car', label: 'Car' }, { key: 'starts', label: 'Race Starts' }, { key: 'points', label: 'Points' }, { key: 'wins', label: 'Wins' }, { key: 'podiums', label: 'Podiums' }]}
   />
 )
 export const GtResultsPage = () => (
@@ -365,7 +337,8 @@ export const GtResultsPage = () => (
     league="gt"
     title="GT League Race Results"
     filters={['GT3 AM', 'GT3 Pro', 'GTP']}
-    columns={['Class Pos', 'Driver', 'Points']}
+    loaders={[gtResults('am'), gtResults('pro'), gtResults('gtp')]}
+    columns={[{ key: 'position', label: 'Class Pos' }, { key: 'driver', label: 'Driver' }, { key: 'points', label: 'Points' }]}
   />
 )
 
@@ -374,20 +347,9 @@ export const IndyStandingsPage = () => (
     league="indycar"
     title="GRR IndyCar Standings"
     eyebrow="Season 1"
-    columns={[
-      'Pos',
-      'Driver',
-      'Pts',
-      '-Leader',
-      'Starts',
-      'W',
-      'Poles',
-      'T5',
-      'T10',
-      'Led',
-      'Rating',
-      'Link',
-    ]}
+    loader={indyStandings}
+    search
+    columns={[{ key: 'rank', label: 'Pos' }, { key: 'driver', label: 'Driver' }, { key: 'points', label: 'Pts' }, { key: 'starts', label: 'Starts' }, { key: 'wins', label: 'W' }, { key: 'poles', label: 'Poles' }, { key: 'top5', label: 'T5' }, { key: 'top10', label: 'T10' }, { key: 'lapsLed', label: 'Led' }, { key: 'rating', label: 'Rating' }, { key: 'link', label: 'Link', link: true }]}
   />
 )
 export const IndySchedulePage = () => (
@@ -395,7 +357,7 @@ export const IndySchedulePage = () => (
     league="indycar"
     title="GRR IndyCar Schedule"
     eyebrow="Race schedule, distances, winners, and pole sitters"
-    columns={['Rd', 'Date', 'Track', 'Laps', 'Winner', 'Pole']}
+    columns={[{ key: 'round', label: 'Rd' }, { key: 'date', label: 'Date' }, { key: 'track', label: 'Track' }, { key: 'laps', label: 'Laps' }, { key: 'winner', label: 'Winner' }, { key: 'pole', label: 'Pole' }]}
   />
 )
 export const IndyResultsPage = () => (
@@ -403,21 +365,6 @@ export const IndyResultsPage = () => (
     league="indycar"
     title="GRR IndyCar Race Results"
     eyebrow="Season 1"
-    columns={[
-      'Pos',
-      'Driver',
-      'Start',
-      'Int',
-      'Laps',
-      'Led',
-      'Race Pts',
-      'Bonus',
-      'Pen',
-      'Total',
-      'Inc',
-      'Status',
-      'Passes',
-      'Quality',
-    ]}
+    columns={[{ key: 'position', label: 'Pos' }, { key: 'driver', label: 'Driver' }, { key: 'start', label: 'Start' }, { key: 'incidents', label: 'Int' }, { key: 'laps', label: 'Laps' }, { key: 'led', label: 'Led' }, { key: 'racePoints', label: 'Race Pts' }, { key: 'bonus', label: 'Bonus' }, { key: 'penalty', label: 'Pen' }, { key: 'total', label: 'Total' }, { key: 'status', label: 'Status' }]}
   />
 )

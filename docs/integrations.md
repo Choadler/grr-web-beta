@@ -8,7 +8,7 @@ The live merch destination is `https://grassrootsracing.org/collections/all`. Th
 
 ## Live league data
 
-Cup and IndyCar pages expose SimRacerHub driver-stat links and custom standings/schedule/results loaders. GT pages expose custom class-filtered loaders. Stage 2 recovered the public request endpoints from those current page loaders. They are centralized in `src/config/integrations.ts`; Stage 3 must access them through typed adapters rather than directly from page components.
+Cup and IndyCar pages expose SimRacerHub driver-stat links and custom standings/schedule/results loaders. GT pages expose custom class-filtered loaders. Stage 2 recovered the public request endpoints from those current page loaders. They are centralized in `src/config/integrations.ts`; Stage 3 accesses them through the typed adapters in `src/services/` rather than directly from page components.
 
 - Cup standings/schedule/results: SimRacerHub season `28581` via `get_standings.php`.
 - Cup recent results: `red-star-b0d9.cknoedler1013.workers.dev`, series `12921`.
@@ -16,7 +16,9 @@ Cup and IndyCar pages expose SimRacerHub driver-stat links and custom standings/
 - GT team standings: `holy-bird-8afa.cknoedler1013.workers.dev`, using the same class paths.
 - GT schedule/results: `grr-gt-racebyrace.cknoedler1013.workers.dev/api/race-breakdown`.
 - IndyCar discovery/standings/results: SimRacerHub series `14491`.
-- TODO(adapter): preserve existing API field aliases behind typed adapters before Stage 3 UI wiring.
+- The client enforces a 12-second request timeout, a 12 MB response-size limit sized for the existing SimRacerHub season payload, safe JSON parsing, and aborts obsolete requests.
+- The shared tables provide loading, empty, error, retry, search, sorting, CSV export, and PNG export behavior.
+- Cup and IndyCar schedule/results endpoints that could not be confirmed remain explicit TODO states; no mock standings, schedule, or result rows are shown.
 - TODO(cors): confirm each endpoint permits the Cloudflare preview and production origins; proxy only where required.
 
 The current GT results page also references an administrative refresh endpoint. It is deliberately excluded from public client configuration and must never be invoked by the browser application.
