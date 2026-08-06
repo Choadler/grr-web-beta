@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Route, Routes } from 'react-router-dom'
 import { currentSiteAssets, externalLinks, navigation } from './config/site'
+import { cupSchedule as cupCalendar, indycarSchedule as indyCalendar } from './config/schedules'
+import { LeagueCountdown } from './components/league/LeagueCountdown'
+import { ChampionshipLeaders } from './components/league/ChampionshipLeaders'
+import { cupStandings, gtSchedule, gtStandings, indyStandings } from './services/dataSources'
 import {
   CupBroadcastPage,
   CupLandingPage,
@@ -30,7 +34,7 @@ const External = ({
   children: React.ReactNode
   className?: string
 }) => (
-  <a href={href} className={className} target="_blank" rel="noreferrer">
+  <a href={href} className={[className, href === externalLinks.discord ? 'discord-button' : ''].filter(Boolean).join(' ')} target="_blank" rel="noreferrer">
     {children}
     <span className="sr-only"> (opens in a new tab)</span>
   </a>
@@ -71,7 +75,7 @@ function Header() {
           <ul>
             {navigation.map((g) => (
               <li className={g.items ? 'nav-group' : ''} key={g.label}>
-                <NavLink to={g.href} onClick={() => setOpen(false)}>
+                <NavLink className={g.href === externalLinks.discord ? 'discord-button' : undefined} to={g.href} onClick={() => setOpen(false)}>
                   {g.label}
                   {g.items && <span aria-hidden="true"> ▾</span>}
                 </NavLink>
@@ -118,17 +122,23 @@ function League({
   href,
   image,
   alt,
+  leaders,
+  countdown,
 }: {
   title: string
   href: string
   image: string
   alt: string
+  leaders: React.ReactNode
+  countdown: React.ReactNode
 }) {
   return (
     <article className="league-panel">
       <img src={image} alt={alt} loading="lazy" />
       <div className="league-panel__content">
         <h2>{title}</h2>
+        {leaders}
+        {countdown}
         <Link className="button" to={href}>
           Click Here
         </Link>
@@ -164,18 +174,24 @@ function Home() {
           href="/pages/grr-cup-series"
           image="/assets/home/cup-series.webp"
           alt="GRR Cup Series racing"
+          leaders={<ChampionshipLeaders sources={[{ loader: cupStandings }]} />}
+          countdown={<LeagueCountdown schedule={cupCalendar} />}
         />
         <League
           title="GRR GT League - Tuesday Nights"
           href="/pages/gt-league"
           image="/assets/home/gt-league.webp"
           alt="GRR GT League racing"
+          leaders={<ChampionshipLeaders sources={[{ label: 'GT3 AM', loader: gtStandings('am') }, { label: 'GT3 Pro', loader: gtStandings('pro') }, { label: 'GTP', loader: gtStandings('gtp') }]} />}
+          countdown={<LeagueCountdown loader={gtSchedule} />}
         />
         <League
           title="GRR IndyCar League - Sunday Nights"
           href="/pages/indycar"
           image="/assets/home/indycar.webp"
           alt="GRR IndyCar League racing"
+          leaders={<ChampionshipLeaders sources={[{ loader: indyStandings }]} />}
+          countdown={<LeagueCountdown schedule={indyCalendar} />}
         />
       </section>
       <section className="donation-section section">

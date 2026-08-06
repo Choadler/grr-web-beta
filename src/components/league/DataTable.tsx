@@ -4,10 +4,12 @@ export function DataTable({
   caption,
   columns,
   children,
+  header,
 }: {
   caption: string
   columns: string[]
   children?: ReactNode
+  header?: (column: string) => ReactNode
 }) {
   return (
     <div className="table-scroll" tabIndex={0} role="region" aria-label={`${caption}, scrollable`}>
@@ -17,7 +19,7 @@ export function DataTable({
           <tr>
             {columns.map((column) => (
               <th key={column} scope="col">
-                {column}
+                {header ? header(column) : column}
               </th>
             ))}
           </tr>
