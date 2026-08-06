@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { DataTable, EmptyTableRow } from '../../components/league/DataTable'
 import { LiveDataTable, type LiveColumn } from '../../components/league/LiveDataTable'
+import { RaceResultsExplorer } from '../../components/league/RaceResultsExplorer'
 import { LeagueNav, type LeagueNavItem } from '../../components/league/LeagueNav'
 import { PageMeta } from '../../components/league/PageMeta'
 import { EmptyState } from '../../components/league/States'
 import { externalLinks } from '../../config/site'
-import { cupRecentResults, cupStandings, gtResults, gtSchedule, gtStandings, gtTeamStandings, indyStandings } from '../../services/dataSources'
+import { cupRaceEvents, cupSchedule, cupStandings, gtResults, gtSchedule, gtStandings, gtTeamStandings, indyRaceEvents, indySchedule, indyStandings } from '../../services/dataSources'
 import type { DataLoader } from '../../types/league'
 
 const cupNav: LeagueNavItem[] = [
@@ -278,18 +279,11 @@ export const CupSchedulePage = () => (
     league="cup"
     title="GRR Cup Series 2026 Calendar"
     eyebrow="Race schedule, winners, and pole sitters"
+    loader={cupSchedule}
     columns={[{ key: 'round', label: 'Rd' }, { key: 'date', label: 'Date' }, { key: 'track', label: 'Track' }, { key: 'type', label: 'Type' }, { key: 'winner', label: 'Winner' }, { key: 'pole', label: 'Pole' }]}
   />
 )
-export const CupResultsPage = () => (
-  <DataPage
-    league="cup"
-    title="GRR Cup Series Race Results"
-    eyebrow="GRR Cup Series 2026"
-    loader={cupRecentResults}
-    columns={[{ key: 'position', label: 'Recent' }, { key: 'track', label: 'Track' }, { key: 'date', label: 'Date' }, { key: 'winner', label: 'Winner' }, { key: 'scheduleId', label: 'Schedule ID' }]}
-  />
-)
+export const CupResultsPage = () => <PageShell league="cup" title="GRR Cup Series Race Results" eyebrow="GRR Cup Series 2026"><RaceResultsExplorer title="GRR Cup Series Race Results" loader={cupRaceEvents} /></PageShell>
 export function CupBroadcastPage() {
   return (
     <PageShell league="cup" title="GRR Cup Broadcast">
@@ -357,14 +351,8 @@ export const IndySchedulePage = () => (
     league="indycar"
     title="GRR IndyCar Schedule"
     eyebrow="Race schedule, distances, winners, and pole sitters"
+    loader={indySchedule}
     columns={[{ key: 'round', label: 'Rd' }, { key: 'date', label: 'Date' }, { key: 'track', label: 'Track' }, { key: 'laps', label: 'Laps' }, { key: 'winner', label: 'Winner' }, { key: 'pole', label: 'Pole' }]}
   />
 )
-export const IndyResultsPage = () => (
-  <DataPage
-    league="indycar"
-    title="GRR IndyCar Race Results"
-    eyebrow="Season 1"
-    columns={[{ key: 'position', label: 'Pos' }, { key: 'driver', label: 'Driver' }, { key: 'start', label: 'Start' }, { key: 'incidents', label: 'Int' }, { key: 'laps', label: 'Laps' }, { key: 'led', label: 'Led' }, { key: 'racePoints', label: 'Race Pts' }, { key: 'bonus', label: 'Bonus' }, { key: 'penalty', label: 'Pen' }, { key: 'total', label: 'Total' }, { key: 'status', label: 'Status' }]}
-  />
-)
+export const IndyResultsPage = () => <PageShell league="indycar" title="GRR IndyCar Race Results" eyebrow="Season 1"><RaceResultsExplorer title="GRR IndyCar Race Results" loader={indyRaceEvents} /></PageShell>

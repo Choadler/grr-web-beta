@@ -18,7 +18,9 @@ Cup and IndyCar pages expose SimRacerHub driver-stat links and custom standings/
 - IndyCar discovery/standings/results: SimRacerHub series `14491`.
 - The client enforces a 12-second request timeout, a 12 MB response-size limit sized for the existing SimRacerHub season payload, safe JSON parsing, and aborts obsolete requests.
 - The shared tables provide loading, empty, error, retry, search, sorting, CSV export, and PNG export behavior.
-- Cup and IndyCar schedule/results endpoints that could not be confirmed remain explicit TODO states; no mock standings, schedule, or result rows are shown.
+- Cup and IndyCar schedules use the existing published static calendars and enrich completed events with winner/pole data from each SimRacerHub driver's `races` records.
+- Detailed results discover completed `RACE` sessions from those same records. Cup stage tabs discover intervening `SEGMENT` sessions exactly as the current embed does.
+- Race selectors default to the latest completed event while retaining every completed event reported by SimRacerHub.
 - TODO(cors): confirm each endpoint permits the Cloudflare preview and production origins; proxy only where required.
 
 The current GT results page also references an administrative refresh endpoint. It is deliberately excluded from public client configuration and must never be invoked by the browser application.

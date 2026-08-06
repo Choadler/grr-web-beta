@@ -1,4 +1,5 @@
-import type { DataResult, TableRow } from '../types/league'
+import type { DataResult, RaceEvent, RaceEventsResult, TableRow } from '../types/league'
+import type { ScheduledRace } from '../config/schedules'
 
 type UnknownRecord = Record<string, unknown>
 const isRecord = (value: unknown): value is UnknownRecord => Boolean(value) && typeof value === 'object' && !Array.isArray(value)
@@ -86,4 +87,100 @@ export function adaptRecentResults(payload: unknown): DataResult {
     return { position: index + 1, track: text(first(row, ['track', 'track_name'])), date: text(first(row, ['date_text', 'date'])), winner: driverName(first(podium, ['p1']) ?? first(row, ['winner', 'driver'])), scheduleId: text(row.schedule_id) }
   }).filter((row) => row.track)
   return requireRows(rows, 'Recent results')
+}
+
+function simRacerDrivers(payload: unknown) {
+  return list(record(payload).rps).map((value) => record(value))
+}
+
+function mainRaceIds(drivers: UnknownRecord[]) {
+  const ids = new Set<number>()
+  drivers.forEach((driver) => list(driver.races).forEach((value) => {
+    const race = record(value)
+    if (text(race.session).toUpperCase() === 'RACE' && text(race.count_stats).toUpperCase() === 'Y') ids.add(number(race.race_id))
+  }))
+  return [...ids].filter(Boolean).sort((a, b) => a - b)
+}
+
+export function adaptSimRacerSchedule(payload: unknown, schedule: ScheduledRace[], includeExhibition = false): DataResult {
+  const drivers = simRacerDrivers(payload)
+  const ids = mainRaceIds(drivers)
+  let exhibitionId = 0
+  if (includeExhibition && ids.length) {
+    drivers.forEach((driver) => list(driver.races).forEach((value) => {
+      const race = record(value); const id = number(race.race_id)
+      if (text(race.session).toUpperCase() === 'RACE' && text(race.count_stats).toUpperCase() !== 'Y' && id < ids[0]) exhibitionId = Math.max(exhibitionId, id)
+    }))
+  }
+  const raceIds = includeExhibition ? [exhibitionId, ...ids] : ids
+  const rows = schedule.map((event, index) => {
+    const raceId = raceIds[index]
+    let winner = ''; let pole = ''
+    drivers.forEach((driver) => {
+      const race = record(record(driver.races)[String(raceId)])
+      if (number(race.finish_pos) === 1) winner = driverName(driver.name)
+      if (number(race.qualify_pos) === 1) pole = driverName(driver.name)
+    })
+    return { round: event.round, date: event.date, track: event.track, type: event.type ?? '', laps: event.laps ?? '', winner: winner || 'â€”', pole: pole || 'â€”' }
+  })
+  return { rows, label: text(record(record(payload).lss).season_name) }
+}
+
+export function adaptSimRacerLatestResults(payload: unknown): DataResult {
+  const drivers = simRacerDrivers(payload)
+  const raceId = mainRaceIds(drivers).at(-1)
+  if (!raceId) return { rows: [] }
+  const rows = drivers.map((driver) => {
+    const race = record(record(driver.races)[String(raceId)])
+    if (!Object.keys(race).length) return null
+    return {
+      position: number(race.finish_pos), driver: driverName(driver.name), start: number(race.qualify_pos),
+      interval: text(first(race, ['interval', 'gap', 'time_interval', 'interval_time', 'finish_interval'])) || 'â€”',
+      laps: number(race.num_laps), led: number(race.laps_led), racePoints: number(race.race_points),
+      stagePoints: number(race.stage_points), bonus: number(race.bonus_points), penalty: number(race.penalty_points),
+      total: number(race.total_points), incidents: number(race.incidents), status: text(race.status) || 'â€”',
+      passes: text(race.passes) || 'â€”', quality: text(race.quality_passes) || 'â€”',
+    }
+  }).filter((row): row is NonNullable<typeof row> => Boolean(row)).sort((a, b) => a.position - b.position)
+  const sample = rows.length ? drivers.map((driver) => record(record(driver.races)[String(raceId)])).find((race) => Object.keys(race).length) : {}
+  return { rows, label: text(first(record(sample), ['track_name', 'race_name', 'event_name'])) || `Race ${raceId}` }
+}
+
+function detailedRows(drivers: UnknownRecord[], sessionId: number, stage = false): TableRow[] {
+  const rows: TableRow[] = []
+  drivers.forEach((driver) => {
+    const race = record(record(driver.races)[String(sessionId)])
+    if (!Object.keys(race).length) return
+    if (stage) {
+      rows.push({ position: number(race.finish_pos), driver: driverName(driver.name) })
+      return
+    }
+    rows.push({
+      position: number(race.finish_pos), driver: driverName(driver.name), start: number(race.qualify_pos),
+      interval: text(first(race, ['interval', 'gap', 'time_interval', 'interval_time', 'finish_interval'])) || 'â€”',
+      laps: number(race.num_laps), led: number(race.laps_led), racePoints: number(race.race_points),
+      stagePoints: number(race.stage_points), bonus: number(race.bonus_points), penalty: number(race.penalty_points),
+      total: number(race.total_points), incidents: number(race.incidents), status: text(race.status) || 'â€”',
+      passes: text(race.passes) || 'â€”', quality: text(race.quality_passes) || 'â€”',
+    })
+  })
+  return rows.sort((a, b) => number(a.position) - number(b.position))
+}
+
+export function adaptSimRacerEvents(payload: unknown, schedule: ScheduledRace[], includeStages = false): RaceEventsResult {
+  const drivers = simRacerDrivers(payload)
+  const ids = mainRaceIds(drivers)
+  const events: RaceEvent[] = ids.map((raceId, index) => {
+    const scheduled = schedule[index + (schedule[0]?.round === 0 ? 1 : 0)]
+    const previousId = ids[index - 1] ?? 0
+    const stageIds = new Set<number>()
+    if (includeStages) drivers.forEach((driver) => list(driver.races).forEach((value) => {
+      const race = record(value); const id = number(race.race_id)
+      if (id > previousId && id < raceId && text(race.session).toUpperCase() === 'SEGMENT') stageIds.add(id)
+    }))
+    const sessions = [{ id: raceId, label: 'Overall Race Finish', rows: detailedRows(drivers, raceId) }]
+    ;[...stageIds].sort((a, b) => a - b).forEach((id, stageIndex) => sessions.push({ id, label: `Stage ${stageIndex + 1}`, rows: detailedRows(drivers, id, true) }))
+    return { id: raceId, label: scheduled ? `${scheduled.track} â€” ${scheduled.date}` : `Round ${index + 1} â€” Race ${raceId}`, sessions }
+  })
+  return { events, season: text(record(record(payload).lss).season_name) || text(record(payload).season_name) }
 }
