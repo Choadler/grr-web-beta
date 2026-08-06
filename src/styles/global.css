@@ -265,12 +265,18 @@ a {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(0deg, #000000e6, #0000000a 75%);
+  background: linear-gradient(0deg, #000000c7, #00000070);
 }
 .league-panel__content {
   position: absolute;
   z-index: 1;
-  inset: auto 2rem 2rem;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
 }
 .league-panel h2 {
   max-width: 420px;
@@ -283,7 +289,8 @@ a {
   padding: 5rem 0;
 }
 .donation-section {
-  background: var(--green);
+  background: #142016;
+  border-block: 1px solid #345b31;
 }
 .donation-callout {
   display: grid;
@@ -302,11 +309,12 @@ a {
   line-height: 1.6;
 }
 .donation-callout .eyebrow {
-  color: #132012;
+  color: #8bd47f;
 }
 .merch-section {
-  background: #e9ece8;
-  color: #151915;
+  background: #0f130f;
+  color: #f5f7f4;
+  border-bottom: 1px solid #2d352c;
 }
 .section-heading {
   max-width: 760px;
@@ -423,7 +431,8 @@ button:focus-visible {
     min-height: 320px;
   }
   .league-panel__content {
-    inset: auto 1.25rem 1.5rem;
+    inset: 0;
+    padding: 1.5rem;
   }
   .donation-callout {
     grid-template-columns: 1fr;
