@@ -121,7 +121,7 @@ export function adaptSimRacerSchedule(payload: unknown, schedule: ScheduledRace[
       if (number(race.finish_pos) === 1) winner = driverName(driver.name)
       if (number(race.qualify_pos) === 1) pole = driverName(driver.name)
     })
-    return { round: event.round, date: event.date, track: event.track, type: event.type ?? '', laps: event.laps ?? '', winner: winner || 'â€”', pole: pole || 'â€”' }
+    return { round: event.round, date: event.date, track: event.track, type: event.type ?? '', laps: event.laps ?? '', winner: winner || '—', pole: pole || '—' }
   })
   return { rows, label: text(record(record(payload).lss).season_name) }
 }
@@ -135,11 +135,11 @@ export function adaptSimRacerLatestResults(payload: unknown): DataResult {
     if (!Object.keys(race).length) return null
     return {
       position: number(race.finish_pos), driver: driverName(driver.name), start: number(race.qualify_pos),
-      interval: text(first(race, ['interval', 'gap', 'time_interval', 'interval_time', 'finish_interval'])) || 'â€”',
+      interval: text(first(race, ['interval', 'gap', 'time_interval', 'interval_time', 'finish_interval'])) || '—',
       laps: number(race.num_laps), led: number(race.laps_led), racePoints: number(race.race_points),
       stagePoints: number(race.stage_points), bonus: number(race.bonus_points), penalty: number(race.penalty_points),
-      total: number(race.total_points), incidents: number(race.incidents), status: text(race.status) || 'â€”',
-      passes: text(race.passes) || 'â€”', quality: text(race.quality_passes) || 'â€”',
+      total: number(race.total_points), incidents: number(race.incidents), status: text(race.status) || '—',
+      passes: text(race.passes) || '—', quality: text(race.quality_passes) || '—',
     }
   }).filter((row): row is NonNullable<typeof row> => Boolean(row)).sort((a, b) => a.position - b.position)
   const sample = rows.length ? drivers.map((driver) => record(record(driver.races)[String(raceId)])).find((race) => Object.keys(race).length) : {}
@@ -157,11 +157,11 @@ function detailedRows(drivers: UnknownRecord[], sessionId: number, stage = false
     }
     rows.push({
       position: number(race.finish_pos), driver: driverName(driver.name), start: number(race.qualify_pos),
-      interval: text(first(race, ['interval', 'gap', 'time_interval', 'interval_time', 'finish_interval'])) || 'â€”',
+      interval: text(first(race, ['interval', 'gap', 'time_interval', 'interval_time', 'finish_interval'])) || '—',
       laps: number(race.num_laps), led: number(race.laps_led), racePoints: number(race.race_points),
       stagePoints: number(race.stage_points), bonus: number(race.bonus_points), penalty: number(race.penalty_points),
-      total: number(race.total_points), incidents: number(race.incidents), status: text(race.status) || 'â€”',
-      passes: text(race.passes) || 'â€”', quality: text(race.quality_passes) || 'â€”',
+      total: number(race.total_points), incidents: number(race.incidents), status: text(race.status) || '—',
+      passes: text(race.passes) || '—', quality: text(race.quality_passes) || '—',
     })
   })
   return rows.sort((a, b) => number(a.position) - number(b.position))
@@ -180,7 +180,7 @@ export function adaptSimRacerEvents(payload: unknown, schedule: ScheduledRace[],
     }))
     const sessions = [{ id: raceId, label: 'Overall Race Finish', rows: detailedRows(drivers, raceId) }]
     ;[...stageIds].sort((a, b) => a - b).forEach((id, stageIndex) => sessions.push({ id, label: `Stage ${stageIndex + 1}`, rows: detailedRows(drivers, id, true) }))
-    return { id: raceId, label: scheduled ? `${scheduled.track} â€” ${scheduled.date}` : `Round ${index + 1} â€” Race ${raceId}`, sessions }
+    return { id: raceId, label: scheduled ? `${scheduled.track} — ${scheduled.date}` : `Round ${index + 1} — Race ${raceId}`, sessions }
   })
   return { events, season: text(record(record(payload).lss).season_name) || text(record(payload).season_name) }
 }

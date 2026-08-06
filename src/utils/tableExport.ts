@@ -57,7 +57,7 @@ export function downloadPng(title: string, columns: ExportColumn[], rows: TableR
     x = 12
     columns.forEach((column, index) => {
       const value = String(row[column.key] ?? '')
-      context.fillText(value.length > 30 ? `${value.slice(0, 29)}â€¦` : value, x, y + 25)
+      context.fillText(value.length > 30 ? `${value.slice(0, 29)}…` : value, x, y + 25)
       x += widths[index]
     })
   })

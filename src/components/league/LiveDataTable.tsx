@@ -49,12 +49,12 @@ export function LiveDataTable({ title, columns, loader, search = false }: {
     })
   }, [query, rows, sort])
 
-  if (status === 'loading') return <LoadingState label={`Loading ${title}â€¦`} />
+  if (status === 'loading') return <LoadingState label={`Loading ${title}…`} />
   if (status === 'error') return <ErrorState message={message} onRetry={reload} />
 
   return <>
     <div className="data-toolbar">
-      {search && <label className="search-field"><span>Search table</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Searchâ€¦" /></label>}
+      {search && <label className="search-field"><span>Search table</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search…" /></label>}
       <div className="export-controls" aria-label="Table export controls">
         <button className="button button--compact" type="button" disabled={!visibleRows.length} onClick={() => downloadCsv(title, columns, visibleRows)}>Export CSV</button>
         <button className="button button--compact button--secondary" type="button" disabled={!visibleRows.length} onClick={() => downloadPng(title, columns, visibleRows)}>Save PNG</button>
@@ -66,11 +66,11 @@ export function LiveDataTable({ title, columns, loader, search = false }: {
       const item = columns.find((candidate) => candidate.label === column)
       if (!item) return column
       const active = sort?.key === item.key
-      return <button className="sort-button" type="button" onClick={() => setSort(active ? { key: item.key, direction: sort.direction === 1 ? -1 : 1 } : { key: item.key, direction: 1 })}>{column}<span aria-hidden="true">{active ? (sort.direction === 1 ? ' â†‘' : ' â†“') : ''}</span></button>
+      return <button className="sort-button" type="button" onClick={() => setSort(active ? { key: item.key, direction: sort.direction === 1 ? -1 : 1 } : { key: item.key, direction: 1 })}>{column}<span aria-hidden="true">{active ? (sort.direction === 1 ? ' ↑' : ' ↓') : ''}</span></button>
     }}>
       {visibleRows.map((row, index) => <tr key={`${String(row.driver ?? row.track ?? 'row')}-${index}`}>{columns.map((column) => <td key={column.key}>{column.link && row[column.key] ? <a href={String(row[column.key])} target="_blank" rel="noreferrer">View<span className="sr-only"> (opens in a new tab)</span></a> : row[column.key]}</td>)}</tr>)}
       {!visibleRows.length && <EmptyTableRow columns={columns.length} message={query ? 'No rows match your search.' : 'No data is currently available.'} />}
     </DataTable>
-    <p className="table-hint">Mobile: swipe left/right Â· Select a column heading to sort</p>
+    <p className="table-hint">Mobile: swipe left/right · Select a column heading to sort</p>
   </>
 }

@@ -32,7 +32,7 @@ export function RaceResultsExplorer({ title, loader }: { title: string; loader: 
   const session = event?.sessions[sessionIndex] ?? event?.sessions[0]
   const tableLoader = useMemo(() => async () => ({ rows: session?.rows ?? [], label: event?.label }), [event?.label, session?.rows])
   if (error) return <ErrorState message={error} onRetry={() => setRetry((value) => value + 1)} />
-  if (!event || !session) return <LoadingState label={`Loading ${title}â€¦`} />
+  if (!event || !session) return <LoadingState label={`Loading ${title}…`} />
 
   return <>
     <div className="results-selector">
@@ -40,6 +40,6 @@ export function RaceResultsExplorer({ title, loader }: { title: string; loader: 
       <button className="button button--compact" type="button" onClick={() => { setEventIndex(events.length - 1); setSessionIndex(0) }}>Latest Race</button>
     </div>
     {event.sessions.length > 1 && <div className="result-tabs" role="group" aria-label="Race session"><button className={sessionIndex === 0 ? 'filter-button is-active' : 'filter-button'} type="button" onClick={() => setSessionIndex(0)}>Overall Race Finish</button>{event.sessions.slice(1).map((item, index) => <button className={sessionIndex === index + 1 ? 'filter-button is-active' : 'filter-button'} type="button" key={item.id} onClick={() => setSessionIndex(index + 1)}>{item.label}</button>)}</div>}
-    <LiveDataTable key={session.id} title={`${title} â€” ${event.label} â€” ${session.label}`} columns={sessionIndex ? stageColumns : raceColumns} loader={tableLoader} search />
+    <LiveDataTable key={session.id} title={`${title} — ${event.label} — ${session.label}`} columns={sessionIndex ? stageColumns : raceColumns} loader={tableLoader} search />
   </>
 }

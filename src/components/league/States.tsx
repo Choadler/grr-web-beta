@@ -1,4 +1,4 @@
-export function LoadingState({ label = 'Loadingâ€¦' }: { label?: string }) {
+export function LoadingState({ label = 'Loading…' }: { label?: string }) {
   return (
     <div className="state-message" role="status">
       <span className="loader" aria-hidden="true" />

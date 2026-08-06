@@ -88,7 +88,7 @@ function LinkGrid({ links }: { links: LeagueNavItem[] }) {
       {links.map((item) => (
         <Link key={item.href} to={item.href}>
           {item.label}
-          <span aria-hidden="true">â†’</span>
+          <span aria-hidden="true">→</span>
         </Link>
       ))}
     </div>
@@ -132,7 +132,7 @@ const cupSections = [
   ['3. Season / Race Rules', 'The 2026 regular season is 26 weeks, followed by a 10-race Chase.'],
   [
     '4. Car Setups / Liveries',
-    'Open setups are permitted within iRacingâ€™s rules. All setups must be legal.',
+    'Open setups are permitted within iRacing’s rules. All setups must be legal.',
   ],
   [
     '5. License Points and Penalties',
@@ -144,7 +144,7 @@ const cupSections = [
   ],
   [
     '7. Filing a Protest',
-    'Protests are filed through the protest channel in the leagueâ€™s Discord server.',
+    'Protests are filed through the protest channel in the league’s Discord server.',
   ],
   ['8. Teams (Optional)', 'Each team may consist of up to four full-time drivers.'],
   ['9. League and Admin Authority', 'The race director and appointed stewards enforce the rules.'],
