@@ -10,6 +10,7 @@ import { EmptyState } from '../../components/league/States'
 import { externalLinks } from '../../config/site'
 import { cupRaceEvents, cupSchedule, cupStandings, gtResults, gtSchedule, gtStandings, gtTeamStandings, indyRaceEvents, indySchedule, indyStandings } from '../../services/dataSources'
 import type { DataLoader } from '../../types/league'
+import type { TableRow } from '../../types/league'
 
 const cupNav: LeagueNavItem[] = [
   { label: 'Cup Sporting Code', href: '/pages/cup-series-sporting-code' },
@@ -168,8 +169,10 @@ type DataPageProps = {
   caption?: string
   loader?: DataLoader
   loaders?: DataLoader[]
+  rowClassName?: (row: TableRow) => string
+  note?: string
 }
-function DataPage({ league, title, eyebrow, columns, filters, search, caption, loader, loaders }: DataPageProps) {
+function DataPage({ league, title, eyebrow, columns, filters, search, caption, loader, loaders, rowClassName, note }: DataPageProps) {
   const [activeFilter, setActiveFilter] = useState(0)
   const activeLoader = loaders?.[activeFilter] ?? loader
   return (
@@ -190,7 +193,8 @@ function DataPage({ league, title, eyebrow, columns, filters, search, caption, l
             ))}
           </fieldset>
       </div>}
-      {activeLoader ? <LiveDataTable key={activeFilter} title={caption ?? title} columns={columns} loader={activeLoader} search={search} /> : <DataTable caption={caption ?? title} columns={columns.map((column) => column.label)}>
+      {note && <p className="standings-legend">{note}</p>}
+      {activeLoader ? <LiveDataTable key={activeFilter} title={caption ?? title} columns={columns} loader={activeLoader} search={search} rowClassName={rowClassName} /> : <DataTable caption={caption ?? title} columns={columns.map((column) => column.label)}>
         <EmptyTableRow
           columns={columns.length}
           message="TODO(integration): Confirm the current public data endpoint before connecting this table."
@@ -207,7 +211,9 @@ export const CupStandingsPage = () => (
     eyebrow="GRR Cup Series 2026"
     search
     loader={cupStandings}
-    columns={[{ key: 'rank', label: 'Pos' }, { key: 'driver', label: 'Driver' }, { key: 'points', label: 'Pts' }, { key: 'starts', label: 'Starts' }, { key: 'wins', label: 'W' }, { key: 'stageWins', label: 'Stg W' }, { key: 'poles', label: 'Poles' }, { key: 'top5', label: 'T5' }, { key: 'top10', label: 'T10' }, { key: 'lapsLed', label: 'Led' }, { key: 'rating', label: 'Rating' }, { key: 'link', label: 'Link', link: true }]}
+    note="Chase field: positions 1–16 are currently in. The green line marks the cutoff."
+    rowClassName={(row) => Number(row.rank) === 17 ? 'standings-row--cutline' : Number(row.rank) <= 16 ? 'standings-row--chase' : ''}
+    columns={[{ key: 'rank', label: 'Pos' }, { key: 'driver', label: 'Driver' }, { key: 'points', label: 'Pts' }, { key: 'cutoff', label: '+/- Cutoff' }, { key: 'chase', label: 'Chase' }, { key: 'starts', label: 'Starts' }, { key: 'wins', label: 'W' }, { key: 'stageWins', label: 'Stg W' }, { key: 'poles', label: 'Poles' }, { key: 'top5', label: 'T5' }, { key: 'top10', label: 'T10' }, { key: 'lapsLed', label: 'Led' }, { key: 'link', label: 'Link', link: true }]}
   />
 )
 export const CupSchedulePage = () => (

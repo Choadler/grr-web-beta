@@ -49,8 +49,14 @@ export function adaptSimRacerStandings(payload: unknown): DataResult {
       link: id ? `https://www.simracerhub.com/scoring/driver_stats.php?driver_id=${encodeURIComponent(id)}` : '',
     }
   }).filter((row) => row.driver).sort((a, b) => a.rank - b.rank)
+  const sixteenth = rows.find((row) => row.rank === 16)?.points ?? 0
+  const seventeenth = rows.find((row) => row.rank === 17)?.points ?? sixteenth
+  const rowsWithCutoff = rows.map((row) => {
+    const difference = row.points - (row.rank <= 16 ? seventeenth : sixteenth)
+    return { ...row, cutoff: `${difference >= 0 ? '+' : ''}${difference}`, chase: row.rank <= 16 ? 'IN' : '—' }
+  })
   const season = record(root.lss)
-  return { ...requireRows(rows, 'SimRacerHub standings'), label: text(season.season_name), updated: text(first(root, ['updated', 'note'])) }
+  return { ...requireRows(rowsWithCutoff, 'SimRacerHub standings'), label: text(season.season_name), updated: text(first(root, ['updated', 'note'])) }
 }
 
 export function adaptGtSchedule(payload: unknown): DataResult {

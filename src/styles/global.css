@@ -729,6 +729,15 @@ button:focus-visible {
   color: #c8d0c5;
   font-size: 0.82rem;
 }
+.standings-legend {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid var(--green);
+  background: #151c14;
+  color: #dfe7dc;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
 .results-selector {
   display: flex;
   align-items: end;
@@ -795,6 +804,16 @@ button:focus-visible {
   font-size: 0.72rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+.standings-row--chase {
+  background: rgba(55, 174, 15, 0.065);
+}
+.standings-row--chase td:nth-child(5) {
+  color: #b9f7aa;
+  font-weight: 900;
+}
+.standings-row--cutline td {
+  border-top: 3px solid var(--green);
 }
 .sort-button {
   margin: -0.8rem;
