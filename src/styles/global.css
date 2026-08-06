@@ -294,6 +294,36 @@ a {
   color: #fff;
   font-variant-numeric: tabular-nums;
 }
+.championship-leaders {
+  width: min(100%, 280px);
+  margin: 0 0 0.75rem;
+  color: #fff;
+  text-shadow: 0 1px 4px #000;
+}
+.championship-leaders > span {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: #a9dca0;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.championship-leaders strong {
+  display: block;
+  overflow: hidden;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.championship-leaders small {
+  margin-right: 0.4rem;
+  color: #aeb7ac;
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
 .league-countdown span,
 .league-countdown strong {
   display: block;

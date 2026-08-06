@@ -3,7 +3,8 @@ import { Link, NavLink, Route, Routes } from 'react-router-dom'
 import { currentSiteAssets, externalLinks, navigation } from './config/site'
 import { cupSchedule as cupCalendar, indycarSchedule as indyCalendar } from './config/schedules'
 import { LeagueCountdown } from './components/league/LeagueCountdown'
-import { gtSchedule } from './services/dataSources'
+import { ChampionshipLeaders } from './components/league/ChampionshipLeaders'
+import { cupStandings, gtSchedule, gtStandings, indyStandings } from './services/dataSources'
 import {
   CupBroadcastPage,
   CupLandingPage,
@@ -121,12 +122,14 @@ function League({
   href,
   image,
   alt,
+  leaders,
   countdown,
 }: {
   title: string
   href: string
   image: string
   alt: string
+  leaders: React.ReactNode
   countdown: React.ReactNode
 }) {
   return (
@@ -134,6 +137,7 @@ function League({
       <img src={image} alt={alt} loading="lazy" />
       <div className="league-panel__content">
         <h2>{title}</h2>
+        {leaders}
         {countdown}
         <Link className="button" to={href}>
           Click Here
@@ -170,6 +174,7 @@ function Home() {
           href="/pages/grr-cup-series"
           image="/assets/home/cup-series.webp"
           alt="GRR Cup Series racing"
+          leaders={<ChampionshipLeaders sources={[{ loader: cupStandings }]} />}
           countdown={<LeagueCountdown schedule={cupCalendar} />}
         />
         <League
@@ -177,6 +182,7 @@ function Home() {
           href="/pages/gt-league"
           image="/assets/home/gt-league.webp"
           alt="GRR GT League racing"
+          leaders={<ChampionshipLeaders sources={[{ label: 'GT3 AM', loader: gtStandings('am') }, { label: 'GT3 Pro', loader: gtStandings('pro') }, { label: 'GTP', loader: gtStandings('gtp') }]} />}
           countdown={<LeagueCountdown loader={gtSchedule} />}
         />
         <League
@@ -184,6 +190,7 @@ function Home() {
           href="/pages/indycar"
           image="/assets/home/indycar.webp"
           alt="GRR IndyCar League racing"
+          leaders={<ChampionshipLeaders sources={[{ loader: indyStandings }]} />}
           countdown={<LeagueCountdown schedule={indyCalendar} />}
         />
       </section>
