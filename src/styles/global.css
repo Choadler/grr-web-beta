@@ -65,7 +65,7 @@ a {
 }
 .header-inner {
   width: min(calc(100% - 2rem), var(--content));
-  min-height: 78px;
+  min-height: clamp(118px, 10vw, 140px);
   margin: auto;
   display: flex;
   align-items: center;
@@ -73,10 +73,11 @@ a {
 }
 .brand {
   margin-right: auto;
+  flex: 0 0 auto;
 }
 .brand img {
-  width: 78px;
-  height: 58px;
+  width: clamp(112px, 10vw, 140px);
+  height: auto;
   object-fit: contain;
 }
 .main-nav > ul,
@@ -103,6 +104,28 @@ a {
 .main-nav a:focus-visible,
 .main-nav a.active {
   color: #8bd47f;
+}
+.discord-button,
+.button.discord-button,
+.main-nav a.discord-button {
+  border-color: #5865f2;
+  background: #5865f2;
+  color: #fff;
+}
+.discord-button:hover,
+.discord-button:focus-visible,
+.button.discord-button:hover,
+.button.discord-button:focus-visible,
+.main-nav a.discord-button:hover,
+.main-nav a.discord-button:focus-visible,
+.main-nav a.discord-button.active {
+  border-color: #4752c4;
+  background: #4752c4;
+  color: #fff;
+}
+.main-nav a.discord-button {
+  margin-inline: 0.25rem;
+  padding-inline: 1rem;
 }
 .nav-group {
   position: relative;
@@ -340,7 +363,7 @@ button:focus-visible {
     left: 0;
     right: 0;
     display: none;
-    max-height: calc(100vh - 78px);
+    max-height: calc(100vh - 118px);
     overflow: auto;
     background: #0f120f;
     border-top: 1px solid #394037;

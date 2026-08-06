@@ -77,7 +77,7 @@ function DiscordCallout() {
   return (
     <aside className="league-callout">
       <h2>Wanna race? Register in our Discord for free!</h2>
-      <a className="button" href={externalLinks.discord} target="_blank" rel="noreferrer">
+      <a className="button discord-button" href={externalLinks.discord} target="_blank" rel="noreferrer">
         GRR Discord<span className="sr-only"> (opens in a new tab)</span>
       </a>
     </aside>

@@ -30,7 +30,7 @@ const External = ({
   children: React.ReactNode
   className?: string
 }) => (
-  <a href={href} className={className} target="_blank" rel="noreferrer">
+  <a href={href} className={[className, href === externalLinks.discord ? 'discord-button' : ''].filter(Boolean).join(' ')} target="_blank" rel="noreferrer">
     {children}
     <span className="sr-only"> (opens in a new tab)</span>
   </a>
@@ -71,7 +71,7 @@ function Header() {
           <ul>
             {navigation.map((g) => (
               <li className={g.items ? 'nav-group' : ''} key={g.label}>
-                <NavLink to={g.href} onClick={() => setOpen(false)}>
+                <NavLink className={g.href === externalLinks.discord ? 'discord-button' : undefined} to={g.href} onClick={() => setOpen(false)}>
                   {g.label}
                   {g.items && <span aria-hidden="true"> ▾</span>}
                 </NavLink>
