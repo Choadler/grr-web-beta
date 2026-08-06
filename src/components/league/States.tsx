@@ -7,11 +7,11 @@ export function LoadingState({ label = 'Loading…' }: { label?: string }) {
   )
 }
 
-export function EmptyState({ title, message }: { title: string; message: string }) {
+export function EmptyState({ title, message }: { title: string; message?: string }) {
   return (
     <div className="state-message">
       <strong>{title}</strong>
-      <p>{message}</p>
+      {message && <p>{message}</p>}
     </div>
   )
 }

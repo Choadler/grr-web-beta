@@ -479,26 +479,39 @@ button:focus-visible {
 }
 .league-link-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1px;
-  background: #52604e;
-  border: 1px solid #52604e;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
 }
 .league-link-grid a {
-  min-height: 110px;
+  min-height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1.4rem;
-  background: #20291d;
+  padding: 0.9rem 1rem 0.9rem 1.15rem;
+  border: 1px solid #4f5b4b;
+  border-left: 5px solid var(--green);
+  background: #151b14;
   font-weight: 800;
   text-decoration: none;
   text-transform: uppercase;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 .league-link-grid a:hover,
 .league-link-grid a:focus-visible {
-  background: #2e3b29;
+  border-color: #86bf7d;
+  background: #202a1e;
+  transform: translateX(3px);
+}
+.league-link-grid a span {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  border: 1px solid #63805e;
+  border-radius: 50%;
+  color: #b9f7aa;
 }
 .league-callout,
 .media-placeholder {
@@ -835,6 +848,13 @@ button:focus-visible {
 .results-row--bronze {
   background: linear-gradient(90deg, rgba(205, 127, 50, 0.22), rgba(160, 90, 25, 0.06));
   box-shadow: inset 4px 0 #cd7f32;
+}
+.schedule-row--next {
+  background: rgba(55, 174, 15, 0.16);
+  box-shadow: inset 4px 0 var(--green);
+}
+.schedule-row--done {
+  opacity: 0.88;
 }
 .standings-row--cutline td {
   border-top: 3px solid var(--green);

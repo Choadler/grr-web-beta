@@ -28,10 +28,10 @@ const gtNav: LeagueNavItem[] = [
   { label: 'GT Race Results', href: '/pages/gt-race-results' },
 ]
 const indyNav: LeagueNavItem[] = [
-  { label: 'Sporting Code', href: '/pages/indycar-sporting-code' },
-  { label: 'Standings', href: '/pages/indycar-standings' },
-  { label: 'Schedule', href: '/pages/indycar-schedule' },
-  { label: 'Race Results', href: '/pages/indycar-results' },
+  { label: 'IndyCar Sporting Code', href: '/pages/indycar-sporting-code' },
+  { label: 'IndyCar Standings', href: '/pages/indycar-standings' },
+  { label: 'IndyCar Schedule', href: '/pages/indycar-schedule' },
+  { label: 'IndyCar Race Results', href: '/pages/indycar-results' },
 ]
 
 type LeagueKey = 'cup' | 'gt' | 'indycar'
@@ -152,8 +152,7 @@ export function IndySportingCodePage() {
   return (
     <PageShell league="indycar" title="GRR IndyCar Sporting Code">
       <EmptyState
-        title="Sporting code migration in progress"
-        message="TODO(content): Migrate the publicly visible IndyCar sporting code after completing line-by-line verification. No replacement rules have been invented."
+        title="IndyCar Sporting Code Coming Soon!"
       />
     </PageShell>
   )
@@ -225,7 +224,14 @@ export const CupSchedulePage = () => (
     columns={[{ key: 'round', label: 'Rd' }, { key: 'date', label: 'Date' }, { key: 'track', label: 'Track' }, { key: 'type', label: 'Type' }, { key: 'winner', label: 'Winner' }, { key: 'pole', label: 'Pole' }]}
   />
 )
-export const CupResultsPage = () => <PageShell league="cup" title="GRR Cup Series Race Results" eyebrow="GRR Cup Series 2026"><RaceResultsExplorer title="GRR Cup Series Race Results" loader={cupRaceEvents} /></PageShell>
+const cupResultColumns: LiveColumn[] = [
+  { key: 'position', label: 'Pos' }, { key: 'driver', label: 'Driver' }, { key: 'start', label: 'Start' },
+  { key: 'interval', label: 'Int' }, { key: 'laps', label: 'Laps' }, { key: 'led', label: 'Led' },
+  { key: 'racePoints', label: 'Race Pts' }, { key: 'stagePoints', label: 'Stg Pts' },
+  { key: 'total', label: 'Total Points' }, { key: 'bonus', label: 'Bonus' }, { key: 'penalty', label: 'Pen' },
+  { key: 'incidents', label: 'Inc' }, { key: 'status', label: 'Status' },
+]
+export const CupResultsPage = () => <PageShell league="cup" title="GRR Cup Series Race Results" eyebrow="GRR Cup Series 2026"><RaceResultsExplorer title="GRR Cup Series Race Results" loader={cupRaceEvents} columns={cupResultColumns} /></PageShell>
 export function CupBroadcastPage() {
   return (
     <PageShell league="cup" title="GRR Cup Broadcast">
@@ -245,6 +251,7 @@ export const GtSchedulePage = () => (
     league="gt"
     title="GT League Schedule"
     loader={gtSchedule}
+    rowClassName={(row) => row.state === 'next' ? 'schedule-row--next' : row.state === 'done' ? 'schedule-row--done' : ''}
     columns={[{ key: 'round', label: 'Round' }, { key: 'date', label: 'Date' }, { key: 'track', label: 'Track' }, { key: 'am', label: 'GT3 AM Winner' }, { key: 'pro', label: 'GT3 Pro Winner' }, { key: 'gtp', label: 'GTP Winner' }]}
   />
 )

@@ -61,16 +61,28 @@ export function adaptSimRacerStandings(payload: unknown): DataResult {
 
 export function adaptGtSchedule(payload: unknown): DataResult {
   const root = record(payload)
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
   const rows = list(first(root, ['races', 'schedule', 'data'])).map((value, index) => {
     const row = record(value)
+    const classes = list(row.classes).map((classValue) => record(classValue))
+    const winner = (className: string) => {
+      const classObject = classes.find((item) => text(item.class) === className)
+      const firstPlace = list(classObject?.entries).map((entry) => record(entry)).find((entry) => number(entry.class_position) === 1)
+      return driverName(firstPlace?.driver)
+    }
+    const am = winner('GT3 AM'); const pro = winner('GT3 PRO'); const gtp = winner('GTP')
+    const parsed = Date.parse(text(row.date_text)); const iso = Number.isFinite(parsed) ? new Date(parsed).toISOString().slice(0, 10) : ''
     return {
       round: number(first(row, ['race_number', 'round'])) || index + 1,
       date: text(first(row, ['date_text', 'date'])), track: text(first(row, ['track_name', 'track'])),
-      am: text(first(row, ['am', 'gt3_am_winner'])), pro: text(first(row, ['pro', 'gt3_pro_winner'])),
-      gtp: text(first(row, ['gtp', 'gtp_winner'])),
+      am: am || '—', pro: pro || '—', gtp: gtp || '—',
+      state: am || pro || gtp || (iso && iso < today) ? 'done' : 'upcoming',
     }
   }).filter((row) => row.track)
-  return { ...requireRows(rows, 'GT schedule'), updated: text(first(root, ['updated', 'note'])) }
+  const nextIndex = rows.findIndex((row) => row.state === 'upcoming')
+  if (nextIndex >= 0) rows[nextIndex] = { ...rows[nextIndex], state: 'next' }
+  const next = nextIndex >= 0 ? rows[nextIndex] : null
+  return { ...requireRows(rows, 'GT schedule'), label: next ? `Next: ${next.date || 'TBD'} — ${next.track || 'TBD'}` : `Races: ${rows.length}` }
 }
 
 export function adaptGtResults(payload: unknown, classKey: string): DataResult {
