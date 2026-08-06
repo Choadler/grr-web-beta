@@ -20,17 +20,37 @@ export function downloadCsv(title: string, columns: ExportColumn[], rows: TableR
   download(new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8' }), `${safeName(title)}.csv`)
 }
 
-export function downloadPng(title: string, columns: ExportColumn[], rows: TableRow[]) {
-  const widths = columns.map((column) => Math.max(110, Math.min(260, column.label.length * 10 + 36)))
-  const width = Math.min(4096, Math.max(900, widths.reduce((total, value) => total + value, 0)))
+function fitText(context: CanvasRenderingContext2D, value: string, maxWidth: number) {
+  if (context.measureText(value).width <= maxWidth) return value
+  let end = value.length
+  while (end > 0 && context.measureText(`${value.slice(0, end)}…`).width > maxWidth) end -= 1
+  return `${value.slice(0, end)}…`
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement) {
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('The PNG could not be created.')), 'image/png')
+  })
+}
+
+export async function copyPng(title: string, columns: ExportColumn[], rows: TableRow[]) {
   const visibleRows = rows.slice(0, 100)
+  const canvas = document.createElement('canvas')
+  const context = canvas.getContext('2d')
+  if (!context) throw new Error('Canvas is not supported in this browser.')
+
+  const cellPadding = 24
+  context.font = '14px Arial'
+  const widths = columns.map((column) => {
+    const headerWidth = context.measureText(column.label.toUpperCase()).width
+    const contentWidth = Math.max(...visibleRows.map((row) => context.measureText(String(row[column.key] ?? '')).width), 0)
+    return Math.ceil(Math.max(88, Math.min(380, Math.max(headerWidth, contentWidth) + cellPadding)))
+  })
+  const width = Math.max(900, widths.reduce((total, value) => total + value, 0))
   const rowHeight = 38
   const height = 86 + rowHeight * (visibleRows.length + 1)
-  const canvas = document.createElement('canvas')
   canvas.width = width
   canvas.height = height
-  const context = canvas.getContext('2d')
-  if (!context) return
 
   context.fillStyle = '#111511'
   context.fillRect(0, 0, width, height)
@@ -44,7 +64,7 @@ export function downloadPng(title: string, columns: ExportColumn[], rows: TableR
 
   let x = 12
   columns.forEach((column, index) => {
-    context.fillText(column.label.toUpperCase(), x, 78)
+    context.fillText(fitText(context, column.label.toUpperCase(), widths[index] - cellPadding), x, 78)
     x += widths[index]
   })
 
@@ -57,9 +77,22 @@ export function downloadPng(title: string, columns: ExportColumn[], rows: TableR
     x = 12
     columns.forEach((column, index) => {
       const value = String(row[column.key] ?? '')
-      context.fillText(value.length > 30 ? `${value.slice(0, 29)}…` : value, x, y + 25)
+      context.fillText(fitText(context, value, widths[index] - cellPadding), x, y + 25)
       x += widths[index]
     })
   })
-  canvas.toBlob((blob) => blob && download(blob, `${safeName(title)}.png`), 'image/png')
+
+  const blob = await canvasToBlob(canvas)
+  if (navigator.clipboard?.write && typeof ClipboardItem !== 'undefined') {
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+      return 'copied' as const
+    } catch {
+      download(blob, `${safeName(title)}.png`)
+      return 'downloaded' as const
+    }
+  }
+
+  download(blob, `${safeName(title)}.png`)
+  return 'downloaded' as const
 }

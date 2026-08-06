@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { DataLoader, TableRow } from '../../types/league'
-import { downloadCsv, downloadPng } from '../../utils/tableExport'
+import { copyPng, downloadCsv } from '../../utils/tableExport'
 import { DataTable, EmptyTableRow } from './DataTable'
 import { ErrorState, LoadingState } from './States'
 
@@ -24,6 +24,7 @@ export function LiveDataTable({ title, columns, loader, search = false, rowClass
   const [message, setMessage] = useState('')
   const [retry, setRetry] = useState(0)
   const [sort, setSort] = useState<{ key: string; direction: 1 | -1 } | null>(null)
+  const [pngStatus, setPngStatus] = useState<'idle' | 'copying' | 'copied' | 'downloaded' | 'error'>('idle')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -55,6 +56,18 @@ export function LiveDataTable({ title, columns, loader, search = false, rowClass
     })
   }, [query, rows, sort])
 
+  const handleCopyPng = async () => {
+    setPngStatus('copying')
+    try {
+      const result = await copyPng(title, columns, visibleRows)
+      setPngStatus(result)
+      window.setTimeout(() => setPngStatus('idle'), 2500)
+    } catch {
+      setPngStatus('error')
+      window.setTimeout(() => setPngStatus('idle'), 3000)
+    }
+  }
+
   if (status === 'loading') return <LoadingState label={`Loading ${title}…`} />
   if (status === 'error') return <ErrorState message={message} onRetry={reload} />
 
@@ -63,7 +76,9 @@ export function LiveDataTable({ title, columns, loader, search = false, rowClass
       {search && <label className="search-field"><span>Search table</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search…" /></label>}
       <div className="export-controls" aria-label="Table export controls">
         <button className="button button--compact" type="button" disabled={!visibleRows.length} onClick={() => downloadCsv(title, columns, visibleRows)}>Export CSV</button>
-        <button className="button button--compact button--secondary" type="button" disabled={!visibleRows.length} onClick={() => downloadPng(title, columns, visibleRows)}>Save PNG</button>
+        <button className="button button--compact button--secondary" type="button" disabled={!visibleRows.length || pngStatus === 'copying'} onClick={handleCopyPng} aria-live="polite">
+          {pngStatus === 'copying' ? 'Copying...' : pngStatus === 'copied' ? 'Copied to Clipboard' : pngStatus === 'downloaded' ? 'PNG Downloaded' : pngStatus === 'error' ? 'Copy Failed' : 'Copy PNG'}
+        </button>
         <button className="button button--compact button--secondary" type="button" onClick={reload}>Refresh</button>
       </div>
     </div>
