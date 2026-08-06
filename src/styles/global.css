@@ -170,7 +170,7 @@ a {
 }
 .hero {
   position: relative;
-  min-height: 640px;
+  min-height: 520px;
   display: grid;
   background: #111;
   overflow: hidden;
@@ -185,7 +185,7 @@ a {
   position: relative;
   display: flex;
   align-items: flex-end;
-  padding: 8rem 0 5rem;
+  padding: 5rem 0 3.5rem;
   background:
     linear-gradient(90deg, #000000db, #00000038), linear-gradient(0deg, #000000ad, transparent 55%);
 }
@@ -540,10 +540,10 @@ button:focus-visible {
 }
 @media (max-width: 600px) {
   .hero {
-    min-height: 570px;
+    min-height: 470px;
   }
   .hero-overlay {
-    padding: 7rem 0 3rem;
+    padding: 4rem 0 2.5rem;
   }
   .league-panel {
     min-height: 320px;
@@ -1246,3 +1246,4 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
