@@ -21,4 +21,5 @@ Cloudflare Pages build command: `pnpm build`. Output directory: `dist`. See `doc
 ## Scope
 
 - Stage 1: repository tooling, visual system, accessible responsive header/footer, homepage, real GRR copy, and existing external links.
-- Later stages: league detail pages, tables/sporting codes, live-data adapters, export controls, and final URL migration.
+- Stage 2: Cup, GT, and IndyCar route structure; shared league navigation; sporting-code presentation; schedule, standings, and results table shells.
+- Later stages: live-data adapters, export controls, and final URL migration.
