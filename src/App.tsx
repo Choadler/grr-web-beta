@@ -34,7 +34,14 @@ const External = ({
   children: React.ReactNode
   className?: string
 }) => (
-  <a href={href} className={[className, href === externalLinks.discord ? 'discord-button' : ''].filter(Boolean).join(' ')} target="_blank" rel="noreferrer">
+  <a
+    href={href}
+    className={[className, href === externalLinks.discord ? 'discord-button' : '']
+      .filter(Boolean)
+      .join(' ')}
+    target="_blank"
+    rel="noreferrer"
+  >
     {children}
     <span className="sr-only"> (opens in a new tab)</span>
   </a>
@@ -75,7 +82,11 @@ function Header() {
           <ul>
             {navigation.map((g) => (
               <li className={g.items ? 'nav-group' : ''} key={g.label}>
-                <NavLink className={g.href === externalLinks.discord ? 'discord-button' : undefined} to={g.href} onClick={() => setOpen(false)}>
+                <NavLink
+                  className={g.href === externalLinks.discord ? 'discord-button' : undefined}
+                  to={g.href}
+                  onClick={() => setOpen(false)}
+                >
                   {g.label}
                   {g.items && <span aria-hidden="true"> ▾</span>}
                 </NavLink>
@@ -182,7 +193,15 @@ function Home() {
           href="/pages/gt-league"
           image="/assets/home/gt-league.webp"
           alt="GRR GT League racing"
-          leaders={<ChampionshipLeaders sources={[{ label: 'GT3 AM', loader: gtStandings('am') }, { label: 'GT3 Pro', loader: gtStandings('pro') }, { label: 'GTP', loader: gtStandings('gtp') }]} />}
+          leaders={
+            <ChampionshipLeaders
+              sources={[
+                { label: 'GT3 AM', loader: gtStandings('am') },
+                { label: 'GT3 Pro', loader: gtStandings('pro') },
+                { label: 'GTP', loader: gtStandings('gtp') },
+              ]}
+            />
+          }
           countdown={<LeagueCountdown loader={gtSchedule} />}
         />
         <League
@@ -193,6 +212,17 @@ function Home() {
           leaders={<ChampionshipLeaders sources={[{ loader: indyStandings }]} />}
           countdown={<LeagueCountdown schedule={indyCalendar} />}
         />
+      </section>
+      <section className="home-race-section section">
+        <div className="container home-race-callout">
+          <div>
+            <p className="eyebrow">Join Grassroots Racing</p>
+            <h2>Wanna race? Register in our Discord for free!</h2>
+          </div>
+          <External className="button discord-button" href={externalLinks.discord}>
+            GRR Discord
+          </External>
+        </div>
       </section>
       <section className="donation-section section">
         <div className="container donation-callout">
