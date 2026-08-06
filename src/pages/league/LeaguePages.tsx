@@ -6,6 +6,7 @@ import { GtSportingCode } from '../../components/league/GtSportingCode'
 import { LiveDataTable, type LiveColumn } from '../../components/league/LiveDataTable'
 import { RaceResultsExplorer } from '../../components/league/RaceResultsExplorer'
 import { LeagueCountdown } from '../../components/league/LeagueCountdown'
+import { LeagueOverview } from '../../components/league/LeagueOverview'
 import { LeagueNav, type LeagueNavItem } from '../../components/league/LeagueNav'
 import { PageMeta } from '../../components/league/PageMeta'
 import { EmptyState } from '../../components/league/States'
@@ -64,6 +65,13 @@ const leagueConfig = {
     schedule: indyCalendar,
   },
 } as const
+const cupOverviewStandings = [{ loader: cupStandings }]
+const gtOverviewStandings = [
+  { label: 'GT3 AM', loader: gtStandings('am') },
+  { label: 'GT3 Pro', loader: gtStandings('pro') },
+  { label: 'GTP', loader: gtStandings('gtp') },
+]
+const indyOverviewStandings = [{ loader: indyStandings }]
 
 function PageShell({
   league,
@@ -138,6 +146,12 @@ export function CupLandingPage() {
   return (
     <PageShell league="cup" title="GRR Cup Series">
       <LinkGrid links={cupNav} />
+      <LeagueOverview
+        standings={cupOverviewStandings}
+        results={cupRaceEvents}
+        standingsHref="/pages/cupstandings"
+        resultsHref="/pages/cup-latest-race-results"
+      />
       <DiscordCallout />
     </PageShell>
   )
@@ -146,6 +160,13 @@ export function GtLandingPage() {
   return (
     <PageShell league="gt" title="GRR GT League">
       <LinkGrid links={gtNav.slice(1)} />
+      <LeagueOverview
+        standings={gtOverviewStandings}
+        results={gtRaceEvents}
+        standingsHref="/pages/gt-standings"
+        resultsHref="/pages/gt-race-results"
+        multiClass
+      />
       <DiscordCallout />
     </PageShell>
   )
@@ -154,6 +175,12 @@ export function IndyLandingPage() {
   return (
     <PageShell league="indycar" title="GRR IndyCar League">
       <LinkGrid links={indyNav} />
+      <LeagueOverview
+        standings={indyOverviewStandings}
+        results={indyRaceEvents}
+        standingsHref="/pages/indycar-standings"
+        resultsHref="/pages/indycar-results"
+      />
       <DiscordCallout />
     </PageShell>
   )

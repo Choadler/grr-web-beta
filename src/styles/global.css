@@ -651,6 +651,99 @@ button:focus-visible {
   border-radius: 50%;
   color: #b9f7aa;
 }
+.league-brief-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 3rem;
+}
+.league-brief,
+.league-overview-state {
+  border: 1px solid #4f5b4b;
+  border-top: 5px solid var(--green);
+  background: #111511;
+}
+.league-brief {
+  padding: clamp(1.25rem, 2.5vw, 2rem);
+}
+.league-overview-state {
+  margin-top: 3rem;
+  padding: 2rem;
+  color: #c9d0c6;
+  text-align: center;
+}
+.league-brief__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #354033;
+}
+.league-brief__heading .eyebrow {
+  margin-bottom: 0.3rem;
+  font-size: 0.68rem;
+}
+.league-brief__heading h2 {
+  margin: 0;
+  font-size: clamp(1.25rem, 2.2vw, 1.8rem);
+  text-transform: uppercase;
+}
+.league-brief__heading > a {
+  flex: 0 0 auto;
+  color: #a9dca0;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.league-brief__event {
+  margin: 1rem 0 0;
+  color: #c9d0c6;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+.league-brief__groups {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+.league-brief__group h3 {
+  margin: 1.15rem 0 0.45rem;
+  color: #a9dca0;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.league-brief__list {
+  margin: 0.7rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.league-brief__list li {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 42px;
+  border-bottom: 1px solid #2e382c;
+  font-size: 0.78rem;
+}
+.league-brief__list strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.league-brief__list li > span:last-child {
+  color: #b9c2b6;
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+.league-brief__position {
+  color: #75df68;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
 .league-callout,
 .media-placeholder {
   margin-top: 3rem;
@@ -1091,6 +1184,9 @@ button:focus-visible {
   .league-link-grid {
     grid-template-columns: 1fr;
   }
+  .league-brief-grid {
+    grid-template-columns: 1fr;
+  }
   .sporting-layout {
     grid-template-columns: 1fr;
   }
@@ -1119,5 +1215,8 @@ button:focus-visible {
   }
   .filter-button {
     flex: 0 0 auto;
+  }
+  .league-brief__groups {
+    grid-template-columns: 1fr;
   }
 }
