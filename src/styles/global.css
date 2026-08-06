@@ -64,15 +64,16 @@ a {
   border-bottom: 1px solid #ffffff21;
 }
 .header-inner {
-  width: min(calc(100% - 2rem), var(--content));
+  width: 100%;
   min-height: 78px;
-  margin: auto;
+  margin: 0;
+  padding-inline: clamp(1rem, 2.5vw, 2.5rem);
   display: flex;
   align-items: center;
   gap: 2rem;
 }
 .brand {
-  margin-right: auto;
+  margin-right: 0;
   position: relative;
   align-self: stretch;
   flex: 0 0 clamp(112px, 10vw, 140px);
@@ -96,6 +97,9 @@ a {
   display: flex;
   align-items: center;
   gap: 0.35rem;
+}
+.main-nav {
+  margin-left: auto;
 }
 .main-nav a {
   display: block;
@@ -156,6 +160,7 @@ a {
 }
 .menu-toggle {
   display: none;
+  margin-left: auto;
   border: 1px solid #71816c;
   background: transparent;
   color: #fff;
