@@ -213,7 +213,7 @@ export const CupStandingsPage = () => (
     loader={cupStandings}
     note="Chase field: positions 1–16 are currently in. The green line marks the cutoff."
     rowClassName={(row) => Number(row.rank) === 17 ? 'standings-row--cutline' : Number(row.rank) <= 16 ? 'standings-row--chase' : ''}
-    columns={[{ key: 'rank', label: 'Pos' }, { key: 'driver', label: 'Driver' }, { key: 'points', label: 'Pts' }, { key: 'cutoff', label: '+/- Cutoff' }, { key: 'chase', label: 'Chase' }, { key: 'starts', label: 'Starts' }, { key: 'wins', label: 'W' }, { key: 'stageWins', label: 'Stg W' }, { key: 'poles', label: 'Poles' }, { key: 'top5', label: 'T5' }, { key: 'top10', label: 'T10' }, { key: 'lapsLed', label: 'Led' }, { key: 'link', label: 'Link', link: true }]}
+    columns={[{ key: 'rank', label: 'Pos' }, { key: 'driver', label: 'Driver' }, { key: 'points', label: 'Pts' }, { key: 'cutoff', label: '+/- Cutoff', cellClassName: (value) => Number(value) >= 100 ? 'cutoff-value cutoff-value--safe' : Number(value) <= -100 ? 'cutoff-value cutoff-value--danger' : 'cutoff-value cutoff-value--close' }, { key: 'chase', label: 'Chase' }, { key: 'starts', label: 'Starts' }, { key: 'wins', label: 'W' }, { key: 'stageWins', label: 'Stg W' }, { key: 'poles', label: 'Poles' }, { key: 'top5', label: 'T5' }, { key: 'top10', label: 'T10' }, { key: 'lapsLed', label: 'Led' }, { key: 'link', label: 'Link', link: true }]}
   />
 )
 export const CupSchedulePage = () => (

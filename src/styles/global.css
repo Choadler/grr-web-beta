@@ -806,11 +806,23 @@ button:focus-visible {
   text-transform: uppercase;
 }
 .standings-row--chase {
-  background: rgba(55, 174, 15, 0.065);
+  background: rgba(255, 193, 7, 0.09);
 }
 .standings-row--chase td:nth-child(5) {
-  color: #b9f7aa;
+  color: #ffe58b;
   font-weight: 900;
+}
+.cutoff-value {
+  font-weight: 900;
+}
+.cutoff-value--safe {
+  color: #75df68;
+}
+.cutoff-value--close {
+  color: #ffe066;
+}
+.cutoff-value--danger {
+  color: #ff737d;
 }
 .standings-row--cutline td {
   border-top: 3px solid var(--green);

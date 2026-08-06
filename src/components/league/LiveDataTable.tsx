@@ -4,7 +4,12 @@ import { downloadCsv, downloadPng } from '../../utils/tableExport'
 import { DataTable, EmptyTableRow } from './DataTable'
 import { ErrorState, LoadingState } from './States'
 
-export type LiveColumn = { key: string; label: string; link?: boolean }
+export type LiveColumn = {
+  key: string
+  label: string
+  link?: boolean
+  cellClassName?: (value: string | number, row: TableRow) => string
+}
 
 export function LiveDataTable({ title, columns, loader, search = false, rowClassName }: {
   title: string
@@ -69,7 +74,7 @@ export function LiveDataTable({ title, columns, loader, search = false, rowClass
       const active = sort?.key === item.key
       return <button className="sort-button" type="button" onClick={() => setSort(active ? { key: item.key, direction: sort.direction === 1 ? -1 : 1 } : { key: item.key, direction: 1 })}>{column}<span aria-hidden="true">{active ? (sort.direction === 1 ? ' ↑' : ' ↓') : ''}</span></button>
     }}>
-      {visibleRows.map((row, index) => <tr className={rowClassName?.(row)} key={`${String(row.driver ?? row.track ?? 'row')}-${index}`}>{columns.map((column) => <td key={column.key}>{column.link && row[column.key] ? <a href={String(row[column.key])} target="_blank" rel="noreferrer">View<span className="sr-only"> (opens in a new tab)</span></a> : row[column.key]}</td>)}</tr>)}
+      {visibleRows.map((row, index) => <tr className={rowClassName?.(row)} key={`${String(row.driver ?? row.track ?? 'row')}-${index}`}>{columns.map((column) => <td className={column.cellClassName?.(row[column.key] ?? '', row)} key={column.key}>{column.link && row[column.key] ? <a href={String(row[column.key])} target="_blank" rel="noreferrer">View<span className="sr-only"> (opens in a new tab)</span></a> : row[column.key]}</td>)}</tr>)}
       {!visibleRows.length && <EmptyTableRow columns={columns.length} message={query ? 'No rows match your search.' : 'No data is currently available.'} />}
     </DataTable>
     <p className="table-hint">Mobile: swipe left/right · Select a column heading to sort</p>
