@@ -1,81 +1,28 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hello, World!</title>
-  <style>
-    :root {
-      color-scheme: dark;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      min-height: 100vh;
-      margin: 0;
-      display: grid;
-      place-items: center;
-      color: #f8fafc;
-      background:
-        radial-gradient(circle at top left, rgba(56, 189, 248, 0.28), transparent 35%),
-        radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.3), transparent 40%),
-        #0f172a;
-    }
-
-    main {
-      width: min(90%, 680px);
-      padding: 4rem 2rem;
-      text-align: center;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 24px;
-      background: rgba(15, 23, 42, 0.7);
-      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
-      backdrop-filter: blur(16px);
-    }
-
-    h1 {
-      margin: 0;
-      font-size: clamp(3rem, 10vw, 6rem);
-      line-height: 1;
-      letter-spacing: -0.06em;
-      background: linear-gradient(135deg, #7dd3fc, #c084fc);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-
-    p {
-      margin: 1.5rem auto 0;
-      max-width: 42ch;
-      color: #cbd5e1;
-      font-size: 1.1rem;
-      line-height: 1.7;
-    }
-
-    .badge {
-      display: inline-block;
-      margin-bottom: 1.25rem;
-      padding: 0.4rem 0.8rem;
-      border-radius: 999px;
-      color: #bae6fd;
-      background: rgba(14, 165, 233, 0.12);
-      border: 1px solid rgba(125, 211, 252, 0.25);
-      font-size: 0.8rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-  </style>
-</head>
-<body>
-  <main>
-    <span class="badge">Proof of concept</span>
-    <h1>Hello, world!</h1>
-    <p>Your GRR Web Beta website is up and ready for its next idea.</p>
-  </main>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#1b2418" />
+    <meta
+      name="description"
+      content="Free-to-Enter iRacing Leagues by Sim Racers, For Sim Racers"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Grassroots Racing" />
+    <meta property="og:title" content="Grassroots Racing" />
+    <meta
+      property="og:description"
+      content="Free-to-Enter iRacing Leagues by Sim Racers, For Sim Racers"
+    />
+    <meta property="og:url" content="https://grassrootsracing.org/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="canonical" href="https://grassrootsracing.org/" />
+    <link rel="icon" href="/assets/branding/grr-logo.webp" />
+    <title>Grassroots Racing</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
