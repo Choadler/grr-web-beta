@@ -113,21 +113,38 @@ function Footer() {
     </footer>
   )
 }
+type TrackOutlineName = 'daytona-oval' | 'daytona-road' | 'indianapolis'
+
+function TrackOutline({ track }: { track: TrackOutlineName }) {
+  const paths: Record<TrackOutlineName, string> = {
+    'daytona-oval': 'M27 25C61 8 161 6 192 26C209 37 213 55 201 68C187 83 159 84 132 87C101 91 75 97 48 87C25 79 13 65 15 49C16 38 20 30 27 25Z',
+    'daytona-road': 'M27 25C61 8 161 6 192 26C209 37 213 55 201 68C192 78 174 81 153 83L138 65L151 52L134 38L111 43L99 62L76 69L54 61L44 43L27 50L17 62C12 50 16 33 27 25Z',
+    indianapolis: 'M43 14H177C194 14 204 25 204 42V58C204 75 194 86 177 86H43C26 86 16 75 16 58V42C16 25 26 14 43 14Z',
+  }
+
+  return <svg className="track-outline" viewBox="0 0 220 100" aria-hidden="true" focusable="false">
+    <path d={paths[track]} />
+  </svg>
+}
+
 function League({
   title,
   href,
   image,
   alt,
+  track,
 }: {
   title: string
   href: string
   image: string
   alt: string
+  track: TrackOutlineName
 }) {
   return (
     <article className="league-panel">
       <img src={image} alt={alt} loading="lazy" />
       <div className="league-panel__content">
+        <TrackOutline track={track} />
         <h2>{title}</h2>
         <Link className="button" to={href}>
           Click Here
@@ -164,18 +181,21 @@ function Home() {
           href="/pages/grr-cup-series"
           image="/assets/home/cup-series.webp"
           alt="GRR Cup Series racing"
+          track="daytona-oval"
         />
         <League
           title="GRR GT League - Tuesday Nights"
           href="/pages/gt-league"
           image="/assets/home/gt-league.webp"
           alt="GRR GT League racing"
+          track="daytona-road"
         />
         <League
           title="GRR IndyCar League - Sunday Nights"
           href="/pages/indycar"
           image="/assets/home/indycar.webp"
           alt="GRR IndyCar League racing"
+          track="indianapolis"
         />
       </section>
       <section className="donation-section section">

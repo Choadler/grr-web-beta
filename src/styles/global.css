@@ -272,6 +272,19 @@ a {
   z-index: 1;
   inset: auto 2rem 2rem;
 }
+.track-outline {
+  display: block;
+  width: clamp(112px, 11vw, 168px);
+  height: auto;
+  margin: 0 0 1rem;
+  overflow: visible;
+  fill: none;
+  stroke: #a9dca0;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 2px 5px #000c);
+}
 .league-panel h2 {
   max-width: 420px;
   margin: 0 0 1rem;
