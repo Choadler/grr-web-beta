@@ -1,0 +1,219 @@
+import { useEffect, useState } from 'react'
+import { Link, NavLink, Route, Routes } from 'react-router-dom'
+import { currentSiteAssets, externalLinks, navigation } from './config/site'
+
+const External = ({
+  href,
+  children,
+  className,
+}: {
+  href: string
+  children: React.ReactNode
+  className?: string
+}) => (
+  <a href={href} className={className} target="_blank" rel="noreferrer">
+    {children}
+    <span className="sr-only"> (opens in a new tab)</span>
+  </a>
+)
+function Header() {
+  const [open, setOpen] = useState(false)
+  useEffect(() => {
+    const close = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('keydown', close)
+    return () => document.removeEventListener('keydown', close)
+  }, [])
+  return (
+    <header className="site-header">
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
+      <div className="header-inner">
+        <NavLink className="brand" to="/" aria-label="Grassroots Racing home">
+          <img src="/assets/branding/grr-logo.webp" alt="Grassroots Racing" />
+        </NavLink>
+        <button
+          className="menu-toggle"
+          type="button"
+          aria-expanded={open}
+          aria-controls="main-navigation"
+          onClick={() => setOpen(!open)}
+        >
+          <span aria-hidden="true">{open ? '×' : '☰'}</span>
+          <span className="sr-only">{open ? 'Close menu' : 'Open menu'}</span>
+        </button>
+        <nav
+          id="main-navigation"
+          className={open ? 'main-nav is-open' : 'main-nav'}
+          aria-label="Primary"
+        >
+          <ul>
+            {navigation.map((g) => (
+              <li className={g.items ? 'nav-group' : ''} key={g.label}>
+                <NavLink to={g.href} onClick={() => setOpen(false)}>
+                  {g.label}
+                  {g.items && <span aria-hidden="true"> ▾</span>}
+                </NavLink>
+                {g.items && (
+                  <ul className="dropdown">
+                    {g.items.map((i) => (
+                      <li key={i.href}>
+                        <NavLink to={i.href} onClick={() => setOpen(false)}>
+                          {i.label}
+                        </NavLink>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+    </header>
+  )
+}
+function Footer() {
+  return (
+    <footer className="site-footer">
+      <div className="container footer-inner">
+        <img src="/assets/branding/grr-logo.webp" alt="" />
+        <div>
+          <strong>Grassroots Racing</strong>
+          <p>Free-to-Enter iRacing Leagues by Sim Racers, For Sim Racers</p>
+        </div>
+        <nav aria-label="Footer">
+          <External href={externalLinks.discord}>Discord</External>
+          <External href={externalLinks.twitch}>Twitch</External>
+          <External href={externalLinks.merchandise}>Merch</External>
+        </nav>
+      </div>
+      <p className="copyright">© {new Date().getFullYear()} Grassroots Racing</p>
+    </footer>
+  )
+}
+function League({
+  title,
+  href,
+  image,
+  alt,
+}: {
+  title: string
+  href: string
+  image: string
+  alt: string
+}) {
+  return (
+    <article className="league-panel">
+      <img src={image} alt={alt} loading="lazy" />
+      <div className="league-panel__content">
+        <h2>{title}</h2>
+        <Link className="button" to={href}>
+          Click Here
+        </Link>
+      </div>
+    </article>
+  )
+}
+function Home() {
+  return (
+    <>
+      <section className="hero" aria-labelledby="home-title">
+        <video autoPlay muted loop playsInline preload="metadata">
+          <source src={currentSiteAssets.heroVideo} type="video/mp4" />
+        </video>
+        <div className="hero-overlay">
+          <div className="container">
+            <p className="welcome">Welcome to Grassroots Racing</p>
+            <h1 id="home-title">Free-to-Enter iRacing Leagues by Sim Racers, For Sim Racers</h1>
+            <div className="hero-actions">
+              <External className="button" href={externalLinks.discord}>
+                Join our Discord!
+              </External>
+              <External className="button button--outline" href={externalLinks.twitch}>
+                Visit our twitch
+              </External>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section className="league-grid" aria-label="Grassroots Racing leagues">
+        <League
+          title="GRR Cup Series - Monday Nights"
+          href="/pages/grr-cup-series"
+          image="/assets/home/cup-series.webp"
+          alt="GRR Cup Series racing"
+        />
+        <League
+          title="GRR GT League - Tuesday Nights"
+          href="/pages/gt-league"
+          image="/assets/home/gt-league.webp"
+          alt="GRR GT League racing"
+        />
+        <League
+          title="GRR IndyCar League - Sunday Nights"
+          href="/pages/indycar"
+          image="/assets/home/indycar.webp"
+          alt="GRR IndyCar League racing"
+        />
+      </section>
+      <section className="donation-section section">
+        <div className="container donation-callout">
+          <div>
+            <p className="eyebrow">Support the leagues</p>
+            <h2>Support GRR!</h2>
+            <p>
+              GRR is committed to being free for all to enjoy! Donations help fund our leagues
+              broadcast, hosting, and other expenses.
+            </p>
+            <p>
+              Donations are OPTIONAL and not required in any way to enjoy GRR Leagues. All proceeds
+              from donations go directly to supporting GRR Leagues.
+            </p>
+          </div>
+          <External className="button button--light" href={externalLinks.donate}>
+            Donate
+          </External>
+        </div>
+      </section>
+      <section className="section merch-section">
+        <div className="container section-heading">
+          <p className="eyebrow">Fourthwall storefront</p>
+          <h2>Merch</h2>
+          <External className="button" href={externalLinks.merchandise}>
+            View all
+          </External>
+        </div>
+      </section>
+      {/* TODO(content): Restore additional copy only after it is verified on the live site. */}
+    </>
+  )
+}
+function Missing() {
+  return (
+    <section className="not-found container">
+      <p className="eyebrow">404</p>
+      <h1>Page not found.</h1>
+      <p>The page you requested is not available.</p>
+      <Link className="button" to="/">
+        Go Back Home
+      </Link>
+    </section>
+  )
+}
+export function App() {
+  return (
+    <>
+      <Header />
+      <main id="main-content">
+        <Routes>
+          <Route index element={<Home />} />
+          <Route path="*" element={<Missing />} />
+        </Routes>
+      </main>
+      <Footer />
+    </>
+  )
+}
