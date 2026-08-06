@@ -163,7 +163,7 @@ function Header({ identity }: { identity: AdminIdentity | null }) {
     </header>
   )
 }
-function Footer({ identity }: { identity: AdminIdentity | null }) {
+function Footer() {
   return (
     <footer className="site-footer">
       <div className="container footer-inner">
@@ -176,7 +176,7 @@ function Footer({ identity }: { identity: AdminIdentity | null }) {
           <External href={externalLinks.discord}>Discord</External>
           <External href={externalLinks.twitch}>Twitch</External>
           <External href={externalLinks.merchandise}>Merch</External>
-          {identity && <Link to="/admin">Admin</Link>}
+          <Link to="/admin">Admin</Link>
         </nav>
       </div>
       <p className="copyright">© {new Date().getFullYear()} Grassroots Racing</p>
@@ -353,7 +353,7 @@ export function App() {
           <Route path="*" element={<Missing />} />
         </Routes>
       </main>
-      <Footer identity={adminIdentity} />
+      <Footer />
     </>
   )
 }
