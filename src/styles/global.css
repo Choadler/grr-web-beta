@@ -520,6 +520,33 @@ button:focus-visible {
   gap: 3rem;
   align-items: start;
 }
+.sporting-layout--full {
+  grid-template-columns: minmax(0, 1fr) 270px;
+}
+.sporting-sidebar {
+  position: sticky;
+  top: 100px;
+}
+.sporting-layout--full .sporting-index {
+  position: static;
+  padding: 0.75rem;
+}
+.sporting-index strong {
+  padding: 0.5rem 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.sporting-index input {
+  width: 100%;
+  min-height: 44px;
+  margin-bottom: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #697365;
+  border-radius: 0;
+  background: #0d110d;
+  color: #fff;
+}
 .sporting-index {
   position: sticky;
   top: 100px;
@@ -541,6 +568,15 @@ button:focus-visible {
   padding: 0 0 2.5rem;
   scroll-margin-top: 110px;
 }
+.sporting-code--complete section {
+  margin-bottom: 1.25rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid #465043;
+  background: #141a13;
+}
+.sporting-code--complete section[hidden] {
+  display: none;
+}
 .sporting-code h2 {
   margin: 0 0 1rem;
   font-size: clamp(1.5rem, 3vw, 2.5rem);
@@ -550,6 +586,57 @@ button:focus-visible {
   max-width: 75ch;
   color: #dde3da;
   line-height: 1.7;
+}
+.sporting-code h3 {
+  margin: 2rem 0 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-left: 4px solid var(--green);
+  background: #0d120d;
+  font-size: 1.1rem;
+}
+.sporting-code h4 {
+  margin: 1.5rem 0 0.5rem;
+}
+.sporting-code ul,
+.sporting-code ol {
+  padding-left: 1.35rem;
+  color: #dde3da;
+  line-height: 1.65;
+}
+.sporting-code li {
+  margin: 0.45rem 0;
+}
+.sporting-code section > div {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid #31532c;
+  background: #101a0f;
+}
+.sporting-code table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.sporting-code table th,
+.sporting-code table td {
+  padding: 0.65rem;
+  border: 1px solid #465043;
+  text-align: left;
+}
+.sporting-code table th {
+  background: #222b1f;
+  color: #bfe8b8;
+  text-transform: uppercase;
+}
+.sporting-code table {
+  display: block;
+  overflow-x: auto;
+}
+.sporting-no-results {
+  padding: 2rem;
+  border: 1px dashed #697365;
+  color: #c9d0c6;
 }
 .todo-note {
   padding: 1rem;
@@ -775,6 +862,10 @@ button:focus-visible {
   }
   .sporting-layout {
     grid-template-columns: 1fr;
+  }
+  .sporting-sidebar {
+    position: static;
+    order: -1;
   }
   .sporting-index {
     position: static;

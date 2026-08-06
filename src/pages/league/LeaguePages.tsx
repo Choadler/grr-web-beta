@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { DataTable, EmptyTableRow } from '../../components/league/DataTable'
+import { CupSportingCode } from '../../components/league/CupSportingCode'
 import { LiveDataTable, type LiveColumn } from '../../components/league/LiveDataTable'
 import { RaceResultsExplorer } from '../../components/league/RaceResultsExplorer'
 import { LeagueNav, type LeagueNavItem } from '../../components/league/LeagueNav'
@@ -120,37 +121,6 @@ export function IndyLandingPage() {
   )
 }
 
-const cupSections = [
-  [
-    '1. Introduction',
-    'The GRR Cup Series is committed to fair, competitive, and enjoyable racing. Every participant must follow this sporting code. Violations may result in penalties.',
-  ],
-  [
-    '2. General Conduct',
-    'Drivers must race fairly, respectfully, and professionally. Reckless or needlessly aggressive driving will not be tolerated.',
-  ],
-  ['3. Season / Race Rules', 'The 2026 regular season is 26 weeks, followed by a 10-race Chase.'],
-  [
-    '4. Car Setups / Liveries',
-    'Open setups are permitted within iRacing’s rules. All setups must be legal.',
-  ],
-  [
-    '5. License Points and Penalties',
-    'The league uses license points to track driver behavior during races.',
-  ],
-  [
-    '6. Scoring System',
-    'Race points combine finishing position, stage performance, and eligible bonuses.',
-  ],
-  [
-    '7. Filing a Protest',
-    'Protests are filed through the protest channel in the league’s Discord server.',
-  ],
-  ['8. Teams (Optional)', 'Each team may consist of up to four full-time drivers.'],
-  ['9. League and Admin Authority', 'The race director and appointed stewards enforce the rules.'],
-  ['10. Conclusion', 'Participation in the GRR Cup Series means accepting this sporting code.'],
-] as const
-
 export function CupSportingCodePage() {
   return (
     <PageShell
@@ -158,41 +128,7 @@ export function CupSportingCodePage() {
       title="GRR Cup Sporting Code"
       eyebrow="Rules, procedures, scoring and penalties"
     >
-      <div className="sporting-layout">
-        <nav className="sporting-index" aria-label="Sporting code sections">
-          {cupSections.map(([heading], index) => (
-            <a href={`#cup-section-${index + 1}`} key={heading}>
-              {heading}
-            </a>
-          ))}
-        </nav>
-        <article className="sporting-code">
-          {cupSections.map(([heading, copy], index) => (
-            <section id={`cup-section-${index + 1}`} key={heading}>
-              <h2>{heading}</h2>
-              <p>{copy}</p>
-              {index === 4 && (
-                <DataTable caption="Incident limits" columns={['Incident Count', 'Penalty']}>
-                  <tr>
-                    <td>17x</td>
-                    <td>Drive-through and 2 LP</td>
-                  </tr>
-                  <tr>
-                    <td>25x</td>
-                    <td>Disqualification and 5 LP</td>
-                  </tr>
-                </DataTable>
-              )}
-              {index === 9 && (
-                <p className="todo-note">
-                  TODO(content): Complete line-by-line verification of the remaining current
-                  sporting-code clauses before production migration.
-                </p>
-              )}
-            </section>
-          ))}
-        </article>
-      </div>
+      <CupSportingCode />
     </PageShell>
   )
 }
