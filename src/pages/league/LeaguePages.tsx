@@ -1,15 +1,28 @@
-import { useState } from 'react'
+≠rá^—f•ñÿ¶{MÏy 'v√Æ∂õ≠import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { DataTable, EmptyTableRow } from '../../components/league/DataTable'
 import { CupSportingCode } from '../../components/league/CupSportingCode'
 import { GtSportingCode } from '../../components/league/GtSportingCode'
 import { LiveDataTable, type LiveColumn } from '../../components/league/LiveDataTable'
 import { RaceResultsExplorer } from '../../components/league/RaceResultsExplorer'
+import { LeagueCountdown } from '../../components/league/LeagueCountdown'
 import { LeagueNav, type LeagueNavItem } from '../../components/league/LeagueNav'
 import { PageMeta } from '../../components/league/PageMeta'
 import { EmptyState } from '../../components/league/States'
 import { externalLinks } from '../../config/site'
-import { cupRaceEvents, cupSchedule, cupStandings, gtRaceEvents, gtSchedule, gtStandings, gtTeamStandings, indyRaceEvents, indySchedule, indyStandings } from '../../services/dataSources'
+import { cupSchedule as cupCalendar, indycarSchedule as indyCalendar } from '../../config/schedules'
+import {
+  cupRaceEvents,
+  cupSchedule,
+  cupStandings,
+  gtRaceEvents,
+  gtSchedule,
+  gtStandings,
+  gtTeamStandings,
+  indyRaceEvents,
+  indySchedule,
+  indyStandings,
+} from '../../services/dataSources'
 import type { DataLoader } from '../../types/league'
 import type { TableRow } from '../../types/league'
 
@@ -37,9 +50,19 @@ const indyNav: LeagueNavItem[] = [
 
 type LeagueKey = 'cup' | 'gt' | 'indycar'
 const leagueConfig = {
-  cup: { label: 'Cup Series', nav: cupNav, image: '/assets/home/cup-series.webp' },
-  gt: { label: 'GT League', nav: gtNav, image: '/assets/home/gt-league.webp' },
-  indycar: { label: 'IndyCar', nav: indyNav, image: '/assets/home/indycar.webp' },
+  cup: {
+    label: 'Cup Series',
+    nav: cupNav,
+    image: '/assets/home/cup-series.webp',
+    schedule: cupCalendar,
+  },
+  gt: { label: 'GT League', nav: gtNav, image: '/assets/home/gt-league.webp', loader: gtSchedule },
+  indycar: {
+    label: 'IndyCar',
+    nav: indyNav,
+    image: '/assets/home/indycar.webp',
+    schedule: indyCalendar,
+  },
 } as const
 
 function PageShell({
@@ -58,6 +81,14 @@ function PageShell({
     <>
       <PageMeta title={title} description={title} />
       <LeagueNav label={config.label} items={config.nav} />
+      <aside className="league-race-banner">
+        <LeagueCountdown
+          leagueLabel={config.label}
+          variant="banner"
+          schedule={'schedule' in config ? config.schedule : undefined}
+          loader={'loader' in config ? config.loader : undefined}
+        />
+      </aside>
       <header
         className="page-hero"
         style={{
@@ -78,7 +109,12 @@ function DiscordCallout() {
   return (
     <aside className="league-callout">
       <h2>Wanna race? Register in our Discord for free!</h2>
-      <a className="button discord-button" href={externalLinks.discord} target="_blank" rel="noreferrer">
+      <a
+        className="button discord-button"
+        href={externalLinks.discord}
+        target="_blank"
+        rel="noreferrer"
+      >
         GRR Discord<span className="sr-only"> (opens in a new tab)</span>
       </a>
     </aside>
@@ -146,9 +182,7 @@ export function GtRulesPage() {
 export function IndySportingCodePage() {
   return (
     <PageShell league="indycar" title="GRR IndyCar Sporting Code">
-      <EmptyState
-        title="IndyCar Sporting Code Coming Soon!"
-      />
+      <EmptyState title="IndyCar Sporting Code Coming Soon!" />
     </PageShell>
   )
 }
@@ -166,12 +200,25 @@ type DataPageProps = {
   rowClassName?: (row: TableRow) => string
   note?: string
 }
-function DataPage({ league, title, eyebrow, columns, filters, search, caption, loader, loaders, rowClassName, note }: DataPageProps) {
+function DataPage({
+  league,
+  title,
+  eyebrow,
+  columns,
+  filters,
+  search,
+  caption,
+  loader,
+  loaders,
+  rowClassName,
+  note,
+}: DataPageProps) {
   const [activeFilter, setActiveFilter] = useState(0)
   const activeLoader = loaders?.[activeFilter] ?? loader
   return (
     <PageShell league={league} title={title} eyebrow={eyebrow}>
-      {filters && <div className="data-toolbar">
+      {filters && (
+        <div className="data-toolbar">
           <fieldset className="filter-group">
             <legend>Filter results</legend>
             {filters.map((filter, index) => (
@@ -186,14 +233,26 @@ function DataPage({ league, title, eyebrow, columns, filters, search, caption, l
               </button>
             ))}
           </fieldset>
-      </div>}
+        </div>
+      )}
       {note && <p className="standings-legend">{note}</p>}
-      {activeLoader ? <LiveDataTable key={activeFilter} title={caption ?? title} columns={columns} loader={activeLoader} search={search} rowClassName={rowClassName} /> : <DataTable caption={caption ?? title} columns={columns.map((column) => column.label)}>
-        <EmptyTableRow
-          columns={columns.length}
-          message="TODO(integration): Confirm the current public data endpoint before connecting this table."
+      {activeLoader ? (
+        <LiveDataTable
+          key={activeFilter}
+          title={caption ?? title}
+          columns={columns}
+          loader={activeLoader}
+          search={search}
+          rowClassName={rowClassName}
         />
-      </DataTable>}
+      ) : (
+        <DataTable caption={caption ?? title} columns={columns.map((column) => column.label)}>
+          <EmptyTableRow
+            columns={columns.length}
+            message="TODO(integration): Confirm the current public data endpoint before connecting this table."
+          />
+        </DataTable>
+      )}
     </PageShell>
   )
 }
@@ -205,9 +264,37 @@ export const CupStandingsPage = () => (
     eyebrow="GRR Cup Series 2026"
     search
     loader={cupStandings}
-    note="Chase field: positions 1‚Äì16 are currently in. The green line marks the cutoff."
-    rowClassName={(row) => Number(row.rank) === 17 ? 'standings-row--cutline' : Number(row.rank) <= 16 ? 'standings-row--chase' : ''}
-    columns={[{ key: 'rank', label: 'Pos' }, { key: 'driver', label: 'Driver' }, { key: 'points', label: 'Pts' }, { key: 'cutoff', label: '+/- Cutoff', cellClassName: (value) => Number(value) >= 100 ? 'cutoff-value cutoff-value--safe' : Number(value) <= -100 ? 'cutoff-value cutoff-value--danger' : 'cutoff-value cutoff-value--close' }, { key: 'chase', label: 'Chase' }, { key: 'starts', label: 'Starts' }, { key: 'wins', label: 'W' }, { key: 'stageWins', label: 'Stg W' }, { key: 'poles', label: 'Poles' }, { key: 'top5', label: 'T5' }, { key: 'top10', label: 'T10' }, { key: 'lapsLed', label: 'Led' }, { key: 'link', label: 'Link', link: true }]}
+    note="Positions 1‚Äì16 are currently in the Chase. The green line marks the cutoff."
+    rowClassName={(row) =>
+      Number(row.rank) === 17
+        ? 'standings-row--cutline'
+        : Number(row.rank) <= 16
+          ? 'standings-row--chase'
+          : ''
+    }
+    columns={[
+      { key: 'rank', label: 'Pos' },
+      { key: 'driver', label: 'Driver' },
+      { key: 'points', label: 'Pts' },
+      {
+        key: 'cutoff',
+        label: '+/- Cutoff',
+        cellClassName: (value) =>
+          Number(value) >= 100
+            ? 'cutoff-value cutoff-value--safe'
+            : Number(value) <= -100
+              ? 'cutoff-value cutoff-value--danger'
+              : 'cutoff-value cutoff-value--close',
+      },
+      { key: 'starts', label: 'Starts' },
+      { key: 'wins', label: 'W' },
+      { key: 'stageWins', label: 'Stg W' },
+      { key: 'poles', label: 'Poles' },
+      { key: 'top5', label: 'T5' },
+      { key: 'top10', label: 'T10' },
+      { key: 'lapsLed', label: 'Led' },
+      { key: 'link', label: 'Link', link: true },
+    ]}
   />
 )
 export const CupSchedulePage = () => (
@@ -216,17 +303,40 @@ export const CupSchedulePage = () => (
     title="GRR Cup Series 2026 Calendar"
     eyebrow="Race schedule, winners, and pole sitters"
     loader={cupSchedule}
-    columns={[{ key: 'round', label: 'Rd' }, { key: 'date', label: 'Date' }, { key: 'track', label: 'Track' }, { key: 'type', label: 'Type' }, { key: 'winner', label: 'Winner' }, { key: 'pole', label: 'Pole' }]}
+    columns={[
+      { key: 'round', label: 'Rd' },
+      { key: 'date', label: 'Date' },
+      { key: 'track', label: 'Track' },
+      { key: 'type', label: 'Type' },
+      { key: 'winner', label: 'Winner' },
+      { key: 'pole', label: 'Pole' },
+    ]}
   />
 )
 const cupResultColumns: LiveColumn[] = [
-  { key: 'position', label: 'Pos' }, { key: 'driver', label: 'Driver' }, { key: 'start', label: 'Start' },
-  { key: 'interval', label: 'Int' }, { key: 'laps', label: 'Laps' }, { key: 'led', label: 'Led' },
-  { key: 'racePoints', label: 'Race Pts' }, { key: 'stagePoints', label: 'Stg Pts' },
-  { key: 'total', label: 'Total Points' }, { key: 'bonus', label: 'Bonus' }, { key: 'penalty', label: 'Pen' },
-  { key: 'incidents', label: 'Inc' }, { key: 'status', label: 'Status' },
+  { key: 'position', label: 'Pos' },
+  { key: 'driver', label: 'Driver' },
+  { key: 'start', label: 'Start' },
+  { key: 'interval', label: 'Int' },
+  { key: 'laps', label: 'Laps' },
+  { key: 'led', label: 'Led' },
+  { key: 'racePoints', label: 'Race Pts' },
+  { key: 'stagePoints', label: 'Stg Pts' },
+  { key: 'total', label: 'Total Points' },
+  { key: 'bonus', label: 'Bonus' },
+  { key: 'penalty', label: 'Pen' },
+  { key: 'incidents', label: 'Inc' },
+  { key: 'status', label: 'Status' },
 ]
-export const CupResultsPage = () => <PageShell league="cup" title="GRR Cup Series Race Results" eyebrow="GRR Cup Series 2026"><RaceResultsExplorer title="GRR Cup Series Race Results" loader={cupRaceEvents} columns={cupResultColumns} /></PageShell>
+export const CupResultsPage = () => (
+  <PageShell league="cup" title="GRR Cup Series Race Results" eyebrow="GRR Cup Series 2026">
+    <RaceResultsExplorer
+      title="GRR Cup Series Race Results"
+      loader={cupRaceEvents}
+      columns={cupResultColumns}
+    />
+  </PageShell>
+)
 export function CupBroadcastPage() {
   return (
     <PageShell league="cup" title="GRR Cup Broadcast">
@@ -246,8 +356,17 @@ export const GtSchedulePage = () => (
     league="gt"
     title="GT League Schedule"
     loader={gtSchedule}
-    rowClassName={(row) => row.state === 'next' ? 'schedule-row--next' : row.state === 'done' ? 'schedule-row--done' : ''}
-    columns={[{ key: 'round', label: 'Round' }, { key: 'date', label: 'Date' }, { key: 'track', label: 'Track' }, { key: 'am', label: 'GT3 AM Winner' }, { key: 'pro', label: 'GT3 Pro Winner' }, { key: 'gtp', label: 'GTP Winner' }]}
+    rowClassName={(row) =>
+      row.state === 'next' ? 'schedule-row--next' : row.state === 'done' ? 'schedule-row--done' : ''
+    }
+    columns={[
+      { key: 'round', label: 'Round' },
+      { key: 'date', label: 'Date' },
+      { key: 'track', label: 'Track' },
+      { key: 'am', label: 'GT3 AM Winner' },
+      { key: 'pro', label: 'GT3 Pro Winner' },
+      { key: 'gtp', label: 'GTP Winner' },
+    ]}
   />
 )
 export const GtStandingsPage = () => (
@@ -257,7 +376,15 @@ export const GtStandingsPage = () => (
     filters={['GT3 AM', 'GT3 Pro', 'GTP']}
     loaders={[gtStandings('am'), gtStandings('pro'), gtStandings('gtp')]}
     search
-    columns={[{ key: 'rank', label: 'Rank' }, { key: 'driver', label: 'Driver' }, { key: 'car', label: 'Car' }, { key: 'starts', label: 'Race Starts' }, { key: 'points', label: 'Points' }, { key: 'wins', label: 'Wins' }, { key: 'podiums', label: 'Podiums' }]}
+    columns={[
+      { key: 'rank', label: 'Rank' },
+      { key: 'driver', label: 'Driver' },
+      { key: 'car', label: 'Car' },
+      { key: 'starts', label: 'Race Starts' },
+      { key: 'points', label: 'Points' },
+      { key: 'wins', label: 'Wins' },
+      { key: 'podiums', label: 'Podiums' },
+    ]}
   />
 )
 export const GtTeamStandingsPage = () => (
@@ -267,11 +394,32 @@ export const GtTeamStandingsPage = () => (
     filters={['GT3 AM', 'GT3 Pro', 'GTP']}
     loaders={[gtTeamStandings('am'), gtTeamStandings('pro'), gtTeamStandings('gtp')]}
     search
-    columns={[{ key: 'rank', label: 'Rank' }, { key: 'driver', label: 'Team' }, { key: 'car', label: 'Car' }, { key: 'starts', label: 'Race Starts' }, { key: 'points', label: 'Points' }, { key: 'wins', label: 'Wins' }, { key: 'podiums', label: 'Podiums' }]}
+    columns={[
+      { key: 'rank', label: 'Rank' },
+      { key: 'driver', label: 'Team' },
+      { key: 'car', label: 'Car' },
+      { key: 'starts', label: 'Race Starts' },
+      { key: 'points', label: 'Points' },
+      { key: 'wins', label: 'Wins' },
+      { key: 'podiums', label: 'Podiums' },
+    ]}
   />
 )
-const gtResultColumns: LiveColumn[] = [{ key: 'position', label: 'Class Pos' }, { key: 'driver', label: 'Driver' }, { key: 'points', label: 'Points' }]
-export const GtResultsPage = () => <PageShell league="gt" title="GT League Race Results"><RaceResultsExplorer title="GT League Race Results" loader={gtRaceEvents} columns={gtResultColumns} secondaryColumns={gtResultColumns} /></PageShell>
+const gtResultColumns: LiveColumn[] = [
+  { key: 'position', label: 'Class Pos' },
+  { key: 'driver', label: 'Driver' },
+  { key: 'points', label: 'Points' },
+]
+export const GtResultsPage = () => (
+  <PageShell league="gt" title="GT League Race Results">
+    <RaceResultsExplorer
+      title="GT League Race Results"
+      loader={gtRaceEvents}
+      columns={gtResultColumns}
+      secondaryColumns={gtResultColumns}
+    />
+  </PageShell>
+)
 
 export const IndyStandingsPage = () => (
   <DataPage
@@ -280,7 +428,19 @@ export const IndyStandingsPage = () => (
     eyebrow="Season 1"
     loader={indyStandings}
     search
-    columns={[{ key: 'rank', label: 'Pos' }, { key: 'driver', label: 'Driver' }, { key: 'points', label: 'Pts' }, { key: 'starts', label: 'Starts' }, { key: 'wins', label: 'W' }, { key: 'poles', label: 'Poles' }, { key: 'top5', label: 'T5' }, { key: 'top10', label: 'T10' }, { key: 'lapsLed', label: 'Led' }, { key: 'rating', label: 'Rating' }, { key: 'link', label: 'Link', link: true }]}
+    columns={[
+      { key: 'rank', label: 'Pos' },
+      { key: 'driver', label: 'Driver' },
+      { key: 'points', label: 'Pts' },
+      { key: 'starts', label: 'Starts' },
+      { key: 'wins', label: 'W' },
+      { key: 'poles', label: 'Poles' },
+      { key: 'top5', label: 'T5' },
+      { key: 'top10', label: 'T10' },
+      { key: 'lapsLed', label: 'Led' },
+      { key: 'rating', label: 'Rating' },
+      { key: 'link', label: 'Link', link: true },
+    ]}
   />
 )
 export const IndySchedulePage = () => (
@@ -289,7 +449,18 @@ export const IndySchedulePage = () => (
     title="GRR IndyCar Schedule"
     eyebrow="Race schedule, distances, winners, and pole sitters"
     loader={indySchedule}
-    columns={[{ key: 'round', label: 'Rd' }, { key: 'date', label: 'Date' }, { key: 'track', label: 'Track' }, { key: 'laps', label: 'Laps' }, { key: 'winner', label: 'Winner' }, { key: 'pole', label: 'Pole' }]}
+    columns={[
+      { key: 'round', label: 'Rd' },
+      { key: 'date', label: 'Date' },
+      { key: 'track', label: 'Track' },
+      { key: 'laps', label: 'Laps' },
+      { key: 'winner', label: 'Winner' },
+      { key: 'pole', label: 'Pole' },
+    ]}
   />
 )
-export const IndyResultsPage = () => <PageShell league="indycar" title="GRR IndyCar Race Results" eyebrow="Season 1"><RaceResultsExplorer title="GRR IndyCar Race Results" loader={indyRaceEvents} /></PageShell>
+export const IndyResultsPage = () => (
+  <PageShell league="indycar" title="GRR IndyCar Race Results" eyebrow="Season 1">
+    <RaceResultsExplorer title="GRR IndyCar Race Results" loader={indyRaceEvents} />
+  </PageShell>
+)
