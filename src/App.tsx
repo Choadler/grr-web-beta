@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Route, Routes } from 'react-router-dom'
 import { currentSiteAssets, externalLinks, navigation } from './config/site'
+import { cupSchedule as cupCalendar, indycarSchedule as indyCalendar } from './config/schedules'
+import { LeagueCountdown } from './components/league/LeagueCountdown'
+import { gtSchedule } from './services/dataSources'
 import {
   CupBroadcastPage,
   CupLandingPage,
@@ -118,17 +121,20 @@ function League({
   href,
   image,
   alt,
+  countdown,
 }: {
   title: string
   href: string
   image: string
   alt: string
+  countdown: React.ReactNode
 }) {
   return (
     <article className="league-panel">
       <img src={image} alt={alt} loading="lazy" />
       <div className="league-panel__content">
         <h2>{title}</h2>
+        {countdown}
         <Link className="button" to={href}>
           Click Here
         </Link>
@@ -164,18 +170,21 @@ function Home() {
           href="/pages/grr-cup-series"
           image="/assets/home/cup-series.webp"
           alt="GRR Cup Series racing"
+          countdown={<LeagueCountdown schedule={cupCalendar} />}
         />
         <League
           title="GRR GT League - Tuesday Nights"
           href="/pages/gt-league"
           image="/assets/home/gt-league.webp"
           alt="GRR GT League racing"
+          countdown={<LeagueCountdown loader={gtSchedule} />}
         />
         <League
           title="GRR IndyCar League - Sunday Nights"
           href="/pages/indycar"
           image="/assets/home/indycar.webp"
           alt="GRR IndyCar League racing"
+          countdown={<LeagueCountdown schedule={indyCalendar} />}
         />
       </section>
       <section className="donation-section section">

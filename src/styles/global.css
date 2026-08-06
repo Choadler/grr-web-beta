@@ -285,6 +285,42 @@ a {
   font-size: clamp(1.5rem, 2.6vw, 2.45rem);
   line-height: 1.04;
 }
+.league-countdown {
+  min-width: min(100%, 240px);
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.8rem;
+  border-block: 1px solid #668061;
+  background: #090d09d9;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.league-countdown span,
+.league-countdown strong {
+  display: block;
+}
+.league-countdown span {
+  overflow: hidden;
+  color: #c9d0c6;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.league-countdown strong {
+  margin-top: 0.25rem;
+  color: #a9dca0;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+}
+.league-countdown--live {
+  border-color: var(--green);
+  background: #11230fef;
+}
+.league-countdown--live strong {
+  color: #83ef72;
+}
 .section {
   padding: 5rem 0;
 }
