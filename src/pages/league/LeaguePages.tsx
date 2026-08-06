@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { DataTable, EmptyTableRow } from '../../components/league/DataTable'
 import { CupSportingCode } from '../../components/league/CupSportingCode'
+import { GtSportingCode } from '../../components/league/GtSportingCode'
 import { LiveDataTable, type LiveColumn } from '../../components/league/LiveDataTable'
 import { RaceResultsExplorer } from '../../components/league/RaceResultsExplorer'
 import { LeagueNav, type LeagueNavItem } from '../../components/league/LeagueNav'
@@ -136,14 +137,8 @@ export function CupSportingCodePage() {
 
 export function GtRulesPage() {
   return (
-    <PageShell league="gt" title="GT League Sporting Code">
-      <div className="document-frame">
-        <iframe
-          src="https://docs.google.com/document/d/e/2PACX-1vRGNnl3uRlz6qmiQ1Z4p3icskAJDxtofIxed5PiQY9emnxq5x1hObSL_pKxYwWFM2VGZiNS-fo-NCC6/pub?embedded=true"
-          title="GT League Sporting Code"
-          loading="lazy"
-        />
-      </div>
+    <PageShell league="gt" title="GT League Sporting Code" eyebrow="GT3/GTP competition handbook">
+      <GtSportingCode />
     </PageShell>
   )
 }
