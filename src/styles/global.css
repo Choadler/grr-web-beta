@@ -481,6 +481,38 @@ a {
   margin: 0;
   text-transform: uppercase;
 }
+.admin-dashboard {
+  min-height: 68vh;
+  padding-block: clamp(5rem, 10vw, 9rem);
+  background:
+    linear-gradient(90deg, #080b08e8, #132012d9),
+    #111711;
+}
+.admin-dashboard h1 {
+  margin: 0;
+  font-size: clamp(2.8rem, 7vw, 6rem);
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+}
+.admin-dashboard__empty {
+  min-height: 220px;
+  margin-top: 3rem;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  display: grid;
+  align-content: center;
+  border: 1px solid #4f5b4b;
+  border-left: 5px solid var(--green);
+  background: #0e130ee8;
+}
+.admin-dashboard__empty h2 {
+  margin: 0 0 0.5rem;
+  text-transform: uppercase;
+}
+.admin-dashboard__empty p {
+  margin: 0;
+  color: #c4cbc2;
+}
 a:focus-visible,
 button:focus-visible {
   outline: 3px solid #fff;
