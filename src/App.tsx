@@ -26,6 +26,40 @@ import {
   IndyStandingsPage,
 } from './pages/league/LeaguePages'
 
+type AdminIdentity = {
+  email: string
+  name?: string
+}
+
+function useAdminIdentity() {
+  const [identity, setIdentity] = useState<AdminIdentity | null>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch('/cdn-cgi/access/get-identity', {
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) return null
+        const payload = (await response.json()) as Record<string, unknown>
+        return typeof payload.email === 'string'
+          ? { email: payload.email, name: typeof payload.name === 'string' ? payload.name : undefined }
+          : null
+      })
+      .then((admin) => {
+        if (!controller.signal.aborted) setIdentity(admin)
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setIdentity(null)
+      })
+    return () => controller.abort()
+  }, [])
+
+  return identity
+}
+
 const External = ({
   href,
   children,
@@ -47,7 +81,25 @@ const External = ({
     <span className="sr-only"> (opens in a new tab)</span>
   </a>
 )
-function Header() {
+function AdminSessionControls({ identity }: { identity: AdminIdentity | null }) {
+  if (!identity) return null
+  return (
+    <div className="admin-session" aria-label="Administrator session">
+      <span className="admin-session__identity" title={identity.email}>
+        <small>Signed in</small>
+        <strong>Admin</strong>
+      </span>
+      <Link className="admin-session__dashboard" to="/admin">
+        Dashboard
+      </Link>
+      <a className="admin-session__signout" href="/cdn-cgi/access/logout">
+        Sign out
+      </a>
+    </div>
+  )
+}
+
+function Header({ identity }: { identity: AdminIdentity | null }) {
   const [open, setOpen] = useState(false)
   useEffect(() => {
     const close = (e: KeyboardEvent) => {
@@ -65,16 +117,6 @@ function Header() {
         <NavLink className="brand" to="/" aria-label="Grassroots Racing home">
           <img src="/assets/branding/grr-logo.webp" alt="Grassroots Racing" />
         </NavLink>
-        <button
-          className="menu-toggle"
-          type="button"
-          aria-expanded={open}
-          aria-controls="main-navigation"
-          onClick={() => setOpen(!open)}
-        >
-          <span aria-hidden="true">{open ? 'Ã—' : 'â˜°'}</span>
-          <span className="sr-only">{open ? 'Close menu' : 'Open menu'}</span>
-        </button>
         <nav
           id="main-navigation"
           className={open ? 'main-nav is-open' : 'main-nav'}
@@ -89,7 +131,7 @@ function Header() {
                   onClick={() => setOpen(false)}
                 >
                   {g.label}
-                  {g.items && <span aria-hidden="true"> â–¾</span>}
+                  {g.items && <span aria-hidden="true"> ▾</span>}
                 </NavLink>
                 {g.items && (
                   <ul className="dropdown">
@@ -106,11 +148,22 @@ function Header() {
             ))}
           </ul>
         </nav>
+        <AdminSessionControls identity={identity} />
+        <button
+          className="menu-toggle"
+          type="button"
+          aria-expanded={open}
+          aria-controls="main-navigation"
+          onClick={() => setOpen(!open)}
+        >
+          <span aria-hidden="true">{open ? '×' : '☰'}</span>
+          <span className="sr-only">{open ? 'Close menu' : 'Open menu'}</span>
+        </button>
       </div>
     </header>
   )
 }
-function Footer() {
+function Footer({ identity }: { identity: AdminIdentity | null }) {
   return (
     <footer className="site-footer">
       <div className="container footer-inner">
@@ -123,10 +176,10 @@ function Footer() {
           <External href={externalLinks.discord}>Discord</External>
           <External href={externalLinks.twitch}>Twitch</External>
           <External href={externalLinks.merchandise}>Merch</External>
-          <Link to="/admin">Admin</Link>
+          {identity && <Link to="/admin">Admin</Link>}
         </nav>
       </div>
-      <p className="copyright">Â© {new Date().getFullYear()} Grassroots Racing</p>
+      <p className="copyright">© {new Date().getFullYear()} Grassroots Racing</p>
     </footer>
   )
 }
@@ -271,9 +324,10 @@ function Missing() {
   )
 }
 export function App() {
+  const adminIdentity = useAdminIdentity()
   return (
     <>
-      <Header />
+      <Header identity={adminIdentity} />
       <main id="main-content">
         <Routes>
           <Route index element={<Home />} />
@@ -299,7 +353,7 @@ export function App() {
           <Route path="*" element={<Missing />} />
         </Routes>
       </main>
-      <Footer />
+      <Footer identity={adminIdentity} />
     </>
   )
 }
