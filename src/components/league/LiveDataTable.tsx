@@ -1,4 +1,4 @@
-≠rá^—f•ñÿ¶{MÏy 'v√Æ∂õ≠import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { DataLoader, TableRow } from '../../types/league'
 import { copyPng, downloadCsv } from '../../utils/tableExport'
 import { DataTable, EmptyTableRow } from './DataTable'

@@ -1,4 +1,4 @@
-≠rá^—f•ñÿ¶{MÏy 'v√Æ∂õ≠import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { RaceEvent, RaceEventsLoader } from '../../types/league'
 import { ErrorState, LoadingState } from './States'
 import { LiveDataTable, type LiveColumn } from './LiveDataTable'

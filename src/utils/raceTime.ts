@@ -1,4 +1,4 @@
-≠rá^—f•ñÿ¶{MÏy 'v√Æ∂õ≠const easternParts = new Intl.DateTimeFormat('en-US', {
+const easternParts = new Intl.DateTimeFormat('en-US', {
   timeZone: 'America/New_York',
   year: 'numeric',
   month: '2-digit',

@@ -1,4 +1,4 @@
-≠rá^—f•ñÿ¶{MÏy 'v√Æ∂õ≠import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ScheduledRace } from '../../config/schedules'
 import type { DataLoader, TableRow } from '../../types/league'
 import { easternRaceTime, formatRemaining, normalizeScheduleDate } from '../../utils/raceTime'

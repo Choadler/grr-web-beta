@@ -1,4 +1,4 @@
-≠rá^—f•ñÿ¶{MÏy 'v√Æ∂õ≠import type { DataResult, RaceEvent, RaceEventsResult, TableRow } from '../types/league'
+import type { DataResult, RaceEvent, RaceEventsResult, TableRow } from '../types/league'
 import type { ScheduledRace } from '../config/schedules'
 import { easternRaceTime, normalizeScheduleDate } from '../utils/raceTime'
 
