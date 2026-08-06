@@ -272,18 +272,36 @@ a {
   z-index: 1;
   inset: auto 2rem 2rem;
 }
-.track-outline {
+.discipline-icon {
   display: block;
-  width: clamp(112px, 11vw, 168px);
+  width: clamp(76px, 7vw, 96px);
   height: auto;
-  margin: 0 0 1rem;
+  margin: 0 0 0.75rem;
   overflow: visible;
   fill: none;
-  stroke: #a9dca0;
+  filter: drop-shadow(0 2px 5px #000c);
+}
+.discipline-icon__rail,
+.discipline-icon__progress {
+  fill: none;
+  stroke-width: 10;
+  transform: rotate(132deg);
+  transform-origin: center;
+}
+.discipline-icon__rail {
+  stroke: #12151d;
+}
+.discipline-icon__progress {
+  stroke: #22db08;
+  stroke-dasharray: 188 239;
+  stroke-linecap: butt;
+}
+.discipline-icon__glyph {
+  fill: none;
+  stroke: #fff;
   stroke-width: 5;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter: drop-shadow(0 2px 5px #000c);
 }
 .league-panel h2 {
   max-width: 420px;

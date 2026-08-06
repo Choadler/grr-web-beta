@@ -113,17 +113,24 @@ function Footer() {
     </footer>
   )
 }
-type TrackOutlineName = 'daytona-oval' | 'daytona-road' | 'indianapolis'
+type DisciplineName = 'oval' | 'sports-car' | 'formula-car'
 
-function TrackOutline({ track }: { track: TrackOutlineName }) {
-  const paths: Record<TrackOutlineName, string> = {
-    'daytona-oval': 'M27 25C61 8 161 6 192 26C209 37 213 55 201 68C187 83 159 84 132 87C101 91 75 97 48 87C25 79 13 65 15 49C16 38 20 30 27 25Z',
-    'daytona-road': 'M27 25C61 8 161 6 192 26C209 37 213 55 201 68C192 78 174 81 153 83L138 65L151 52L134 38L111 43L99 62L76 69L54 61L44 43L27 50L17 62C12 50 16 33 27 25Z',
-    indianapolis: 'M43 14H177C194 14 204 25 204 42V58C204 75 194 86 177 86H43C26 86 16 75 16 58V42C16 25 26 14 43 14Z',
-  }
-
-  return <svg className="track-outline" viewBox="0 0 220 100" aria-hidden="true" focusable="false">
-    <path d={paths[track]} />
+function DisciplineIcon({ discipline }: { discipline: DisciplineName }) {
+  return <svg className={`discipline-icon discipline-icon--${discipline}`} viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+    <circle className="discipline-icon__rail" cx="50" cy="50" r="38" />
+    <circle className="discipline-icon__progress" cx="50" cy="50" r="38" />
+    {discipline === 'oval' && <ellipse className="discipline-icon__glyph" cx="50" cy="51" rx="21" ry="12" />}
+    {discipline === 'sports-car' && <g className="discipline-icon__glyph">
+      <path d="M25 57h50l-4-14-11-7H40l-11 7-4 14Z" />
+      <path d="M34 43h32M29 52h42" />
+      <circle cx="34" cy="59" r="5" /><circle cx="66" cy="59" r="5" />
+    </g>}
+    {discipline === 'formula-car' && <g className="discipline-icon__glyph">
+      <path d="M46 31h8l3 16 9 7-4 8H38l-4-8 9-7 3-16Z" />
+      <path d="M31 47h14M55 47h14M28 61h17M55 61h17M50 27v-7" />
+      <circle cx="34" cy="46" r="5" /><circle cx="66" cy="46" r="5" />
+      <circle cx="34" cy="63" r="6" /><circle cx="66" cy="63" r="6" />
+    </g>}
   </svg>
 }
 
@@ -132,19 +139,19 @@ function League({
   href,
   image,
   alt,
-  track,
+  discipline,
 }: {
   title: string
   href: string
   image: string
   alt: string
-  track: TrackOutlineName
+  discipline: DisciplineName
 }) {
   return (
     <article className="league-panel">
       <img src={image} alt={alt} loading="lazy" />
       <div className="league-panel__content">
-        <TrackOutline track={track} />
+        <DisciplineIcon discipline={discipline} />
         <h2>{title}</h2>
         <Link className="button" to={href}>
           Click Here
@@ -181,21 +188,21 @@ function Home() {
           href="/pages/grr-cup-series"
           image="/assets/home/cup-series.webp"
           alt="GRR Cup Series racing"
-          track="daytona-oval"
+          discipline="oval"
         />
         <League
           title="GRR GT League - Tuesday Nights"
           href="/pages/gt-league"
           image="/assets/home/gt-league.webp"
           alt="GRR GT League racing"
-          track="daytona-road"
+          discipline="sports-car"
         />
         <League
           title="GRR IndyCar League - Sunday Nights"
           href="/pages/indycar"
           image="/assets/home/indycar.webp"
           alt="GRR IndyCar League racing"
-          track="indianapolis"
+          discipline="formula-car"
         />
       </section>
       <section className="donation-section section">
