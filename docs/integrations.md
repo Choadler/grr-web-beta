@@ -8,12 +8,18 @@ The live merch destination is `https://grassrootsracing.org/collections/all`. Th
 
 ## Live league data
 
-Cup and IndyCar pages expose SimRacerHub driver-stat links and custom standings/schedule/results loaders. GT pages expose custom class-filtered loaders. Exact request endpoints were not reliably exposed by the rendered DOM inventory.
+Cup and IndyCar pages expose SimRacerHub driver-stat links and custom standings/schedule/results loaders. GT pages expose custom class-filtered loaders. Stage 2 recovered the public request endpoints from those current page loaders. They are centralized in `src/config/integrations.ts`; Stage 3 must access them through typed adapters rather than directly from page components.
 
-- TODO(endpoint): confirm Cup standings, schedule and result endpoints and response schemas.
-- TODO(endpoint): confirm GT standings, team standings, schedule and result endpoints and response schemas.
-- TODO(endpoint): confirm IndyCar standings, schedule and result endpoints and response schemas.
-- TODO(adapter): preserve existing API field names behind typed adapters before Stage 3 UI wiring.
+- Cup standings/schedule/results: SimRacerHub season `28581` via `get_standings.php`.
+- Cup recent results: `red-star-b0d9.cknoedler1013.workers.dev`, series `12921`.
+- GT driver standings: `aged-breeze-c1bb.cknoedler1013.workers.dev`, class paths `/gt/am`, `/gt/pro`, `/gt/gtp`.
+- GT team standings: `holy-bird-8afa.cknoedler1013.workers.dev`, using the same class paths.
+- GT schedule/results: `grr-gt-racebyrace.cknoedler1013.workers.dev/api/race-breakdown`.
+- IndyCar discovery/standings/results: SimRacerHub series `14491`.
+- TODO(adapter): preserve existing API field aliases behind typed adapters before Stage 3 UI wiring.
+- TODO(cors): confirm each endpoint permits the Cloudflare preview and production origins; proxy only where required.
+
+The current GT results page also references an administrative refresh endpoint. It is deliberately excluded from public client configuration and must never be invoked by the browser application.
 
 Public endpoint placeholders live in `.env.example`. Never put a private token or credential in a `VITE_` variable. Secret-dependent calls must run through a server-side Cloudflare Worker with timeouts, validation, safe parsing, and CORS restricted to the production/preview origins.
 

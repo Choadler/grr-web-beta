@@ -1,6 +1,25 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Route, Routes } from 'react-router-dom'
 import { currentSiteAssets, externalLinks, navigation } from './config/site'
+import {
+  CupBroadcastPage,
+  CupLandingPage,
+  CupResultsPage,
+  CupSchedulePage,
+  CupSportingCodePage,
+  CupStandingsPage,
+  GtLandingPage,
+  GtResultsPage,
+  GtRulesPage,
+  GtSchedulePage,
+  GtStandingsPage,
+  GtTeamStandingsPage,
+  IndyLandingPage,
+  IndyResultsPage,
+  IndySchedulePage,
+  IndySportingCodePage,
+  IndyStandingsPage,
+} from './pages/league/LeaguePages'
 
 const External = ({
   href,
@@ -210,6 +229,24 @@ export function App() {
       <main id="main-content">
         <Routes>
           <Route index element={<Home />} />
+          <Route path="pages/grr-cup-series" element={<CupLandingPage />} />
+          <Route path="pages/cup-series-sporting-code" element={<CupSportingCodePage />} />
+          <Route path="pages/cupstandings" element={<CupStandingsPage />} />
+          <Route path="pages/cup-series-schedule" element={<CupSchedulePage />} />
+          <Route path="pages/cup-latest-race-results" element={<CupResultsPage />} />
+          <Route path="pages/broadcast" element={<CupBroadcastPage />} />
+          <Route path="pages/gt-league" element={<GtLandingPage />} />
+          <Route path="pages/gt-rules" element={<GtRulesPage />} />
+          <Route path="pages/gt-schedule" element={<GtSchedulePage />} />
+          <Route path="pages/gt-standings" element={<GtStandingsPage />} />
+          <Route path="pages/gt-league-team-standings" element={<GtTeamStandingsPage />} />
+          <Route path="pages/gt-team-standings" element={<GtTeamStandingsPage />} />
+          <Route path="pages/gt-race-results" element={<GtResultsPage />} />
+          <Route path="pages/indycar" element={<IndyLandingPage />} />
+          <Route path="pages/indycar-sporting-code" element={<IndySportingCodePage />} />
+          <Route path="pages/indycar-standings" element={<IndyStandingsPage />} />
+          <Route path="pages/indycar-schedule" element={<IndySchedulePage />} />
+          <Route path="pages/indycar-results" element={<IndyResultsPage />} />
           <Route path="*" element={<Missing />} />
         </Routes>
       </main>
