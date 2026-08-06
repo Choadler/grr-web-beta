@@ -11,9 +11,11 @@ const raceColumns: LiveColumn[] = [
   { key: 'incidents', label: 'Inc' }, { key: 'status', label: 'Status' }, { key: 'passes', label: 'Passes' },
   { key: 'quality', label: 'Quality' },
 ]
-const stageColumns: LiveColumn[] = [{ key: 'position', label: 'Pos' }, { key: 'driver', label: 'Driver' }]
+const stageColumns: LiveColumn[] = [{ key: 'position', label: 'Pos' }, { key: 'driver', label: 'Driver' }, { key: 'stagePoints', label: 'Stage Pts' }]
 
-export function RaceResultsExplorer({ title, loader }: { title: string; loader: RaceEventsLoader }) {
+const podiumClass = (row: Record<string, string | number>) => Number(row.position) === 1 ? 'results-row--gold' : Number(row.position) === 2 ? 'results-row--silver' : Number(row.position) === 3 ? 'results-row--bronze' : ''
+
+export function RaceResultsExplorer({ title, loader, columns, secondaryColumns }: { title: string; loader: RaceEventsLoader; columns?: LiveColumn[]; secondaryColumns?: LiveColumn[] }) {
   const [events, setEvents] = useState<RaceEvent[]>([])
   const [eventIndex, setEventIndex] = useState(0)
   const [sessionIndex, setSessionIndex] = useState(0)
@@ -22,7 +24,7 @@ export function RaceResultsExplorer({ title, loader }: { title: string; loader: 
 
   useEffect(() => {
     const controller = new AbortController()
-    loader(controller.signal).then((result) => { setEvents(result.events); setEventIndex(Math.max(0, result.events.length - 1)); setError('') }).catch((reason: unknown) => {
+    loader(controller.signal).then((result) => { setEvents(result.events); setEventIndex(result.defaultEventIndex ?? Math.max(0, result.events.length - 1)); setError('') }).catch((reason: unknown) => {
       if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'The data source returned an error.')
     })
     return () => controller.abort()
@@ -39,7 +41,7 @@ export function RaceResultsExplorer({ title, loader }: { title: string; loader: 
       <label><span>Select race</span><select value={eventIndex} onChange={(change) => { setEventIndex(Number(change.target.value)); setSessionIndex(0) }}>{events.map((item, index) => <option value={index} key={item.id}>{item.label}</option>)}</select></label>
       <button className="button button--compact" type="button" onClick={() => { setEventIndex(events.length - 1); setSessionIndex(0) }}>Latest Race</button>
     </div>
-    {event.sessions.length > 1 && <div className="result-tabs" role="group" aria-label="Race session"><button className={sessionIndex === 0 ? 'filter-button is-active' : 'filter-button'} type="button" onClick={() => setSessionIndex(0)}>Overall Race Finish</button>{event.sessions.slice(1).map((item, index) => <button className={sessionIndex === index + 1 ? 'filter-button is-active' : 'filter-button'} type="button" key={item.id} onClick={() => setSessionIndex(index + 1)}>{item.label}</button>)}</div>}
-    <LiveDataTable key={session.id} title={`${title} — ${event.label} — ${session.label}`} columns={sessionIndex ? stageColumns : raceColumns} loader={tableLoader} search />
+    {event.sessions.length > 1 && <div className="result-tabs" role="group" aria-label="Race session">{event.sessions.map((item, index) => <button className={sessionIndex === index ? 'filter-button is-active' : 'filter-button'} type="button" key={item.id} onClick={() => setSessionIndex(index)}>{item.label}</button>)}</div>}
+    <LiveDataTable key={session.id} title={`${title} — ${event.label} — ${session.label}`} columns={sessionIndex ? secondaryColumns ?? stageColumns : columns ?? raceColumns} loader={tableLoader} search rowClassName={podiumClass} />
   </>
 }

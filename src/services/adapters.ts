@@ -158,7 +158,8 @@ function detailedRows(drivers: UnknownRecord[], sessionId: number, stage = false
     const race = record(record(driver.races)[String(sessionId)])
     if (!Object.keys(race).length) return
     if (stage) {
-      rows.push({ position: number(race.finish_pos), driver: driverName(driver.name) })
+      const position = number(race.finish_pos)
+      rows.push({ position, driver: driverName(driver.name), stagePoints: Math.max(0, 11 - position) })
       return
     }
     rows.push({
@@ -184,9 +185,47 @@ export function adaptSimRacerEvents(payload: unknown, schedule: ScheduledRace[],
       const race = record(value); const id = number(race.race_id)
       if (id > previousId && id < raceId && text(race.session).toUpperCase() === 'SEGMENT') stageIds.add(id)
     }))
-    const sessions = [{ id: raceId, label: 'Overall Race Finish', rows: detailedRows(drivers, raceId) }]
-    ;[...stageIds].sort((a, b) => a - b).forEach((id, stageIndex) => sessions.push({ id, label: `Stage ${stageIndex + 1}`, rows: detailedRows(drivers, id, true) }))
+    const stageSessions = [...stageIds].sort((a, b) => a - b).map((id, stageIndex) => ({ id, label: `Stage ${stageIndex + 1}`, rows: detailedRows(drivers, id, true) }))
+    const stageTotals = new Map<string, number>()
+    stageSessions.forEach((session) => session.rows.forEach((row) => stageTotals.set(String(row.driver), (stageTotals.get(String(row.driver)) ?? 0) + number(row.stagePoints))))
+    const overallRows = detailedRows(drivers, raceId).map((row) => {
+      const stagePoints = stageTotals.get(String(row.driver)) ?? 0
+      return { ...row, stagePoints, total: number(row.total) + stagePoints }
+    })
+    const sessions = [{ id: raceId, label: 'Overall Race Finish', rows: overallRows }, ...stageSessions]
     return { id: raceId, label: scheduled ? `${scheduled.track} — ${scheduled.date}` : `Round ${index + 1} — Race ${raceId}`, sessions }
   })
   return { events, season: text(record(record(payload).lss).season_name) || text(record(payload).season_name) }
+}
+
+export function adaptGtRaceEvents(payload: unknown): RaceEventsResult {
+  const root = record(payload)
+  if (root.ok === false) throw new Error(text(root.error) || 'GT results returned an error.')
+  const races = list(root.races).map((value) => record(value)).sort((a, b) => number(a.race_number) - number(b.race_number) || text(a.race_type).localeCompare(text(b.race_type)))
+  const events: RaceEvent[] = races.map((race, raceIndex) => {
+    const sessions = list(race.classes).map((value, classIndex) => {
+      const classObject = record(value)
+      const entries = list(classObject.entries).map((entryValue) => record(entryValue))
+      const fastest = entries.filter((entry) => ['true', '1', 'yes', 'y', 'checked'].includes(text(entry.fastest_lap).toLowerCase())).sort((a, b) => number(a.class_position) - number(b.class_position) || number(a.overall_position) - number(b.overall_position))[0]
+      const fastestDriver = text(fastest?.driver)
+      const rows = entries.map((entry) => ({
+        position: number(entry.class_position),
+        driver: `${driverName(entry.driver)}${fastestDriver && text(entry.driver) === fastestDriver ? ' • FL' : ''}`,
+        points: number(entry.points),
+      })).sort((a, b) => a.position - b.position)
+      return { id: raceIndex * 10 + classIndex + 1, label: text(classObject.class), rows }
+    })
+    const week = text(race.race_number) ? `Week ${text(race.race_number)}` : 'Week'
+    const label = [week, text(race.track_name) || 'Race', text(race.date_text)].filter(Boolean).join(' — ')
+    return { id: raceIndex + 1, label, sessions }
+  })
+  const today = new Date(); today.setHours(23, 59, 59, 999)
+  let defaultEventIndex = events.length - 1
+  const pastIndexes = races.map((race, index) => ({ index, time: Date.parse(text(race.date_text)) })).filter((item) => Number.isFinite(item.time) && item.time <= today.getTime())
+  if (pastIndexes.length) defaultEventIndex = pastIndexes.sort((a, b) => a.time - b.time).at(-1)?.index ?? defaultEventIndex
+  else {
+    const withResults = events.map((event, index) => ({ event, index })).filter(({ event }) => event.sessions.some((session) => session.rows.length))
+    if (withResults.length) defaultEventIndex = withResults.at(-1)?.index ?? defaultEventIndex
+  }
+  return { events, defaultEventIndex }
 }

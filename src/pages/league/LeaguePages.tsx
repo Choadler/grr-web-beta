@@ -8,7 +8,7 @@ import { LeagueNav, type LeagueNavItem } from '../../components/league/LeagueNav
 import { PageMeta } from '../../components/league/PageMeta'
 import { EmptyState } from '../../components/league/States'
 import { externalLinks } from '../../config/site'
-import { cupRaceEvents, cupSchedule, cupStandings, gtResults, gtSchedule, gtStandings, gtTeamStandings, indyRaceEvents, indySchedule, indyStandings } from '../../services/dataSources'
+import { cupRaceEvents, cupSchedule, cupStandings, gtRaceEvents, gtSchedule, gtStandings, gtTeamStandings, indyRaceEvents, indySchedule, indyStandings } from '../../services/dataSources'
 import type { DataLoader } from '../../types/league'
 import type { TableRow } from '../../types/league'
 
@@ -268,15 +268,8 @@ export const GtTeamStandingsPage = () => (
     columns={[{ key: 'rank', label: 'Rank' }, { key: 'driver', label: 'Team' }, { key: 'car', label: 'Car' }, { key: 'starts', label: 'Race Starts' }, { key: 'points', label: 'Points' }, { key: 'wins', label: 'Wins' }, { key: 'podiums', label: 'Podiums' }]}
   />
 )
-export const GtResultsPage = () => (
-  <DataPage
-    league="gt"
-    title="GT League Race Results"
-    filters={['GT3 AM', 'GT3 Pro', 'GTP']}
-    loaders={[gtResults('am'), gtResults('pro'), gtResults('gtp')]}
-    columns={[{ key: 'position', label: 'Class Pos' }, { key: 'driver', label: 'Driver' }, { key: 'points', label: 'Points' }]}
-  />
-)
+const gtResultColumns: LiveColumn[] = [{ key: 'position', label: 'Class Pos' }, { key: 'driver', label: 'Driver' }, { key: 'points', label: 'Points' }]
+export const GtResultsPage = () => <PageShell league="gt" title="GT League Race Results"><RaceResultsExplorer title="GT League Race Results" loader={gtRaceEvents} columns={gtResultColumns} secondaryColumns={gtResultColumns} /></PageShell>
 
 export const IndyStandingsPage = () => (
   <DataPage

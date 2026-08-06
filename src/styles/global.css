@@ -824,6 +824,18 @@ button:focus-visible {
 .cutoff-value--danger {
   color: #ff737d;
 }
+.results-row--gold {
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.28), rgba(255, 193, 7, 0.1));
+  box-shadow: inset 4px 0 #ffd700;
+}
+.results-row--silver {
+  background: linear-gradient(90deg, rgba(224, 224, 224, 0.2), rgba(180, 180, 180, 0.06));
+  box-shadow: inset 4px 0 #d8d8d8;
+}
+.results-row--bronze {
+  background: linear-gradient(90deg, rgba(205, 127, 50, 0.22), rgba(160, 90, 25, 0.06));
+  box-shadow: inset 4px 0 #cd7f32;
+}
 .standings-row--cutline td {
   border-top: 3px solid var(--green);
 }
