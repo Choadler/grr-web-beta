@@ -113,45 +113,21 @@ function Footer() {
     </footer>
   )
 }
-type DisciplineName = 'oval' | 'sports-car' | 'formula-car'
-
-function DisciplineIcon({ discipline }: { discipline: DisciplineName }) {
-  return <svg className={`discipline-icon discipline-icon--${discipline}`} viewBox="0 0 100 100" aria-hidden="true" focusable="false">
-    <circle className="discipline-icon__rail" cx="50" cy="50" r="38" />
-    <circle className="discipline-icon__progress" cx="50" cy="50" r="38" />
-    {discipline === 'oval' && <ellipse className="discipline-icon__glyph" cx="50" cy="51" rx="21" ry="12" />}
-    {discipline === 'sports-car' && <g className="discipline-icon__glyph">
-      <path d="M25 57h50l-4-14-11-7H40l-11 7-4 14Z" />
-      <path d="M34 43h32M29 52h42" />
-      <circle cx="34" cy="59" r="5" /><circle cx="66" cy="59" r="5" />
-    </g>}
-    {discipline === 'formula-car' && <g className="discipline-icon__glyph">
-      <path d="M46 31h8l3 16 9 7-4 8H38l-4-8 9-7 3-16Z" />
-      <path d="M31 47h14M55 47h14M28 61h17M55 61h17M50 27v-7" />
-      <circle cx="34" cy="46" r="5" /><circle cx="66" cy="46" r="5" />
-      <circle cx="34" cy="63" r="6" /><circle cx="66" cy="63" r="6" />
-    </g>}
-  </svg>
-}
-
 function League({
   title,
   href,
   image,
   alt,
-  discipline,
 }: {
   title: string
   href: string
   image: string
   alt: string
-  discipline: DisciplineName
 }) {
   return (
     <article className="league-panel">
       <img src={image} alt={alt} loading="lazy" />
       <div className="league-panel__content">
-        <DisciplineIcon discipline={discipline} />
         <h2>{title}</h2>
         <Link className="button" to={href}>
           Click Here
@@ -188,21 +164,18 @@ function Home() {
           href="/pages/grr-cup-series"
           image="/assets/home/cup-series.webp"
           alt="GRR Cup Series racing"
-          discipline="oval"
         />
         <League
           title="GRR GT League - Tuesday Nights"
           href="/pages/gt-league"
           image="/assets/home/gt-league.webp"
           alt="GRR GT League racing"
-          discipline="sports-car"
         />
         <League
           title="GRR IndyCar League - Sunday Nights"
           href="/pages/indycar"
           image="/assets/home/indycar.webp"
           alt="GRR IndyCar League racing"
-          discipline="formula-car"
         />
       </section>
       <section className="donation-section section">
