@@ -6,6 +6,7 @@ import { LeagueCountdown } from './components/league/LeagueCountdown'
 import { ChampionshipLeaders } from './components/league/ChampionshipLeaders'
 import { cupStandings, gtSchedule, gtStandings, indyStandings } from './services/dataSources'
 import { AdminPage, IndycarAdminPage } from './pages/AdminPage'
+import { GtAdminPage } from './pages/GtAdminPage'
 import {
   CupBroadcastPage,
   CupLandingPage,
@@ -351,6 +352,7 @@ export function App() {
           <Route path="pages/indycar-results" element={<IndyResultsPage />} />
           <Route path="admin" element={<AdminPage />} />
           <Route path="admin/indycar" element={<IndycarAdminPage />} />
+          <Route path="admin/gt" element={<GtAdminPage />} />
           <Route path="*" element={<Missing />} />
         </Routes>
       </main>
