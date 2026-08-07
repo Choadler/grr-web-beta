@@ -54,7 +54,7 @@ export function LeagueOverview({
 
   const rowLimit = multiClass ? 3 : 5
   const sessions = multiClass
-    ? (latestRace?.sessions ?? [])
+    ? (latestRace?.sessions.filter((session) => session.label !== 'Overall') ?? [])
     : (latestRace?.sessions.slice(0, 1) ?? [])
 
   return (
