@@ -7,7 +7,7 @@ const imageTypes = new Map([
   ['image/png', 'png'],
   ['image/webp', 'webp'],
 ])
-const maxFileSize = 10 * 1024 * 1024
+const maxFileSize = 25 * 1024 * 1024
 
 const hasExpectedSignature = (type, bytes) => {
   if (type === 'image/jpeg') return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
@@ -99,7 +99,7 @@ export async function onRequestPost({ request, env, params }) {
     const extension = imageTypes.get(photo.type)
     if (!extension) return json({ error: 'Upload a JPEG, PNG, or WebP image.' }, 415)
     if (!photo.size || photo.size > maxFileSize)
-      return json({ error: 'Photos must be no larger than 10 MB.' }, 413)
+      return json({ error: 'Photos must be no larger than 25 MB.' }, 413)
     const photoBytes = new Uint8Array(await photo.arrayBuffer())
     if (!hasExpectedSignature(photo.type, photoBytes))
       return json({ error: 'The uploaded file is not a valid image.' }, 415)
