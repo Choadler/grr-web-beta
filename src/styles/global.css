@@ -1954,21 +1954,41 @@ button:focus-visible {
 .gallery-submit-card {
   position: sticky;
   top: 6rem;
-  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 7rem);
+  padding: 1.15rem;
+  overflow: hidden;
   border-top: 4px solid var(--green);
+}
+.gallery-submit-card > .eyebrow {
+  margin-bottom: 0.25rem;
 }
 .gallery-submit-card h2,
 .gallery-toolbar h2 {
   margin-top: 0;
   text-transform: uppercase;
 }
+.gallery-submit-card h2 {
+  margin-bottom: 0.35rem;
+}
+.gallery-submit-card > p:not(.eyebrow, .gallery-notice) {
+  margin-block: 0 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
 .gallery-submit-card form {
   display: grid;
-  gap: 1rem;
-  margin-top: 1.5rem;
+  min-height: 0;
+  gap: 0.65rem;
+  margin-top: 0.65rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.2rem;
+  scrollbar-gutter: stable;
 }
 .gallery-file-picker {
-  padding: 1rem;
+  padding: 0.7rem;
   border: 1px dashed #6a8465;
   background: #162016;
   cursor: pointer;
@@ -1982,21 +2002,22 @@ button:focus-visible {
 .gallery-upload-queue {
   display: grid;
   gap: 0.6rem;
-  max-height: 22rem;
+  max-height: min(9rem, 24vh);
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .gallery-upload-item {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) auto;
-  gap: 0.7rem;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: 0.55rem;
   align-items: center;
-  padding: 0.5rem;
+  padding: 0.35rem;
   border: 1px solid #485445;
   background: #0a0f0a;
 }
 .gallery-upload-item img {
-  width: 64px;
-  height: 48px;
+  width: 48px;
+  height: 36px;
   object-fit: cover;
 }
 .gallery-upload-item div {
@@ -2044,6 +2065,13 @@ button:focus-visible {
   border: 1px solid #667062;
   border-radius: 0;
   background: #111711;
+}
+.gallery-submit-card form > .button {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  width: 100%;
+  box-shadow: 0 -0.5rem 0 #0d130d;
 }
 .gallery-honeypot {
   position: absolute !important;
@@ -2333,6 +2361,15 @@ button:focus-visible {
   }
   .gallery-submit-card {
     position: static;
+    max-height: none;
+    overflow: visible;
+  }
+  .gallery-submit-card form {
+    overflow: visible;
+    padding-right: 0;
+  }
+  .gallery-upload-queue {
+    max-height: 12rem;
   }
   .gallery-admin-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
