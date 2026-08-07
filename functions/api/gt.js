@@ -18,6 +18,15 @@ const formatClassInterval = (row, leader) => {
   if (value === null || base === null || value <= base) return '-'
   return `+${((value - base) / 10000).toFixed(3)}`
 }
+const formatOverallInterval = (row, leader) => {
+  if (Number(row.overall_position) === 1) return '-'
+  const down = Math.max(0, Number(leader?.laps_completed) - Number(row.laps_completed))
+  if (down) return `${down} Lap${down === 1 ? '' : 's'}`
+  const value = intervalNumber(row.finish_interval)
+  const base = intervalNumber(leader?.finish_interval)
+  if (value === null || base === null || value <= base) return '-'
+  return `+${((value - base) / 10000).toFixed(3)}`
+}
 
 export async function onRequestGet({ env }) {
   if (!env.INDYCAR_DB) return json({ error: 'In-house GT data is not configured.' }, 503)
@@ -111,7 +120,37 @@ export async function onRequestGet({ env }) {
     .map((event) => ({
       id: event.subsessionId ?? event.round,
       label: `${event.track} — ${event.date}`,
-      sessions: classes.map((classKey, index) => {
+      sessions: [
+        {
+          id: (event.subsessionId ?? event.round) * 10,
+          label: 'Overall',
+          rows: (() => {
+            const eventRows = rows
+              .filter((row) => row.event_id === event.id)
+              .sort((a, b) => Number(a.overall_position) - Number(b.overall_position))
+            const leader = eventRows.find((row) => Number(row.overall_position) === 1)
+            return eventRows.map((row) => ({
+              position: row.overall_position,
+              podiumPosition: row.class_position,
+              driver: row.driver_name,
+              class: labels[row.class_key] ?? row.class_key,
+              car: row.car_name,
+              start: row.start_position,
+              interval: formatOverallInterval(row, leader),
+              laps: row.laps_completed,
+              led: row.laps_led,
+              racePoints: row.base_points,
+              bonus: row.bonus_points,
+              penalty: row.penalty_points,
+              total: row.total_points,
+              incidents: row.incidents,
+              status: row.status,
+              pole: row.pole,
+              fastestLap: row.fastest_lap ? 1 : 0,
+            }))
+          })(),
+        },
+        ...classes.map((classKey, index) => {
         const classRows = rows.filter(
           (row) => row.event_id === event.id && row.class_key === classKey,
         )
@@ -143,7 +182,8 @@ export async function onRequestGet({ env }) {
               Number(row.best_lap_time) > 0 && Number(row.best_lap_time) === fastestTime ? 1 : 0,
           })),
         }
-      }),
+        }),
+      ],
     }))
   return json({ season, schedule, standings, teamStandings, events, source: 'in-house' })
 }
