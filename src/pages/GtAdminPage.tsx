@@ -10,6 +10,7 @@ import type {
   GtImportPreview,
   GtManagedResult,
   GtPointsConfig,
+  GtRaceFormat,
   GtScheduledEvent,
   GtSeason,
   GtTeam,
@@ -142,34 +143,34 @@ function PointsEditor({
   seasonId: string
   refresh: (message?: string) => Promise<void>
 } & Control) {
-  const [classKey, setClassKey] = useState<GtClassKey>('gt3-am')
+  const [format, setFormat] = useState<GtRaceFormat>('standard')
   const [config, setConfig] = useState<GtPointsConfig>(
-    state.points[seasonId]?.[classKey] ?? structuredClone(defaultGtPoints),
+    state.points[seasonId]?.[format] ?? structuredClone(defaultGtPoints),
   )
   return (
     <Section
-      title="Class points tables"
+      title="Race format points tables"
       eyebrow="Scoring"
-      summary="Independent points and bonuses for all 3 classes"
+      summary="One Standard table and one Endurance table"
       {...control}
     >
       <label>
-        Competition class
+        Race format
         <select
-          value={classKey}
+          value={format}
           onChange={(event) => {
-            const next = event.target.value as GtClassKey
-            setClassKey(next)
+            const next = event.target.value as GtRaceFormat
+            setFormat(next)
             setConfig(state.points[seasonId]?.[next] ?? structuredClone(defaultGtPoints))
           }}
         >
-          {gtClasses.map((item) => (
-            <option key={item.key} value={item.key}>
-              {item.label}
-            </option>
-          ))}
+          <option value="standard">Standard</option>
+          <option value="endurance">Endurance</option>
         </select>
       </label>
+      <p className="admin-notice">
+        All three classes use this table and are scored independently within their own class.
+      </p>
       <div className="admin-form-grid admin-form-grid--bonuses">
         <label>
           Pole bonus
@@ -236,8 +237,8 @@ function PointsEditor({
         className="button"
         type="button"
         onClick={async () => {
-          await mutateGtAdmin({ action: 'savePoints', seasonId, classKey, points: config })
-          await refresh(`${gtClasses.find((item) => item.key === classKey)?.label} points saved.`)
+          await mutateGtAdmin({ action: 'savePoints', seasonId, format, points: config })
+          await refresh(`${format === 'standard' ? 'Standard' : 'Endurance'} points saved.`)
         }}
       >
         Save points table
@@ -810,16 +811,19 @@ function ScheduleEditor({
     date: '',
     track: '',
     laps: 0,
+    format: 'standard',
     status: 'scheduled',
   })
   const [event, setEvent] = useState(blank())
   const [viewId, setViewId] = useState('')
   const completed = rows.filter((item) => item.status === 'completed').length
+  const standard = rows.filter((item) => item.format === 'standard').length
+  const endurance = rows.filter((item) => item.format === 'endurance').length
   return (
     <Section
       title="Schedule"
       eyebrow="Calendar"
-      summary={`${completed} completed · ${rows.length - completed} scheduled · ${rows.length} total`}
+      summary={`${completed} completed · ${rows.length - completed} scheduled · ${standard} standard · ${endurance} endurance · ${rows.length} total`}
       {...control}
     >
       <div hidden>
@@ -884,6 +888,7 @@ function ScheduleEditor({
               <th>Round</th>
               <th>Date</th>
               <th>Track</th>
+              <th>Format</th>
               <th>Laps</th>
               <th>Status</th>
               <th>Actions</th>
@@ -895,6 +900,22 @@ function ScheduleEditor({
                 <td>{row.round}</td>
                 <td>{row.date}</td>
                 <td>{row.track}</td>
+                <td>
+                  <select
+                    aria-label={`Race format for round ${row.round}`}
+                    value={row.format}
+                    onChange={async (change) => {
+                      await mutateGtAdmin({
+                        action: 'saveEvent',
+                        event: { ...row, format: change.target.value as GtRaceFormat },
+                      })
+                      await refresh(`Round ${row.round} format updated.`)
+                    }}
+                  >
+                    <option value="standard">Standard</option>
+                    <option value="endurance">Endurance</option>
+                  </select>
+                </td>
                 <td>{row.laps}</td>
                 <td>{row.status}</td>
                 <td>
@@ -951,6 +972,16 @@ function ScheduleEditor({
             value={event.date}
             onChange={(e) => setEvent({ ...event, date: e.target.value })}
           />
+        </label>
+        <label>
+          Race format
+          <select
+            value={event.format}
+            onChange={(e) => setEvent({ ...event, format: e.target.value as GtRaceFormat })}
+          >
+            <option value="standard">Standard</option>
+            <option value="endurance">Endurance</option>
+          </select>
         </label>
         <label>
           Track
@@ -1179,7 +1210,7 @@ function Importer({
                 <option value="">Select event…</option>
                 {events.map((item) => (
                   <option key={item.id} value={item.id}>
-                    Round {item.round}: {item.track} — {item.date}
+                    Round {item.round}: {item.track} — {item.date} ({item.format === 'endurance' ? 'Endurance' : 'Standard'})
                   </option>
                 ))}
               </select>
