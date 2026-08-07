@@ -111,39 +111,67 @@ export async function onRequestGet({ env }) {
     .map((event) => ({
       id: event.subsessionId ?? event.round,
       label: `${event.track} — ${event.date}`,
-      sessions: classes.map((classKey, index) => {
-        const classRows = rows.filter(
-          (row) => row.event_id === event.id && row.class_key === classKey,
-        )
-        const leader = classRows.find((row) => row.class_position === 1)
-        const fastestTime = Math.min(
-          ...classRows
-            .filter((row) => Number(row.best_lap_time) > 0)
-            .map((row) => Number(row.best_lap_time)),
-        )
-        return {
-          id: (event.subsessionId ?? event.round) * 10 + index,
-          label: labels[classKey],
-          rows: classRows.map((row) => ({
-            position: row.class_position,
-            driver: row.driver_name,
-            car: row.car_name,
-            start: row.start_position,
-            interval: formatClassInterval(row, leader),
-            laps: row.laps_completed,
-            led: row.laps_led,
-            racePoints: row.base_points,
-            bonus: row.bonus_points,
-            penalty: row.penalty_points,
-            total: row.total_points,
-            incidents: row.incidents,
-            status: row.status,
-            pole: row.pole,
-            fastestLap:
-              Number(row.best_lap_time) > 0 && Number(row.best_lap_time) === fastestTime ? 1 : 0,
-          })),
-        }
-      }),
+      sessions: [
+        {
+          id: (event.subsessionId ?? event.round) * 10 - 1,
+          label: 'Overall',
+          rows: rows
+            .filter((row) => row.event_id === event.id)
+            .sort((a, b) => Number(a.overall_position) - Number(b.overall_position))
+            .map((row) => ({
+              position: row.overall_position,
+              podiumPosition: row.class_position,
+              driver: row.driver_name,
+              class: labels[row.class_key] || row.class_key,
+              car: row.car_name,
+              start: row.start_position,
+              interval: Number(row.overall_position) === 1 ? '-' : row.finish_interval,
+              laps: row.laps_completed,
+              led: row.laps_led,
+              racePoints: row.base_points,
+              bonus: row.bonus_points,
+              penalty: row.penalty_points,
+              total: row.total_points,
+              incidents: row.incidents,
+              status: row.status,
+              pole: row.pole,
+              fastestLap: row.fastest_lap,
+            })),
+        },
+        ...classes.map((classKey, index) => {
+          const classRows = rows.filter(
+            (row) => row.event_id === event.id && row.class_key === classKey,
+          )
+          const leader = classRows.find((row) => row.class_position === 1)
+          const fastestTime = Math.min(
+            ...classRows
+              .filter((row) => Number(row.best_lap_time) > 0)
+              .map((row) => Number(row.best_lap_time)),
+          )
+          return {
+            id: (event.subsessionId ?? event.round) * 10 + index,
+            label: labels[classKey],
+            rows: classRows.map((row) => ({
+              position: row.class_position,
+              driver: row.driver_name,
+              car: row.car_name,
+              start: row.start_position,
+              interval: formatClassInterval(row, leader),
+              laps: row.laps_completed,
+              led: row.laps_led,
+              racePoints: row.base_points,
+              bonus: row.bonus_points,
+              penalty: row.penalty_points,
+              total: row.total_points,
+              incidents: row.incidents,
+              status: row.status,
+              pole: row.pole,
+              fastestLap:
+                Number(row.best_lap_time) > 0 && Number(row.best_lap_time) === fastestTime ? 1 : 0,
+            })),
+          }
+        }),
+      ],
     }))
   return json({ season, schedule, standings, teamStandings, events, source: 'in-house' })
 }

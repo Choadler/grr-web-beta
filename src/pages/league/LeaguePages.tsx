@@ -455,12 +455,18 @@ const gtResultColumns: LiveColumn[] = [
   { key: 'incidents', label: 'Inc' },
   { key: 'status', label: 'Status' },
 ]
+const gtOverallResultColumns: LiveColumn[] = [
+  { key: 'position', label: 'Pos' },
+  { key: 'driver', label: 'Driver' },
+  { key: 'class', label: 'Class' },
+  ...gtResultColumns.slice(2),
+]
 export const GtResultsPage = () => (
   <PageShell league="gt" title="GT League Race Results">
     <RaceResultsExplorer
       title="GT League Race Results"
       loader={gtRaceEvents}
-      columns={gtResultColumns}
+      columns={gtOverallResultColumns}
       secondaryColumns={gtResultColumns}
     />
   </PageShell>
@@ -518,6 +524,10 @@ const indyResultColumns: LiveColumn[] = [
 ]
 export const IndyResultsPage = () => (
   <PageShell league="indycar" title="GRR IndyCar Race Results" eyebrow="Season 1">
-    <RaceResultsExplorer title="GRR IndyCar Race Results" loader={indyRaceEvents} columns={indyResultColumns} />
+    <RaceResultsExplorer
+      title="GRR IndyCar Race Results"
+      loader={indyRaceEvents}
+      columns={indyResultColumns}
+    />
   </PageShell>
 )

@@ -414,7 +414,8 @@ export function adaptGtRaceEvents(payload: unknown): RaceEventsResult {
         text(a.race_type).localeCompare(text(b.race_type)),
     )
   const events: RaceEvent[] = races.map((race, raceIndex) => {
-    const sessions = list(race.classes).map((value, classIndex) => {
+    const classes = list(race.classes)
+    const classSessions = classes.map((value, classIndex) => {
       const classObject = record(value)
       const entries = list(classObject.entries).map((entryValue) => record(entryValue))
       const fastest = entries
@@ -437,6 +438,28 @@ export function adaptGtRaceEvents(payload: unknown): RaceEventsResult {
         .sort((a, b) => a.position - b.position)
       return { id: raceIndex * 10 + classIndex + 1, label: text(classObject.class), rows }
     })
+    const overallRows = classes
+      .flatMap((value) => {
+        const classObject = record(value)
+        const classLabel = text(classObject.class)
+        return list(classObject.entries).map((entryValue) => {
+          const entry = record(entryValue)
+          return {
+            position: number(entry.overall_position),
+            podiumPosition: number(entry.class_position),
+            driver: driverName(entry.driver),
+            class: classLabel,
+            points: number(entry.points),
+            fastestLap: ['true', '1', 'yes', 'y', 'checked'].includes(
+              text(entry.fastest_lap).toLowerCase(),
+            )
+              ? 1
+              : 0,
+          }
+        })
+      })
+      .sort((a, b) => a.position - b.position)
+    const sessions = [{ id: raceIndex * 10, label: 'Overall', rows: overallRows }, ...classSessions]
     const week = text(race.race_number) ? `Week ${text(race.race_number)}` : 'Week'
     const label = [week, text(race.track_name) || 'Race', text(race.date_text)]
       .filter(Boolean)
