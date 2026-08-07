@@ -430,7 +430,16 @@ export const GtTeamStandingsPage = () => (
 const gtResultColumns: LiveColumn[] = [
   { key: 'position', label: 'Class Pos' },
   { key: 'driver', label: 'Driver' },
-  { key: 'points', label: 'Points' },
+  { key: 'car', label: 'Car' },
+  { key: 'start', label: 'Start' },
+  { key: 'interval', label: 'Int' },
+  { key: 'laps', label: 'Laps' },
+  { key: 'racePoints', label: 'Race Pts' },
+  { key: 'bonus', label: 'Bonus' },
+  { key: 'penalty', label: 'Pen' },
+  { key: 'total', label: 'Total' },
+  { key: 'incidents', label: 'Inc' },
+  { key: 'status', label: 'Status' },
 ]
 export const GtResultsPage = () => (
   <PageShell league="gt" title="GT League Race Results">

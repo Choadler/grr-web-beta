@@ -13,6 +13,7 @@ import {
   adaptSimRacerStandings,
 } from './adapters'
 import { fetchJson } from './http'
+import { loadLocalGtPublic } from './gtAdmin'
 import { loadLocalIndyPublic } from './indycarAdmin'
 
 type IndyPublicPayload = {
@@ -29,6 +30,27 @@ async function indyInHouse(signal: AbortSignal): Promise<IndyPublicPayload | nul
     const response = await fetch('/api/indycar', { signal, headers: { Accept: 'application/json' } })
     if (!response.ok) return null
     return (await response.json()) as IndyPublicPayload
+  } catch (error) {
+    if (signal.aborted) throw error
+    return null
+  }
+}
+
+type GtPublicPayload = {
+  schedule?: unknown[]
+  standings?: Record<string, unknown[]>
+  teamStandings?: Record<string, unknown[]>
+  events?: unknown[]
+  season?: { name?: string }
+}
+
+const gtClassKey = { am: 'gt3-am', pro: 'gt3-pro', gtp: 'gtp' } as const
+
+async function gtInHouse(signal: AbortSignal): Promise<GtPublicPayload | null> {
+  const local = loadLocalGtPublic()
+  if (local) return local
+  try {
+    return (await fetchJson('/api/gt', signal)) as GtPublicPayload
   } catch (error) {
     if (signal.aborted) throw error
     return null
@@ -65,20 +87,47 @@ export const indyRaceEvents: RaceEventsLoader = async (signal) => {
     return { events: local.events as never[], season: local.season?.name }
   return adaptSimRacerEvents(await fetchJson(publicEndpoints.indycar.standings, signal), indyCalendar)
 }
-export const gtRaceEvents: RaceEventsLoader = async (signal) =>
-  adaptGtRaceEvents(await fetchJson(publicEndpoints.gt.raceBreakdown, signal))
+export const gtRaceEvents: RaceEventsLoader = async (signal) => {
+  const local = await gtInHouse(signal)
+  if (Array.isArray(local?.events))
+    return {
+      events: local.events as never[],
+      season: local.season?.name,
+      defaultEventIndex: Math.max(0, local.events.length - 1),
+    }
+  return adaptGtRaceEvents(await fetchJson(publicEndpoints.gt.raceBreakdown, signal))
+}
 
 export const gtStandings =
   (classKey: 'am' | 'pro' | 'gtp'): DataLoader =>
-  async (signal) =>
-    adaptGtStandings(await fetchJson(publicEndpoints.gt.standings[classKey], signal))
+  async (signal) => {
+    const local = await gtInHouse(signal)
+    const rows = local?.standings?.[gtClassKey[classKey]]
+    if (Array.isArray(rows)) return { rows: rows as never[], label: local?.season?.name }
+    return adaptGtStandings(await fetchJson(publicEndpoints.gt.standings[classKey], signal))
+  }
 export const gtTeamStandings =
   (classKey: 'am' | 'pro' | 'gtp'): DataLoader =>
-  async (signal) =>
-    adaptGtStandings(await fetchJson(publicEndpoints.gt.teamStandings[classKey], signal))
-export const gtSchedule: DataLoader = async (signal) =>
-  adaptGtSchedule(await fetchJson(publicEndpoints.gt.raceBreakdown, signal))
+  async (signal) => {
+    const local = await gtInHouse(signal)
+    const rows = local?.teamStandings?.[gtClassKey[classKey]]
+    if (Array.isArray(rows)) return { rows: rows as never[], label: local?.season?.name }
+    return adaptGtStandings(await fetchJson(publicEndpoints.gt.teamStandings[classKey], signal))
+  }
+export const gtSchedule: DataLoader = async (signal) => {
+  const local = await gtInHouse(signal)
+  if (Array.isArray(local?.schedule))
+    return { rows: local.schedule as never[], label: local.season?.name }
+  return adaptGtSchedule(await fetchJson(publicEndpoints.gt.raceBreakdown, signal))
+}
 export const gtResults =
   (classKey: 'am' | 'pro' | 'gtp'): DataLoader =>
-  async (signal) =>
-    adaptGtResults(await fetchJson(publicEndpoints.gt.raceBreakdown, signal), classKey)
+  async (signal) => {
+    const local = await gtInHouse(signal)
+    const events = Array.isArray(local?.events) ? local.events : []
+    const latest = events.at(-1) as { sessions?: { label?: string; rows?: unknown[] }[] } | undefined
+    const label = { am: 'GT3 AM', pro: 'GT3 Pro', gtp: 'GTP' }[classKey]
+    const session = latest?.sessions?.find((item) => item.label === label)
+    if (Array.isArray(session?.rows)) return { rows: session.rows as never[], label: local?.season?.name }
+    return adaptGtResults(await fetchJson(publicEndpoints.gt.raceBreakdown, signal), classKey)
+  }
