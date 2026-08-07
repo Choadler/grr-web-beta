@@ -488,7 +488,7 @@ export function loadLocalGtPublic(): GtPublicData | null {
           ...classRows.filter((row) => row.bestLapTime > 0).map((row) => row.bestLapTime),
         )
         return {
-          id: (event.subsessionId ?? event.round) * 10 + index,
+          id: (event.subsessionId ?? event.round) * 10 + index + 1,
           label,
           rows: classRows.map((row) => ({
             position: row.classPosition,

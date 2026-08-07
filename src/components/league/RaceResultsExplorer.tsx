@@ -114,7 +114,7 @@ export function RaceResultsExplorer({
             <button
               className={sessionIndex === index ? 'filter-button is-active' : 'filter-button'}
               type="button"
-              key={item.id}
+              key={`${event.id}-${item.label}-${item.id}`}
               onClick={() => setSessionIndex(index)}
             >
               {item.label}
@@ -126,7 +126,7 @@ export function RaceResultsExplorer({
         <span className="fastest-lap-dot" aria-hidden="true" /> Fastest lap
       </p>
       <LiveDataTable
-        key={session.id}
+        key={`${event.id}-${session.label}-${session.id}`}
         title={`${title} — ${event.label} — ${session.label}`}
         columns={
           session.label === 'Overall' && overallColumns

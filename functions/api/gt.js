@@ -161,7 +161,7 @@ export async function onRequestGet({ env }) {
             .map((row) => Number(row.best_lap_time)),
         )
         return {
-          id: (event.subsessionId ?? event.round) * 10 + index,
+          id: (event.subsessionId ?? event.round) * 10 + index + 1,
           label: labels[classKey],
           rows: classRows.map((row) => ({
             position: row.class_position,
