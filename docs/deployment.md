@@ -32,3 +32,19 @@ The in-house IndyCar scoring functions require one Cloudflare D1 database.
 8. Leave the season in Draft while testing. Set it to Active only when its schedule and historical event results are ready; the public IndyCar pages then begin preferring D1 data automatically.
 
 Do not place database IDs, tokens, Access service credentials, or other secrets in `VITE_` variables. D1 is available only through the server-side Pages Functions.
+
+## GT League D1 setup
+
+GT League scoring shares the existing `INDYCAR_DB` D1 binding so the project has one scoring database and no additional client credentials.
+
+1. Apply `migrations/0003_gt_scoring.sql` to the same `grr-scoring` database:
+
+   ```powershell
+   npx.cmd wrangler d1 execute grr-scoring --remote --file=migrations/0003_gt_scoring.sql
+   ```
+
+2. Redeploy the Pages project after the migration and confirm Cloudflare Access still covers `/admin*`.
+3. In `/admin/gt`, create the season, assign drivers to `GT3 AM`, `GT3 Pro`, or `GTP`, configure all three points tables, and add the schedule.
+4. Leave the season in Draft until real race imports and public tables have been reviewed. Activating a populated season makes the public GT pages prefer D1 automatically.
+
+Driver assignments are stored by iRacing Customer ID. The assigned class, team, and car are copied onto each published result, so later roster edits do not rewrite historical races.

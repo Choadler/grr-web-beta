@@ -40,6 +40,23 @@ The result importer accepts iRacing result JSON and recognizes common `session_r
 
 Current SimRacerHub history is not automatically copied into D1. To preserve the existing season exactly, upload the source result JSON for each completed event (or implement a one-time documented migration from an authoritative export) before switching the in-house season to active.
 
+## In-house GT League scoring
+
+The GT module extends the D1 scoring system with GRR-specific multiclass assignments.
+
+- Protected management UI: `/admin/gt`.
+- Protected Pages Function: `/admin/api/gt`.
+- Public read-only Pages Function: `/api/gt`.
+- D1 binding: the existing `INDYCAR_DB` binding.
+- Schema migration: `migrations/0003_gt_scoring.sql`.
+- Competition classes: `GT3 AM`, `GT3 Pro`, and `GTP`.
+- Driver class, team, and car assignments are keyed to season and iRacing Customer ID.
+- Each class has an independent finishing-points table and independent pole, fastest-lap, lap-led, and most-laps-led bonuses.
+- Publishing calculates class position, winner, pole, fastest lap, bonuses, penalties, driver standings, and team standings separately per class.
+- Public GT schedule, standings, team standings, and race results prefer populated active D1 data and retain the existing Worker integrations as fallback.
+
+An import cannot be published until every driver has a GRR class. Assignments selected during import become that driver’s season default, while the published result retains its historical class even if the default changes later.
+
 The current GT results page also references an administrative refresh endpoint. It is deliberately excluded from public client configuration and must never be invoked by the browser application.
 
 Public endpoint placeholders live in `.env.example`. Never put a private token or credential in a `VITE_` variable. Secret-dependent calls must run through a server-side Cloudflare Worker with timeouts, validation, safe parsing, and CORS restricted to the production/preview origins.
