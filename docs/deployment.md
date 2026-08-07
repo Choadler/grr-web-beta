@@ -12,3 +12,23 @@
 10. Merchandise links remain external to the existing Fourthwall storefront. Confirm whether the storefront will retain `grassrootsracing.org` or move to a dedicated shop hostname before DNS migration.
 
 Cloudflare Pages does not automatically make GitHub Pages serve this build; they are separate deployment products.
+
+## IndyCar D1 setup
+
+The in-house IndyCar scoring functions require one Cloudflare D1 database.
+
+1. In Cloudflare, open **Workers & Pages > D1 SQL Database** and create a database such as `grr-scoring`.
+2. Open the `grr-web-beta` Pages project, then **Settings > Bindings > Add > D1 database binding**.
+3. Set the variable name to exactly `INDYCAR_DB` and select the new database. Add the binding to both Preview and Production if both environments will be tested.
+4. Apply `migrations/0001_indycar_scoring.sql` to that database. With Wrangler authenticated, the equivalent command is:
+
+   ```powershell
+   npx.cmd wrangler d1 execute grr-scoring --remote --file=migrations/0001_indycar_scoring.sql
+   ```
+
+5. Redeploy the Pages project so its Functions receive the binding.
+6. Confirm the existing Cloudflare Access application protects `grassrootsracing.org/admin*`. This covers both `/admin/indycar` and `/admin/api/indycar`.
+7. Sign in, create or edit the IndyCar season, configure its points, create scheduled events, and preview a real result JSON before publishing.
+8. Leave the season in Draft while testing. Set it to Active only when its schedule and historical event results are ready; the public IndyCar pages then begin preferring D1 data automatically.
+
+Do not place database IDs, tokens, Access service credentials, or other secrets in `VITE_` variables. D1 is available only through the server-side Pages Functions.

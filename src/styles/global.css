@@ -313,11 +313,7 @@ a {
   border-right: 1px solid #222;
 }
 .league-panel > img {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: saturate(0.85);
+  display: none;
 }
 .league-panel::after {
   content: '';
@@ -565,6 +561,84 @@ a {
 .admin-dashboard__empty p {
   margin: 0;
   color: #c4cbc2;
+}
+.admin-page-heading,
+.admin-card__heading,
+.import-preview__summary { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.admin-dashboard-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-top: 2rem; }
+.admin-module,
+.admin-card { border: 1px solid #3b5039; border-top: 4px solid var(--green); background: #0c120d; color: var(--white); padding: clamp(1.25rem, 3vw, 2rem); }
+.admin-card--collapsible { padding: 0; }
+.admin-card--collapsible > summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.1rem 1.25rem; cursor: pointer; list-style: none; user-select: none; }
+.admin-card--collapsible > summary::-webkit-details-marker { display: none; }
+.admin-card--collapsible > summary span:first-child { display: grid; gap: .2rem; }
+.admin-card--collapsible > summary small { color: var(--green-light); font-size: .72rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+.admin-card--collapsible > summary strong { font-family: var(--font-display); font-size: clamp(1.15rem, 2vw, 1.5rem); text-transform: uppercase; }
+.admin-card__toggle { color: var(--green-light); font-size: .78rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.admin-card--collapsible[open] .admin-card__toggle { font-size: 0; }
+.admin-card--collapsible[open] .admin-card__toggle::after { content: 'Close'; font-size: .78rem; }
+.admin-card__content { padding: 0 1.25rem 1.4rem; border-top: 1px solid #263525; }
+.admin-card__content > :first-child { margin-top: 1.25rem; }
+.admin-card__actions { display: flex; justify-content: flex-end; }
+.admin-race-editor { margin: 1.25rem 0; padding: 1rem; border: 1px solid #40543e; background: #101711; }
+.admin-race-editor__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.admin-race-editor__heading h3 { margin: .2rem 0 0; }
+.admin-results-editor tr[draggable="true"] { cursor: grab; }
+.admin-results-editor tr[draggable="true"]:active { cursor: grabbing; }
+.admin-results-editor td:first-child { white-space: nowrap; }
+.admin-results-editor td:first-child button { min-width: 2rem; min-height: 2rem; margin-left: .25rem; }
+.admin-results-editor input { min-width: 5rem; max-width: 6rem; }
+.drag-handle { color: var(--green-light); font-size: 1.1rem; font-weight: 900; }
+.admin-module { display: flex; min-height: 220px; flex-direction: column; text-decoration: none; }
+.admin-module > span:first-child,
+.admin-module__action { color: #9ee78e; font-size: .78rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.admin-module strong { margin-top: .7rem; font-size: 1.45rem; text-transform: uppercase; }
+.admin-module p { color: #c3cec3; }
+.admin-module__action { margin-top: auto; }
+.admin-module:not(.admin-module--disabled):hover,
+.admin-module:not(.admin-module--disabled):focus-visible { border-color: var(--green); transform: translateY(-2px); }
+.admin-module--disabled { opacity: .62; }
+.admin-card { margin-top: 1.25rem; }
+.admin-card h2 { margin-top: .25rem; text-transform: uppercase; }
+.admin-card h3 { margin-top: 1.5rem; }
+.admin-card label { display: grid; gap: .4rem; color: #d9e1d8; font-size: .82rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.admin-card input,
+.admin-card select { width: 100%; min-height: 44px; border: 1px solid #536551; border-radius: 0; background: #121a13; color: var(--white); padding: .65rem .75rem; font: inherit; }
+.admin-card input:focus,
+.admin-card select:focus { border-color: var(--green); outline: 2px solid rgba(55,174,15,.28); }
+.admin-form-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin: 1.25rem 0; }
+.admin-form-grid--bonuses { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.points-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: .6rem; margin: 1rem 0 1.5rem; }
+.points-grid label { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: .45rem; }
+.points-grid input { min-width: 0; }
+.admin-table-wrap { width: 100%; overflow-x: auto; margin: 1rem 0; }
+.admin-table { width: 100%; min-width: 680px; border-collapse: collapse; }
+.admin-table th,
+.admin-table td { border-bottom: 1px solid #354334; padding: .7rem; text-align: left; }
+.admin-table th { background: #1a291a; color: #a9ed9d; font-size: .75rem; text-transform: uppercase; }
+.admin-table button { border: 0; background: transparent; color: #a9ed9d; text-decoration: underline; cursor: pointer; }
+.admin-notice { border-left: 4px solid #d5ad32; background: #282311; padding: .8rem 1rem; }
+.admin-notice--error { border-color: #db4b4b; background: #2d1111; }
+.admin-notice--success { border-color: var(--green); background: #102610; }
+.json-drop { border: 2px dashed #536551; padding: 1.4rem; margin-top: 1rem; cursor: pointer; }
+.json-drop input { margin-top: .65rem; }
+.import-preview { border-top: 1px solid #425240; margin-top: 1.5rem; padding-top: 1.5rem; }
+.import-preview__summary > div { display: grid; gap: .35rem; }
+.import-preview__summary strong { font-size: 1.3rem; }
+.import-preview__summary span,
+.admin-history { color: #b8c3b7; }
+.admin-upload-success { display: flex; align-items: flex-start; gap: .9rem; margin-top: 1.25rem; padding: 1rem 1.1rem; border: 1px solid color-mix(in srgb, var(--green) 60%, transparent); border-left: 4px solid var(--green); background: color-mix(in srgb, var(--green) 10%, var(--surface)); }
+.admin-upload-success__mark { display: grid; flex: 0 0 2rem; width: 2rem; height: 2rem; place-items: center; border-radius: 50%; background: var(--green); color: #071006; font-weight: 900; }
+.admin-upload-success h3, .admin-upload-success p { margin: 0; }
+.admin-upload-success p { margin-top: .2rem; }
+.admin-upload-success small { display: block; margin-top: .35rem; color: #b8c3b7; }
+@media (max-width: 800px) {
+  .admin-dashboard-grid,
+  .admin-form-grid,
+  .admin-form-grid--bonuses { grid-template-columns: 1fr; }
+  .admin-page-heading,
+  .admin-card__heading,
+  .import-preview__summary { align-items: stretch; flex-direction: column; }
 }
 a:focus-visible,
 button:focus-visible {
@@ -1348,4 +1422,3 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 }
-
