@@ -54,12 +54,16 @@ function RaceEditor({ event, rows, refresh, close }: { event: IndyScheduledEvent
   )
 }
 
-function AdminSection({ eyebrow, title, defaultOpen = false, children }: { eyebrow: string; title: string; defaultOpen?: boolean; children: React.ReactNode }) {
-  const [open, setOpen] = useState(defaultOpen)
+type AdminSectionControl = {
+  open: boolean
+  onToggle: (open: boolean) => void
+}
+
+function AdminSection({ eyebrow, title, summary, open, onToggle, children }: { eyebrow: string; title: string; summary?: string; children: React.ReactNode } & AdminSectionControl) {
   return (
-    <details className="admin-card admin-card--collapsible" open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
+    <details className="admin-card admin-card--collapsible" open={open} onToggle={(event) => onToggle(event.currentTarget.open)}>
       <summary>
-        <span><small>{eyebrow}</small><strong>{title}</strong></span>
+        <span><small>{eyebrow}</small><strong>{title}</strong>{!open && summary ? <span className="admin-card__summary">{summary}</span> : null}</span>
         <span className="admin-card__toggle" aria-hidden="true">Open</span>
       </summary>
       <div className="admin-card__content">{children}</div>
@@ -67,7 +71,7 @@ function AdminSection({ eyebrow, title, defaultOpen = false, children }: { eyebr
   )
 }
 
-function SeasonEditor({ state, refresh }: { state: IndyAdminState; refresh: (message?: string) => Promise<void> }) {
+function SeasonEditor({ state, refresh, ...section }: { state: IndyAdminState; refresh: (message?: string) => Promise<void> } & AdminSectionControl) {
   const [season, setSeason] = useState<IndySeason>(state.seasons.find((item) => item.status === 'active') ?? state.seasons[0] ?? newSeason())
   const [busy, setBusy] = useState(false)
   const save = async () => {
@@ -77,7 +81,7 @@ function SeasonEditor({ state, refresh }: { state: IndyAdminState; refresh: (mes
     setBusy(false)
   }
   return (
-    <AdminSection eyebrow="Season control" title="IndyCar season" defaultOpen>
+    <AdminSection eyebrow="Season control" title="IndyCar season" {...section}>
       {state.seasons.length > 0 && (
         <label>Season<select value={season.id} onChange={(event) => setSeason(state.seasons.find((item) => item.id === event.target.value) ?? newSeason())}>{state.seasons.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.status})</option>)}<option value="">Create new season</option></select></label>
       )}
@@ -92,12 +96,12 @@ function SeasonEditor({ state, refresh }: { state: IndyAdminState; refresh: (mes
   )
 }
 
-function PointsEditor({ state, seasonId, refresh }: { state: IndyAdminState; seasonId: string; refresh: (message?: string) => Promise<void> }) {
+function PointsEditor({ state, seasonId, refresh, ...section }: { state: IndyAdminState; seasonId: string; refresh: (message?: string) => Promise<void> } & AdminSectionControl) {
   const [config, setConfig] = useState<IndyPointsConfig>(state.points[seasonId] ?? defaultIndyPoints)
   const updatePosition = (index: number, points: number) => setConfig({ ...config, positions: config.positions.map((rule, ruleIndex) => ruleIndex === index ? { ...rule, points } : rule) })
   const save = async () => { await mutateIndyAdmin({ action: 'savePoints', seasonId, points: config }); await refresh('Points table saved.') }
   return (
-    <AdminSection eyebrow="Scoring" title="Points table">
+    <AdminSection eyebrow="Scoring" title="Points table" {...section}>
       <div className="admin-card__actions"><button className="button button--compact" type="button" onClick={() => setConfig(defaultIndyPoints)}>Reset draft</button></div>
       <div className="admin-form-grid admin-form-grid--bonuses">
         <label>Pole bonus<input type="number" min="0" value={config.poleBonus} onChange={(event) => setConfig({ ...config, poleBonus: Number(event.target.value) })} /></label>
@@ -110,15 +114,18 @@ function PointsEditor({ state, seasonId, refresh }: { state: IndyAdminState; sea
   )
 }
 
-function ScheduleEditor({ state, seasonId, refresh }: { state: IndyAdminState; seasonId: string; refresh: (message?: string) => Promise<void> }) {
+function ScheduleEditor({ state, seasonId, refresh, ...section }: { state: IndyAdminState; seasonId: string; refresh: (message?: string) => Promise<void> } & AdminSectionControl) {
   const seasonEvents = state.schedule.filter((event) => event.seasonId === seasonId).sort((a, b) => a.round - b.round)
+  const completedCount = seasonEvents.filter((event) => event.status === 'completed').length
+  const scheduledCount = seasonEvents.filter((event) => event.status === 'scheduled').length
+  const scheduleSummary = `${completedCount} completed · ${scheduledCount} scheduled · ${seasonEvents.length} total`
   const blank = (): IndyScheduledEvent => ({ id: id(), seasonId, round: seasonEvents.length + 1, date: '', track: '', laps: 0, status: 'scheduled' })
   const [event, setEvent] = useState<IndyScheduledEvent>(blank())
   const [viewEventId, setViewEventId] = useState('')
   const save = async () => { await mutateIndyAdmin({ action: 'saveEvent', event }); setEvent(blank()); await refresh('Schedule updated.') }
   const remove = async (eventId: string) => { if (!confirm('Remove this scheduled event?')) return; await mutateIndyAdmin({ action: 'deleteEvent', eventId }); await refresh('Event removed.') }
   return (
-    <AdminSection eyebrow="Calendar" title="Schedule">
+    <AdminSection eyebrow="Calendar" title="Schedule" summary={scheduleSummary} {...section}>
       <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Round</th><th>Date</th><th>Track</th><th>Laps</th><th>Status</th><th>Actions</th></tr></thead><tbody>{seasonEvents.length ? seasonEvents.map((item) => <tr key={item.id}><td>{item.round}</td><td>{item.date}</td><td>{item.track}</td><td>{item.laps}</td><td>{item.status}</td><td>{item.status === 'completed' && <button type="button" disabled={!state.results[item.id]?.length} onClick={() => setViewEventId(item.id)}>View race</button>} <button type="button" onClick={() => setEvent(item)}>Edit</button> <button type="button" onClick={() => void remove(item.id)}>Remove</button></td></tr>) : <tr><td colSpan={6}>No scheduled events yet.</td></tr>}</tbody></table></div>
       {viewEventId && state.results[viewEventId]?.length ? <RaceEditor key={viewEventId} event={seasonEvents.find((item) => item.id === viewEventId)!} rows={state.results[viewEventId]} refresh={refresh} close={() => setViewEventId('')} /> : null}
       <h3>{seasonEvents.some((item) => item.id === event.id) ? 'Edit event' : 'Add event'}</h3>
@@ -133,7 +140,7 @@ function ScheduleEditor({ state, seasonId, refresh }: { state: IndyAdminState; s
   )
 }
 
-function ResultsImporter({ state, seasonId, refresh }: { state: IndyAdminState; seasonId: string; refresh: (message?: string) => Promise<void> }) {
+function ResultsImporter({ state, seasonId, refresh, ...section }: { state: IndyAdminState; seasonId: string; refresh: (message?: string) => Promise<void> } & AdminSectionControl) {
   const [preview, setPreview] = useState<IndyImportPreview | null>(null)
   const [rawJson, setRawJson] = useState<unknown>(null)
   const [filename, setFilename] = useState('')
@@ -152,7 +159,7 @@ function ResultsImporter({ state, seasonId, refresh }: { state: IndyAdminState; 
     setPreview(null); setRawJson(null); setFilename(''); setEventId(''); await refresh('Race results published and standings recalculated.')
   }
   return (
-    <AdminSection eyebrow="Race control" title="Import iRacing JSON">
+    <AdminSection eyebrow="Race control" title="Import Race" {...section}>
       <p>The original JSON is retained for auditing. Nothing is published until you review the preview and assign it to a scheduled event.</p>
       <label className="json-drop">Race results JSON<input type="file" accept="application/json,.json" onChange={(event) => void read(event.target.files?.[0])} /></label>
       {error && <p className="admin-notice admin-notice--error">{error}</p>}
@@ -175,6 +182,11 @@ export function IndycarAdminPage() {
   const [state, setState] = useState<IndyAdminState | null>(null)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState('')
+  const [openSection, setOpenSection] = useState('season')
+  const section = (name: string): AdminSectionControl => ({
+    open: openSection === name,
+    onToggle: (open) => setOpenSection(open ? name : (current) => current === name ? '' : current),
+  })
   const refresh = async (message = '') => { try { setState(await loadIndyAdmin()); setError(''); setSaved(message) } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not load IndyCar administration.'); setSaved('') } }
   useEffect(() => {
     let active = true
@@ -185,7 +197,7 @@ export function IndycarAdminPage() {
   }, [])
   const activeSeason = useMemo(() => state?.seasons.find((item) => item.status === 'active') ?? state?.seasons[0], [state])
   if (!state) return <section className="admin-dashboard"><div className="container"><p>Loading IndyCar administration…</p><AdminNotice error={error} saved="" /></div></section>
-  return <section className="admin-dashboard"><div className="container"><div className="admin-page-heading"><div><p className="eyebrow">Grassroots Racing Administration</p><h1>Manage IndyCar</h1></div><Link className="button button--secondary" to="/admin">Dashboard</Link></div><AdminNotice error={error} saved={saved} /><SeasonEditor state={state} refresh={refresh} />{activeSeason ? <><PointsEditor key={`points-${activeSeason.id}`} state={state} seasonId={activeSeason.id} refresh={refresh} /><ScheduleEditor key={`schedule-${activeSeason.id}`} state={state} seasonId={activeSeason.id} refresh={refresh} /><ResultsImporter key={`results-${activeSeason.id}`} state={state} seasonId={activeSeason.id} refresh={refresh} /></> : <p className="admin-notice">Create a season before configuring its points, schedule, and results.</p>}</div></section>
+  return <section className="admin-dashboard"><div className="container"><div className="admin-page-heading"><div><p className="eyebrow">Grassroots Racing Administration</p><h1>Manage IndyCar</h1></div><Link className="button button--secondary" to="/admin">Dashboard</Link></div><AdminNotice error={error} saved={saved} /><SeasonEditor state={state} refresh={refresh} {...section('season')} />{activeSeason ? <><PointsEditor key={`points-${activeSeason.id}`} state={state} seasonId={activeSeason.id} refresh={refresh} {...section('points')} /><ScheduleEditor key={`schedule-${activeSeason.id}`} state={state} seasonId={activeSeason.id} refresh={refresh} {...section('schedule')} /><ResultsImporter key={`results-${activeSeason.id}`} state={state} seasonId={activeSeason.id} refresh={refresh} {...section('import')} /></> : <p className="admin-notice">Create a season before configuring its points, schedule, and results.</p>}</div></section>
 }
 
 export function AdminPage() {

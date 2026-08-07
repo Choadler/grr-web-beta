@@ -574,6 +574,7 @@ a {
 .admin-card--collapsible > summary span:first-child { display: grid; gap: .2rem; }
 .admin-card--collapsible > summary small { color: var(--green-light); font-size: .72rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
 .admin-card--collapsible > summary strong { font-family: var(--font-display); font-size: clamp(1.15rem, 2vw, 1.5rem); text-transform: uppercase; }
+.admin-card--collapsible > summary .admin-card__summary { color: #b9c4b7; font-size: .82rem; font-weight: 700; }
 .admin-card__toggle { color: var(--green-light); font-size: .78rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
 .admin-card--collapsible[open] .admin-card__toggle { font-size: 0; }
 .admin-card--collapsible[open] .admin-card__toggle::after { content: 'Close'; font-size: .78rem; }
