@@ -15,8 +15,8 @@ const preserveScriptsOnCloudflare = {
     order: 'post' as const,
     handler(html: string) {
       return html.replace(
-        /<script type="module" crossorigin src=/g,
-        '<script data-cfasync="false" defer src=',
+        /<script type="module" crossorigin src="([^"]+)"><\/script>/g,
+        '<script data-cfasync="false" defer src="$1?v=grr-classic-v2"></script>',
       )
     },
   },
