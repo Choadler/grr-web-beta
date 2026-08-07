@@ -1290,8 +1290,18 @@ button:focus-visible {
   letter-spacing: -0.04em;
   text-transform: uppercase;
 }
+.page-hero--compact {
+  min-height: 118px;
+  padding-block: 1.25rem;
+}
+.page-hero--compact h1 {
+  font-size: clamp(2.15rem, 4vw, 3.65rem);
+}
 .page-content {
   padding-block: 4rem 6rem;
+}
+.page-content--compact {
+  padding-block: clamp(1.5rem, 3vw, 2.25rem) 4rem;
 }
 .league-link-grid {
   display: grid;
@@ -1582,7 +1592,10 @@ button:focus-visible {
   align-items: flex-end;
   gap: 1rem;
   flex-wrap: wrap;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+.page-content--compact .data-toolbar {
+  gap: 0.65rem;
 }
 .search-field {
   display: grid;
@@ -1642,6 +1655,9 @@ button:focus-visible {
   margin-left: auto;
   flex-wrap: wrap;
 }
+.page-content--compact .export-controls {
+  margin-left: 0;
+}
 .export-controls .button--compact {
   margin-left: 0;
 }
@@ -1655,7 +1671,7 @@ button:focus-visible {
   font-size: 0.82rem;
 }
 .standings-legend {
-  margin: 0 0 1rem;
+  margin: 0 0 0.75rem;
   padding: 0.75rem 1rem;
   border-left: 4px solid var(--green);
   background: #151c14;
@@ -1663,22 +1679,27 @@ button:focus-visible {
   font-size: 0.85rem;
   font-weight: 700;
 }
-.results-selector {
+.results-controls {
   display: flex;
-  align-items: end;
+  align-items: flex-end;
   gap: 0.75rem;
   flex-wrap: wrap;
-  margin-bottom: 1rem;
+  margin-bottom: 0.55rem;
 }
-.results-selector label {
+.results-controls > .button--compact {
+  margin-left: 0;
+}
+.results-controls > label {
   display: grid;
   gap: 0.4rem;
-  min-width: min(100%, 320px);
+  flex: 1 1 320px;
+  max-width: 430px;
+  min-width: min(100%, 280px);
   font-size: 0.78rem;
   font-weight: 800;
   text-transform: uppercase;
 }
-.results-selector select {
+.results-controls > label select {
   min-height: 46px;
   padding: 0.65rem 0.8rem;
   border: 1px solid #687264;
@@ -1690,7 +1711,7 @@ button:focus-visible {
   display: flex;
   gap: 0.4rem;
   flex-wrap: wrap;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
 }
 .table-scroll {
   max-width: 100%;
@@ -1762,7 +1783,7 @@ button:focus-visible {
   box-shadow: inset 4px 0 #cd7f32;
 }
 .results-legend {
-  margin: 0.75rem 0;
+  margin: 0.45rem 0 0.65rem;
   color: #c9d0c6;
   font-size: 0.75rem;
   font-weight: 800;
@@ -1834,7 +1855,7 @@ button:focus-visible {
   text-align: center !important;
 }
 .table-hint {
-  margin: 0.75rem 0 0;
+  margin: 0.55rem 0 0;
   color: #bec5bb;
   font-size: 0.75rem;
   font-weight: 800;

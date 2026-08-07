@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
 import type { DataLoader, TableRow } from '../../types/league'
 import { copyPng, downloadCsv } from '../../utils/tableExport'
 import { DataTable, EmptyTableRow } from './DataTable'
@@ -17,12 +18,14 @@ export function LiveDataTable({
   loader,
   search = false,
   rowClassName,
+  toolbarActions,
 }: {
   title: string
   columns: LiveColumn[]
   loader: DataLoader
   search?: boolean
   rowClassName?: (row: TableRow) => string
+  toolbarActions?: ReactNode
 }) {
   const [rows, setRows] = useState<TableRow[]>([])
   const [query, setQuery] = useState('')
@@ -103,6 +106,7 @@ export function LiveDataTable({
             />
           </label>
         )}
+        {toolbarActions}
         <div className="export-controls" aria-label="Table export controls">
           <button
             className="button button--compact"

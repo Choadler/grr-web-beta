@@ -86,11 +86,13 @@ function PageShell({
   league,
   title,
   eyebrow,
+  compact = false,
   children,
 }: {
   league: LeagueKey
   title: string
   eyebrow?: string
+  compact?: boolean
   children: React.ReactNode
 }) {
   const config = leagueConfig[league]
@@ -107,7 +109,7 @@ function PageShell({
         />
       </aside>
       <header
-        className={`page-hero page-hero--${league}`}
+        className={`page-hero page-hero--${league}${compact ? ' page-hero--compact' : ''}`}
         style={{
           backgroundImage: `linear-gradient(90deg, rgba(3, 8, 3, 0.9), rgba(8, 16, 8, 0.7) 52%, rgba(8, 16, 8, 0.5)), url(${config.image})`,
           backgroundPosition: config.imagePosition,
@@ -119,7 +121,13 @@ function PageShell({
         </div>
       </header>
       <LeaguePhotoRails league={league} />
-      <div className="page-content container">{children}</div>
+      <div
+        className={
+          compact ? 'page-content page-content--compact container' : 'page-content container'
+        }
+      >
+        {children}
+      </div>
     </>
   )
 }
@@ -254,7 +262,7 @@ function DataPage({
   const [activeFilter, setActiveFilter] = useState(0)
   const activeLoader = loaders?.[activeFilter] ?? loader
   return (
-    <PageShell league={league} title={title} eyebrow={eyebrow}>
+    <PageShell league={league} title={title} eyebrow={eyebrow} compact>
       {filters && (
         <div className="data-toolbar">
           <fieldset className="filter-group">
@@ -367,7 +375,7 @@ const cupResultColumns: LiveColumn[] = [
   { key: 'status', label: 'Status' },
 ]
 export const CupResultsPage = () => (
-  <PageShell league="cup" title="GRR Cup Series Race Results" eyebrow="GRR Cup Series 2026">
+  <PageShell league="cup" title="GRR Cup Series Race Results" eyebrow="GRR Cup Series 2026" compact>
     <RaceResultsExplorer
       title="GRR Cup Series Race Results"
       loader={cupRaceEvents}
@@ -473,7 +481,7 @@ const gtOverallResultColumns: LiveColumn[] = [
   { key: 'status', label: 'Status' },
 ]
 export const GtResultsPage = () => (
-  <PageShell league="gt" title="GT League Race Results">
+  <PageShell league="gt" title="GT League Race Results" compact>
     <RaceResultsExplorer
       title="GT League Race Results"
       loader={gtRaceEvents}
@@ -535,7 +543,11 @@ const indyResultColumns: LiveColumn[] = [
   { key: 'status', label: 'Status' },
 ]
 export const IndyResultsPage = () => (
-  <PageShell league="indycar" title="GRR IndyCar Race Results" eyebrow="Season 1">
-    <RaceResultsExplorer title="GRR IndyCar Race Results" loader={indyRaceEvents} columns={indyResultColumns} />
+  <PageShell league="indycar" title="GRR IndyCar Race Results" eyebrow="Season 1" compact>
+    <RaceResultsExplorer
+      title="GRR IndyCar Race Results"
+      loader={indyRaceEvents}
+      columns={indyResultColumns}
+    />
   </PageShell>
 )

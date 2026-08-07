@@ -80,7 +80,7 @@ export function RaceResultsExplorer({
 
   return (
     <>
-      <div className="results-selector">
+      <div className="results-controls">
         <label>
           <span>Select race</span>
           <select
@@ -108,20 +108,6 @@ export function RaceResultsExplorer({
           Latest Race
         </button>
       </div>
-      {event.sessions.length > 1 && (
-        <div className="result-tabs" role="group" aria-label="Race session">
-          {event.sessions.map((item, index) => (
-            <button
-              className={sessionIndex === index ? 'filter-button is-active' : 'filter-button'}
-              type="button"
-              key={`${event.id}-${item.label}-${item.id}`}
-              onClick={() => setSessionIndex(index)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      )}
       <p className="results-legend">
         <span className="fastest-lap-dot" aria-hidden="true" /> Fastest lap
       </p>
@@ -136,6 +122,22 @@ export function RaceResultsExplorer({
               : (columns ?? raceColumns)
         }
         loader={tableLoader}
+        toolbarActions={
+          event.sessions.length > 1 ? (
+            <div className="result-tabs" role="group" aria-label="Race session">
+              {event.sessions.map((item, index) => (
+                <button
+                  className={sessionIndex === index ? 'filter-button is-active' : 'filter-button'}
+                  type="button"
+                  key={`${event.id}-${item.label}-${item.id}`}
+                  onClick={() => setSessionIndex(index)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          ) : undefined
+        }
         search
         rowClassName={podiumClass}
       />
