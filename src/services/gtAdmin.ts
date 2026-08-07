@@ -221,8 +221,15 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
     }
     if (action === 'savePoints') {
       const seasonId = String(data.seasonId)
+      const format = String(data.format) as GtRaceFormat
       state.points[seasonId] ??= {} as Record<GtRaceFormat, GtPointsConfig>
-      state.points[seasonId][String(data.format) as GtRaceFormat] = data.points as GtPointsConfig
+      state.points[seasonId][format] = data.points as GtPointsConfig
+      state.schedule
+        .filter((event) => event.seasonId === seasonId && event.format === format)
+        .forEach((event) => {
+          const rows = state.results[event.id]
+          if (rows?.length) state.results[event.id] = score(rows, state.points[seasonId][format])
+        })
     }
     if (action === 'saveTeam') {
       const team = data.team as GtTeam
