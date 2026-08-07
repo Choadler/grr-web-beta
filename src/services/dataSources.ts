@@ -1,6 +1,6 @@
 import { publicEndpoints } from '../config/integrations'
 import { cupSchedule as cupCalendar, indycarSchedule as indyCalendar } from '../config/schedules'
-import type { DataLoader, RaceEventsLoader } from '../types/league'
+import type { DataLoader, DataResult, RaceEventsLoader } from '../types/league'
 import {
   adaptGtRaceEvents,
   adaptGtResults,
@@ -45,6 +45,21 @@ type GtPublicPayload = {
 }
 
 const gtClassKey = { am: 'gt3-am', pro: 'gt3-pro', gtp: 'gtp' } as const
+
+function addBehindLeader(result: DataResult): DataResult {
+  const leaderPoints = result.rows.reduce(
+    (highest, row) => Math.max(highest, Number(row.points) || 0),
+    0,
+  )
+
+  return {
+    ...result,
+    rows: result.rows.map((row) => {
+      const gap = Math.max(0, leaderPoints - (Number(row.points) || 0))
+      return { ...row, behindLeader: gap === 0 ? '—' : `-${gap.toLocaleString()}` }
+    }),
+  }
+}
 
 async function gtInHouse(signal: AbortSignal): Promise<GtPublicPayload | null> {
   const local = loadLocalGtPublic()
@@ -103,16 +118,22 @@ export const gtStandings =
   async (signal) => {
     const local = await gtInHouse(signal)
     const rows = local?.standings?.[gtClassKey[classKey]]
-    if (Array.isArray(rows)) return { rows: rows as never[], label: local?.season?.name }
-    return adaptGtStandings(await fetchJson(publicEndpoints.gt.standings[classKey], signal))
+    if (Array.isArray(rows))
+      return addBehindLeader({ rows: rows as never[], label: local?.season?.name })
+    return addBehindLeader(
+      adaptGtStandings(await fetchJson(publicEndpoints.gt.standings[classKey], signal)),
+    )
   }
 export const gtTeamStandings =
   (classKey: 'am' | 'pro' | 'gtp'): DataLoader =>
   async (signal) => {
     const local = await gtInHouse(signal)
     const rows = local?.teamStandings?.[gtClassKey[classKey]]
-    if (Array.isArray(rows)) return { rows: rows as never[], label: local?.season?.name }
-    return adaptGtStandings(await fetchJson(publicEndpoints.gt.teamStandings[classKey], signal))
+    if (Array.isArray(rows))
+      return addBehindLeader({ rows: rows as never[], label: local?.season?.name })
+    return addBehindLeader(
+      adaptGtStandings(await fetchJson(publicEndpoints.gt.teamStandings[classKey], signal)),
+    )
   }
 export const gtSchedule: DataLoader = async (signal) => {
   const local = await gtInHouse(signal)

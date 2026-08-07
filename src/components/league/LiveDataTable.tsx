@@ -19,6 +19,7 @@ export function LiveDataTable({
   search = false,
   rowClassName,
   toolbarActions,
+  tableClassName,
 }: {
   title: string
   columns: LiveColumn[]
@@ -26,6 +27,7 @@ export function LiveDataTable({
   search?: boolean
   rowClassName?: (row: TableRow) => string
   toolbarActions?: ReactNode
+  tableClassName?: string
 }) {
   const [rows, setRows] = useState<TableRow[]>([])
   const [query, setQuery] = useState('')
@@ -146,6 +148,7 @@ export function LiveDataTable({
       <DataTable
         caption={title}
         columns={columns.map((column) => column.label)}
+        className={tableClassName}
         header={(column) => {
           const item = columns.find((candidate) => candidate.label === column)
           if (!item) return column

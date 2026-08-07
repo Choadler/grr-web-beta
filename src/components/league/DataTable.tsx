@@ -5,15 +5,17 @@ export function DataTable({
   columns,
   children,
   header,
+  className,
 }: {
   caption: string
   columns: string[]
   children?: ReactNode
   header?: (column: string) => ReactNode
+  className?: string
 }) {
   return (
     <div className="table-scroll" tabIndex={0} role="region" aria-label={`${caption}, scrollable`}>
-      <table className="data-table">
+      <table className={className ? `data-table ${className}` : 'data-table'}>
         <caption>{caption}</caption>
         <thead>
           <tr>

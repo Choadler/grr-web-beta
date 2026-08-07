@@ -245,6 +245,7 @@ type DataPageProps = {
   loaders?: DataLoader[]
   rowClassName?: (row: TableRow) => string
   note?: string
+  tableClassName?: string
 }
 function DataPage({
   league,
@@ -258,6 +259,7 @@ function DataPage({
   loaders,
   rowClassName,
   note,
+  tableClassName,
 }: DataPageProps) {
   const [activeFilter, setActiveFilter] = useState(0)
   const activeLoader = loaders?.[activeFilter] ?? loader
@@ -290,9 +292,14 @@ function DataPage({
           loader={activeLoader}
           search={search}
           rowClassName={rowClassName}
+          tableClassName={tableClassName}
         />
       ) : (
-        <DataTable caption={caption ?? title} columns={columns.map((column) => column.label)}>
+        <DataTable
+          caption={caption ?? title}
+          columns={columns.map((column) => column.label)}
+          className={tableClassName}
+        >
           <EmptyTableRow
             columns={columns.length}
             message="TODO(integration): Confirm the current public data endpoint before connecting this table."
@@ -422,12 +429,14 @@ export const GtStandingsPage = () => (
     filters={['GT3 AM', 'GT3 Pro', 'GTP']}
     loaders={[gtStandings('am'), gtStandings('pro'), gtStandings('gtp')]}
     search
+    tableClassName="data-table--gt-standings"
     columns={[
       { key: 'rank', label: 'Rank' },
       { key: 'driver', label: 'Driver' },
       { key: 'car', label: 'Car' },
       { key: 'starts', label: 'Race Starts' },
       { key: 'points', label: 'Points' },
+      { key: 'behindLeader', label: 'Behind Leader' },
       { key: 'wins', label: 'Wins' },
       { key: 'podiums', label: 'Podiums' },
     ]}
@@ -440,12 +449,14 @@ export const GtTeamStandingsPage = () => (
     filters={['GT3 AM', 'GT3 Pro', 'GTP']}
     loaders={[gtTeamStandings('am'), gtTeamStandings('pro'), gtTeamStandings('gtp')]}
     search
+    tableClassName="data-table--gt-standings"
     columns={[
       { key: 'rank', label: 'Rank' },
       { key: 'driver', label: 'Team' },
       { key: 'car', label: 'Car' },
       { key: 'starts', label: 'Race Starts' },
       { key: 'points', label: 'Points' },
+      { key: 'behindLeader', label: 'Behind Leader' },
       { key: 'wins', label: 'Wins' },
       { key: 'podiums', label: 'Podiums' },
     ]}
