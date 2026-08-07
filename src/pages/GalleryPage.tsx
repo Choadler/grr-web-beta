@@ -171,7 +171,7 @@ export function GalleryPage() {
                   event.target.value = ''
                 }}
               />
-              <span>Choose up to 10 JPEG, PNG, or WebP photos (25 MB each)</span>
+              <span>Choose up to 10 JPEG, PNG, or WebP photos (50 MB each)</span>
             </label>
             {uploads.length > 0 && (
               <div className="gallery-upload-queue" aria-label="Selected photos">
