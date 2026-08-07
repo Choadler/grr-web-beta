@@ -41,7 +41,7 @@ export async function onRequestGet({ request, env, params }) {
   if (missing) return json({ error: missing }, 503)
   const parts = pathParts(params)
 
-  if ((parts[0] === 'photo' || parts[0] === 'thumbnail') && parts[1]) {
+  if ((parts[0] === 'photo' || parts[0] === 'display' || parts[0] === 'thumbnail') && parts[1]) {
     const photo = await env.INDYCAR_DB.prepare(
       `SELECT object_key AS originalKey,content_type AS originalType,
       optimized_object_key AS optimizedKey,thumbnail_object_key AS thumbnailKey
@@ -84,7 +84,7 @@ export async function onRequestGet({ request, env, params }) {
     photos: result.results.map((photo) => ({
       ...photo,
       showcaseEnabled: Boolean(photo.showcaseEnabled),
-      imageUrl: `/api/gallery/photo/${photo.id}`,
+      imageUrl: `/api/gallery/display/${photo.id}`,
       thumbnailUrl: `/api/gallery/thumbnail/${photo.id}`,
     })),
   })
