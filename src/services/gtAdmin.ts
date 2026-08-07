@@ -10,7 +10,7 @@ import type {
   GtSeason,
   GtTeam,
 } from '../types/gtAdmin'
-import { gtRoster, normalizeGtDriverName } from '../config/gtRoster'
+import { gtRoster, gtTeamRoster, normalizeGtDriverName } from '../config/gtRoster'
 
 const endpoint = '/admin/api/gt'
 const storageKey = 'grr-gt-admin-preview-v1'
@@ -80,7 +80,39 @@ function withRoster(state: GtAdminState): GtAdminState {
     if (!current || (item.customerId > 0 && current.customerId < 0)) chosen.set(key, item)
   })
   const merged = [...chosen.values()]
-  state.teams.forEach((team) =>
+  const teams = [...state.teams]
+  state.seasons
+    .filter((season) => season.status !== 'archived')
+    .forEach((season) =>
+      gtTeamRoster.forEach((entry) => {
+        if (
+          teams.some(
+            (team) =>
+              team.seasonId === season.id &&
+              team.classKey === entry.classKey &&
+              normalizeGtDriverName(team.name) === normalizeGtDriverName(entry.name),
+          )
+        )
+          return
+        const memberAssignments = entry.members.map(({ driver }) =>
+          merged.find(
+            (assignment) =>
+              assignment.seasonId === season.id &&
+              normalizeGtDriverName(assignment.driver) === normalizeGtDriverName(driver),
+          ),
+        )
+        teams.push({
+          id: `roster-${season.id}-${normalizeGtDriverName(entry.name).replace(/\s+/g, '-')}`,
+          seasonId: season.id,
+          name: entry.name,
+          classKey: entry.classKey,
+          car: entry.car,
+          memberIds: memberAssignments.map((assignment) => assignment?.customerId ?? 0),
+          memberNames: entry.members.map(({ driver }) => driver),
+        })
+      }),
+    )
+  teams.forEach((team) =>
     team.memberNames.forEach((name) => {
       const member = merged.find(
         (item) =>
@@ -94,7 +126,7 @@ function withRoster(state: GtAdminState): GtAdminState {
       }
     }),
   )
-  return { ...state, assignments: merged }
+  return { ...state, assignments: merged, teams }
 }
 
 function score(drivers: GtManagedResult[], configs: Record<GtClassKey, GtPointsConfig>) {
