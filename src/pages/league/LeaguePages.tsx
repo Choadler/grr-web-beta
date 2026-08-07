@@ -55,13 +55,21 @@ const leagueConfig = {
     label: 'Cup Series',
     nav: cupNav,
     image: '/assets/home/cup-series.webp',
+    imagePosition: 'center 58%',
     schedule: cupCalendar,
   },
-  gt: { label: 'GT League', nav: gtNav, image: '/assets/home/gt-league.webp', loader: gtSchedule },
+  gt: {
+    label: 'GT League',
+    nav: gtNav,
+    image: '/assets/home/gt-league.webp',
+    imagePosition: 'center 48%',
+    loader: gtSchedule,
+  },
   indycar: {
     label: 'IndyCar',
     nav: indyNav,
     image: '/assets/home/indycar.webp',
+    imagePosition: 'center 57%',
     schedule: indyCalendar,
   },
 } as const
@@ -97,7 +105,13 @@ function PageShell({
           loader={'loader' in config ? config.loader : undefined}
         />
       </aside>
-      <header className="page-hero">
+      <header
+        className={`page-hero page-hero--${league}`}
+        style={{
+          backgroundImage: `linear-gradient(90deg, rgba(3, 8, 3, 0.9), rgba(8, 16, 8, 0.7) 52%, rgba(8, 16, 8, 0.5)), url(${config.image})`,
+          backgroundPosition: config.imagePosition,
+        }}
+      >
         <div className="container">
           <p className="eyebrow">{eyebrow ?? config.label}</p>
           <h1>{title}</h1>
