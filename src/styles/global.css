@@ -406,33 +406,88 @@ a {
   color: #83ef72;
 }
 .league-race-banner {
-  border-block: 1px solid #3f593a;
-  background: #101a0e;
-  box-shadow: inset 0 -3px #47a44722;
+  border-block: 1px solid #385335;
+  background: linear-gradient(90deg, #0b110b, #12200f 50%, #0b110b);
+  box-shadow: inset 0 -2px #47a4472e;
 }
 .league-countdown--banner {
   display: flex;
   width: min(100% - 2rem, 1460px);
   min-width: 0;
   margin: 0 auto;
-  padding: 0.95rem 0;
+  padding: 0.7rem 0;
   border: 0;
   background: transparent;
-  align-items: baseline;
-  gap: 0.65rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
 }
-.league-countdown--banner strong {
-  margin: 0;
-  color: #83ef72;
-  font-size: 1.05rem;
-  font-weight: 900;
+.league-countdown__race {
+  min-width: 0;
 }
-.league-countdown--banner em {
-  margin-left: auto;
-  color: #c9d0c6;
-  font-size: 0.88rem;
+.league-countdown__race span,
+.league-countdown__race em {
+  display: block;
+}
+.league-countdown__race span {
+  color: #91a28e;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+}
+.league-countdown__race em {
+  margin-top: 0.16rem;
+  overflow: hidden;
+  color: #fff;
+  font-size: 0.95rem;
   font-style: normal;
+  font-weight: 900;
+  letter-spacing: 0.035em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.league-countdown__clock {
+  display: flex;
+  align-items: stretch;
+  gap: 0.35rem;
+}
+.league-countdown__unit {
+  min-width: 62px;
+  padding: 0.34rem 0.55rem 0.3rem;
+  border: 1px solid #3d5d38;
+  border-radius: 3px;
+  background: #080d08c7;
+  text-align: center;
+}
+.league-countdown__unit strong {
+  display: block;
+  margin: 0;
+  color: #92ed83;
+  font-size: 1.08rem;
+  font-weight: 900;
+  line-height: 1;
+}
+.league-countdown__unit small {
+  display: block;
+  margin-top: 0.22rem;
+  color: #91a28e;
+  font-size: 0.5rem;
   font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.league-countdown--banner > strong {
+  margin: 0;
+  color: #92ed83;
+  font-size: 1.05rem;
+}
+.league-countdown--banner > em {
+  margin-left: auto;
+  color: #fff;
+  font-size: 0.9rem;
+  font-style: normal;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 .section {
   padding: 5rem 0;
@@ -1142,17 +1197,17 @@ button:focus-visible {
   border-bottom-color: var(--green);
 }
 .page-hero {
-  min-height: 220px;
+  min-height: 150px;
   display: flex;
-  align-items: flex-end;
-  padding: 3rem 0 2.5rem;
+  align-items: center;
+  padding: 1.9rem 0 1.75rem;
   background-position: center;
   background-size: cover;
 }
 .page-hero h1 {
   max-width: 980px;
   margin: 0;
-  font-size: clamp(2.6rem, 6vw, 5.5rem);
+  font-size: clamp(2.5rem, 5vw, 4.65rem);
   line-height: 0.95;
   letter-spacing: -0.04em;
   text-transform: uppercase;
@@ -1651,10 +1706,20 @@ button:focus-visible {
 }
 @media (max-width: 600px) {
   .league-countdown--banner {
-    flex-wrap: wrap;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding-block: 0.65rem;
   }
-  .league-countdown--banner em {
-    width: 100%;
+  .league-countdown__clock {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .league-countdown__unit {
+    min-width: 0;
+    padding-inline: 0.25rem;
+  }
+  .league-countdown--banner > em {
     margin-left: 0;
   }
 }

@@ -4,6 +4,7 @@ import type { DataLoader, TableRow } from '../../types/league'
 import { easternRaceTime, formatRemaining, normalizeScheduleDate } from '../../utils/raceTime'
 
 type CountdownRace = { date: string; track: string }
+type CountdownPart = { value: string; label: string }
 type Props = {
   schedule?: ScheduledRace[]
   loader?: DataLoader
@@ -18,6 +19,16 @@ function rowsToRaces(rows: TableRow[]): CountdownRace[] {
       track: String(row.track ?? ''),
     }))
     .filter((race) => race.date && race.track)
+}
+
+function countdownParts(milliseconds: number): CountdownPart[] {
+  const seconds = Math.max(0, Math.floor(milliseconds / 1000))
+  return [
+    { value: String(Math.floor(seconds / 86400)), label: 'Days' },
+    { value: String(Math.floor((seconds % 86400) / 3600)).padStart(2, '0'), label: 'Hours' },
+    { value: String(Math.floor((seconds % 3600) / 60)).padStart(2, '0'), label: 'Minutes' },
+    { value: String(seconds % 60).padStart(2, '0'), label: 'Seconds' },
+  ]
 }
 
 export function LeagueCountdown({ schedule, loader, leagueLabel, variant = 'card' }: Props) {
@@ -90,19 +101,38 @@ export function LeagueCountdown({ schedule, loader, leagueLabel, variant = 'card
       </div>
     )
 
+  const remaining = next.startsAt - now
+
+  if (variant === 'banner')
+    return (
+      <div
+        className={className}
+        role="timer"
+        aria-label={`${heading} in ${formatRemaining(remaining)} at ${next.track}`}
+      >
+        <div className="league-countdown__race">
+          <span>{heading}</span>
+          <em>{next.track}</em>
+        </div>
+        <div className="league-countdown__clock" aria-hidden="true">
+          {countdownParts(remaining).map((part) => (
+            <span className="league-countdown__unit" key={part.label}>
+              <strong>{part.value}</strong>
+              <small>{part.label}</small>
+            </span>
+          ))}
+        </div>
+      </div>
+    )
+
   return (
     <div
       className={className}
       role="timer"
-      aria-label={`${heading} in ${formatRemaining(next.startsAt - now)} at ${next.track}`}
+      aria-label={`${heading} in ${formatRemaining(remaining)} at ${next.track}`}
     >
-      <span>{variant === 'banner' ? heading : `Next: ${next.track}`}</span>
-      <strong>
-        {variant === 'banner'
-          ? `in ${formatRemaining(next.startsAt - now)}`
-          : formatRemaining(next.startsAt - now)}
-      </strong>
-      {variant === 'banner' && <em>{next.track}</em>}
+      <span>{`Next: ${next.track}`}</span>
+      <strong>{formatRemaining(remaining)}</strong>
     </div>
   )
 }
