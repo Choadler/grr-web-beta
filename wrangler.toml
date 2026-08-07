@@ -1,0 +1,21 @@
+name = "grr-web-beta"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-08-06"
+
+[[d1_databases]]
+database_id = "4f550abe-730e-41fc-9b87-adde8fbc5999"
+binding = "INDYCAR_DB"
+database_name = "grr-scoring"
+
+[[r2_buckets]]
+binding = "GALLERY_BUCKET"
+bucket_name = "grr-gallery"
+
+[[env.production.d1_databases]]
+database_id = "4f550abe-730e-41fc-9b87-adde8fbc5999"
+binding = "INDYCAR_DB"
+database_name = "grr-scoring"
+
+[[env.production.r2_buckets]]
+binding = "GALLERY_BUCKET"
+bucket_name = "grr-gallery"
