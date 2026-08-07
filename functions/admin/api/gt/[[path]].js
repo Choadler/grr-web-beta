@@ -103,6 +103,54 @@ const scoreRows = (drivers, config) => {
   return output
 }
 
+const updateScoredRows = async (db, eventId, rows) => {
+  if (!rows.length) return
+  await db.batch(
+    rows.map((driver) =>
+      db
+        .prepare(
+          `UPDATE gt_results SET class_key=?,class_position=?,pole=?,fastest_lap=?,team_name=?,car_name=?,base_points=?,bonus_points=?,penalty_points=?,total_points=? WHERE id=? AND event_id=?`,
+        )
+        .bind(
+          driver.classKey,
+          driver.classPosition,
+          driver.pole ? 1 : 0,
+          driver.fastestLap ? 1 : 0,
+          driver.team || '',
+          driver.car || '',
+          driver.racePoints,
+          driver.bonus,
+          driver.penalty,
+          driver.total,
+          driver.id,
+          eventId,
+        ),
+    ),
+  )
+}
+
+const rescoreSeasonFormat = async (db, seasonId, format, config) => {
+  const data = await db
+    .prepare(
+      `SELECT r.id,r.event_id AS eventId,r.customer_id AS customerId,r.driver_name AS driver,r.class_key AS classKey,
+      r.class_position AS classPosition,r.overall_position AS overallPosition,r.start_position AS start,r.finish_interval AS interval,
+      r.laps_completed AS laps,r.laps_led AS lapsLed,r.incidents,r.status,r.best_lap_time AS bestLapTime,r.pole,r.fastest_lap AS fastestLap,
+      r.team_name AS team,r.car_name AS car,r.base_points AS racePoints,r.bonus_points AS bonus,r.penalty_points AS penalty,r.total_points AS total
+      FROM gt_results r JOIN gt_events e ON e.id=r.event_id
+      WHERE e.season_id=? AND e.race_format=? ORDER BY r.event_id,r.overall_position`,
+    )
+    .bind(seasonId, format)
+    .all()
+  const events = new Map()
+  for (const row of data.results) {
+    const rows = events.get(row.eventId) ?? []
+    rows.push(row)
+    events.set(row.eventId, rows)
+  }
+  for (const [eventId, rows] of events)
+    await updateScoredRows(db, eventId, scoreRows(rows, config))
+}
+
 export async function onRequestGet({ env }) {
   if (!env.INDYCAR_DB) return json({ error: 'INDYCAR_DB is not configured.' }, 503)
   return json(await state(env.INDYCAR_DB))
@@ -129,12 +177,14 @@ export async function onRequestPost({ request, env }) {
         .bind(item.id, item.name, item.status, item.raceTime, item.timezone)
         .run()
     } else if (body.action === 'savePoints') {
+      const config = body.points
       await db
         .prepare(
           `INSERT INTO gt_format_points_configs(season_id,format_key,config_json) VALUES(?,?,?) ON CONFLICT(season_id,format_key) DO UPDATE SET config_json=excluded.config_json,updated_at=CURRENT_TIMESTAMP`,
         )
-        .bind(body.seasonId, body.format, JSON.stringify(body.points))
+        .bind(body.seasonId, body.format, JSON.stringify(config))
         .run()
+      await rescoreSeasonFormat(db, body.seasonId, body.format, config)
     } else if (body.action === 'saveTeam') {
       const team = body.team
       if (!team?.name || !classes.includes(team.classKey))
@@ -378,28 +428,7 @@ export async function onRequestPost({ request, env }) {
         body.results ?? [],
         pointRow ? JSON.parse(pointRow.config_json) : null,
       )
-      await db.batch(
-        scored.map((driver) =>
-          db
-            .prepare(
-              `UPDATE gt_results SET class_key=?,class_position=?,pole=?,fastest_lap=?,team_name=?,car_name=?,base_points=?,bonus_points=?,penalty_points=?,total_points=? WHERE id=? AND event_id=?`,
-            )
-            .bind(
-              driver.classKey,
-              driver.classPosition,
-              driver.pole ? 1 : 0,
-              driver.fastestLap ? 1 : 0,
-              driver.team || '',
-              driver.car || '',
-              driver.racePoints,
-              driver.bonus,
-              driver.penalty,
-              driver.total,
-              driver.id,
-              body.eventId,
-            ),
-        ),
-      )
+      await updateScoredRows(db, body.eventId, scored)
     } else return json({ error: 'Unknown admin action.' }, 400)
     return json(await state(db))
   } catch (error) {
