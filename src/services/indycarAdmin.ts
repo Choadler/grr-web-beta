@@ -129,6 +129,15 @@ const record = (value: unknown) =>
 export const loadIndyAdmin = () => request<IndyAdminState>('GET')
 export const mutateIndyAdmin = (body: unknown) => request<IndyAdminState>('POST', body)
 
+const formatRaceInterval = (value: string, laps: number, leaderLaps: number, position: number) => {
+  if (position === 1) return '-'
+  const lapDifference = Math.max(0, leaderLaps - laps)
+  if (lapDifference > 0) return `${lapDifference} Lap${lapDifference === 1 ? '' : 's'}`
+  const milliseconds = Number(value)
+  if (!Number.isFinite(milliseconds) || milliseconds <= 0) return '-'
+  return `+${(milliseconds / 1000).toFixed(3)}`
+}
+
 export function loadLocalIndyPublic(): IndyPublicData | null {
   if (!import.meta.env.DEV) return null
   const state = localState()
@@ -162,6 +171,10 @@ export function loadLocalIndyPublic(): IndyPublicData | null {
     const results = scored.filter((row) => row.event.id === event.id)
     return { round: event.round, date: event.date, track: event.track, laps: event.laps, winner: results.find((row) => row.position === 1)?.driver ?? '—', pole: results.find((row) => row.start === 1)?.driver ?? '—' }
   })
-  const events = eventsForSeason.filter((event) => event.status === 'completed').map((event) => ({ id: event.subsessionId ?? event.round, label: `${event.track} — ${event.date}`, sessions: [{ id: event.subsessionId ?? event.round, label: 'Overall Race Finish', rows: scored.filter((row) => row.event.id === event.id).sort((a, b) => a.position - b.position).map((row) => ({ position: row.position, driver: row.driver, start: row.start, interval: row.interval || '-', laps: row.laps, led: row.lapsLed, racePoints: row.racePoints, bonus: row.bonus, penalty: row.penalty, total: row.total, incidents: row.incidents, status: row.status, fastestLap: row.fastestLap ? 1 : 0 })) }] }))
+  const events = eventsForSeason.filter((event) => event.status === 'completed').map((event) => {
+    const eventRows = scored.filter((row) => row.event.id === event.id).sort((a, b) => a.position - b.position)
+    const leaderLaps = eventRows.find((row) => row.position === 1)?.laps ?? Math.max(0, ...eventRows.map((row) => row.laps))
+    return { id: event.subsessionId ?? event.round, label: `${event.track} — ${event.date}`, sessions: [{ id: event.subsessionId ?? event.round, label: 'Overall Race Finish', rows: eventRows.map((row) => ({ position: row.position, driver: row.driver, start: row.start, interval: formatRaceInterval(row.interval, row.laps, leaderLaps, row.position), laps: row.laps, led: row.lapsLed, racePoints: row.racePoints, bonus: row.bonus, penalty: row.penalty, total: row.total, incidents: row.incidents, status: row.status, fastestLap: row.fastestLap ? 1 : 0 })) }] }
+  })
   return { season, schedule, standings, events, source: 'in-house' }
 }

@@ -1,5 +1,14 @@
 const json = (value, status = 200) => Response.json(value, { status, headers: { 'Cache-Control': 'public, max-age=30, stale-while-revalidate=300' } })
 
+const formatInterval = (value, laps, leaderLaps, position) => {
+  if (position === 1) return '-'
+  const lapDifference = Math.max(0, Number(leaderLaps) - Number(laps))
+  if (lapDifference > 0) return `${lapDifference} Lap${lapDifference === 1 ? '' : 's'}`
+  const milliseconds = Number(value)
+  if (!Number.isFinite(milliseconds) || milliseconds <= 0) return '-'
+  return `+${(milliseconds / 1000).toFixed(3)}`
+}
+
 export async function onRequestGet({ env }) {
   if (!env.INDYCAR_DB) return json({ error: 'In-house IndyCar data is not configured.' }, 503)
   const db = env.INDYCAR_DB
@@ -24,11 +33,15 @@ export async function onRequestGet({ env }) {
     aggregate.set(key, item)
   }
   const standings = [...aggregate.values()].sort((a, b) => b.points - a.points || b.wins - a.wins).map((item, index) => ({ rank: index + 1, ...item }))
-  const events = scheduleData.results.filter((event) => event.status === 'completed').map((event) => ({
-    id: event.subsessionId ?? event.round,
-    label: `${event.track} — ${event.date}`,
-    sessions: [{ id: event.subsessionId ?? event.round, label: 'Overall Race Finish', rows: rows.filter((row) => row.event_id === event.id).map((row) => ({ position: row.finish_position, driver: row.driver_name, start: row.start_position, interval: row.finish_interval || '-', laps: row.laps_completed, led: row.laps_led, racePoints: row.base_points, bonus: row.bonus_points, penalty: row.penalty_points, total: row.total_points, incidents: row.incidents, status: row.status, fastestLap: row.fastest_lap })) }],
-  }))
+  const events = scheduleData.results.filter((event) => event.status === 'completed').map((event) => {
+    const eventRows = rows.filter((row) => row.event_id === event.id)
+    const leaderLaps = eventRows.find((row) => row.finish_position === 1)?.laps_completed ?? Math.max(0, ...eventRows.map((row) => row.laps_completed))
+    return {
+      id: event.subsessionId ?? event.round,
+      label: `${event.track} — ${event.date}`,
+      sessions: [{ id: event.subsessionId ?? event.round, label: 'Overall Race Finish', rows: eventRows.map((row) => ({ position: row.finish_position, driver: row.driver_name, start: row.start_position, interval: formatInterval(row.finish_interval, row.laps_completed, leaderLaps, row.finish_position), laps: row.laps_completed, led: row.laps_led, racePoints: row.base_points, bonus: row.bonus_points, penalty: row.penalty_points, total: row.total_points, incidents: row.incidents, status: row.status, fastestLap: row.fastest_lap })) }],
+    }
+  })
   const schedule = scheduleData.results.map((event) => ({ round: event.round, date: event.date, track: event.track, laps: event.laps, winner: event.winner || '—', pole: event.pole || '—' }))
   return json({ season, schedule, standings, events, source: 'in-house' })
 }

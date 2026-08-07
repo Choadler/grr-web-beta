@@ -460,8 +460,6 @@ export const IndyStandingsPage = () => (
       { key: 'top5', label: 'T5' },
       { key: 'top10', label: 'T10' },
       { key: 'lapsLed', label: 'Led' },
-      { key: 'rating', label: 'Rating' },
-      { key: 'link', label: 'Link', link: true },
     ]}
   />
 )
