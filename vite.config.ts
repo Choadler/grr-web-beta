@@ -14,10 +14,15 @@ const preserveScriptsOnCloudflare = {
   transformIndexHtml: {
     order: 'post' as const,
     handler(html: string) {
-      return html.replace(
-        /<script type="module" crossorigin src="([^"]+)"><\/script>/g,
-        '<script data-cfasync="false" defer src="$1"></script>',
-      )
+      return html
+        .replace(
+          /<script type="module" crossorigin src="([^"]+)"><\/script>/g,
+          '<script data-cfasync="false" defer src="$1"></script>',
+        )
+        .replace(
+          /<link rel="stylesheet" crossorigin href="([^"]+)">/g,
+          '<link rel="stylesheet" href="$1">',
+        )
     },
   },
 }
