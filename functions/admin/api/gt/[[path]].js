@@ -9,10 +9,10 @@ async function state(db) {
         'SELECT id,name,status,race_time AS raceTime,timezone FROM gt_seasons ORDER BY created_at DESC',
       )
       .all(),
-    db.prepare('SELECT season_id,class_key,config_json FROM gt_points_configs').all(),
+    db.prepare('SELECT season_id,format_key,config_json FROM gt_format_points_configs').all(),
     db
       .prepare(
-        'SELECT id,season_id AS seasonId,round_number AS round,race_date AS date,track,laps,status,subsession_id AS subsessionId FROM gt_events ORDER BY race_date,round_number',
+        'SELECT id,season_id AS seasonId,round_number AS round,race_date AS date,track,laps,race_format AS format,status,subsession_id AS subsessionId FROM gt_events ORDER BY race_date,round_number',
       )
       .all(),
     db
@@ -41,7 +41,7 @@ async function state(db) {
   ])
   const configs = {}
   for (const row of points.results)
-    (configs[row.season_id] ??= {})[row.class_key] = JSON.parse(row.config_json)
+    (configs[row.season_id] ??= {})[row.format_key] = JSON.parse(row.config_json)
   const byEvent = {}
   for (const row of results.results) (byEvent[row.eventId] ??= []).push(row)
   return {
@@ -62,14 +62,13 @@ async function state(db) {
   }
 }
 
-const scoreRows = (drivers, configs) => {
+const scoreRows = (drivers, config) => {
+  if (!config) throw new Error('Save the selected race format points table before publishing.')
   const output = []
   for (const classKey of classes) {
     const rows = drivers
       .filter((driver) => driver.classKey === classKey)
       .sort((a, b) => Number(a.overallPosition) - Number(b.overallPosition))
-    const config = configs[classKey]
-    if (!config) throw new Error(`Save the ${classKey} points table before publishing.`)
     const poleStart = Math.min(...rows.map((row) => Number(row.start) || 9999))
     const fastestTime = Math.min(...rows.map((row) => Number(row.bestLapTime) || Infinity))
     const mostLed = Math.max(0, ...rows.map((row) => Number(row.lapsLed) || 0))
@@ -132,9 +131,9 @@ export async function onRequestPost({ request, env }) {
     } else if (body.action === 'savePoints') {
       await db
         .prepare(
-          `INSERT INTO gt_points_configs(season_id,class_key,config_json) VALUES(?,?,?) ON CONFLICT(season_id,class_key) DO UPDATE SET config_json=excluded.config_json,updated_at=CURRENT_TIMESTAMP`,
+          `INSERT INTO gt_format_points_configs(season_id,format_key,config_json) VALUES(?,?,?) ON CONFLICT(season_id,format_key) DO UPDATE SET config_json=excluded.config_json,updated_at=CURRENT_TIMESTAMP`,
         )
-        .bind(body.seasonId, body.classKey, JSON.stringify(body.points))
+        .bind(body.seasonId, body.format, JSON.stringify(body.points))
         .run()
     } else if (body.action === 'saveTeam') {
       const team = body.team
@@ -209,7 +208,7 @@ export async function onRequestPost({ request, env }) {
       const item = body.event
       await db
         .prepare(
-          `INSERT INTO gt_events(id,season_id,round_number,race_date,track,laps,status,subsession_id) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET round_number=excluded.round_number,race_date=excluded.race_date,track=excluded.track,laps=excluded.laps,status=excluded.status,subsession_id=excluded.subsession_id,updated_at=CURRENT_TIMESTAMP`,
+          `INSERT INTO gt_events(id,season_id,round_number,race_date,track,laps,race_format,status,subsession_id) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET round_number=excluded.round_number,race_date=excluded.race_date,track=excluded.track,laps=excluded.laps,race_format=excluded.race_format,status=excluded.status,subsession_id=excluded.subsession_id,updated_at=CURRENT_TIMESTAMP`,
         )
         .bind(
           item.id,
@@ -218,6 +217,7 @@ export async function onRequestPost({ request, env }) {
           item.date,
           item.track,
           item.laps,
+          item.format || 'standard',
           item.status,
           item.subsessionId ?? null,
         )
@@ -276,13 +276,15 @@ export async function onRequestPost({ request, env }) {
           .bind(body.eventId),
       ])
     else if (body.action === 'publishResults') {
-      const pointRows = await db
-        .prepare('SELECT class_key,config_json FROM gt_points_configs WHERE season_id=?')
-        .bind(body.seasonId)
-        .all()
-      const configs = Object.fromEntries(
-        pointRows.results.map((row) => [row.class_key, JSON.parse(row.config_json)]),
-      )
+      const event = await db
+        .prepare('SELECT race_format AS format FROM gt_events WHERE id=? AND season_id=?')
+        .bind(body.eventId, body.seasonId)
+        .first()
+      if (!event) return json({ error: 'That event no longer exists.' }, 404)
+      const pointRow = await db
+        .prepare('SELECT config_json FROM gt_format_points_configs WHERE season_id=? AND format_key=?')
+        .bind(body.seasonId, event.format || 'standard')
+        .first()
       const drivers = body.drivers
       if (
         !Array.isArray(drivers) ||
@@ -290,7 +292,7 @@ export async function onRequestPost({ request, env }) {
         drivers.some((driver) => !classes.includes(driver.classKey))
       )
         return json({ error: 'Every driver must have a GRR class before publishing.' }, 400)
-      const scored = scoreRows(drivers, configs)
+      const scored = scoreRows(drivers, pointRow ? JSON.parse(pointRow.config_json) : null)
       const importId = crypto.randomUUID()
       const statements = [
         db.prepare('DELETE FROM gt_results WHERE event_id=?').bind(body.eventId),
@@ -364,18 +366,18 @@ export async function onRequestPost({ request, env }) {
       await db.batch(statements)
     } else if (body.action === 'saveResults') {
       const event = await db
-        .prepare('SELECT season_id AS seasonId FROM gt_events WHERE id=?')
+        .prepare('SELECT season_id AS seasonId,race_format AS format FROM gt_events WHERE id=?')
         .bind(body.eventId)
         .first()
       if (!event) return json({ error: 'That event no longer exists.' }, 404)
-      const pointRows = await db
-        .prepare('SELECT class_key,config_json FROM gt_points_configs WHERE season_id=?')
-        .bind(event.seasonId)
-        .all()
-      const configs = Object.fromEntries(
-        pointRows.results.map((row) => [row.class_key, JSON.parse(row.config_json)]),
+      const pointRow = await db
+        .prepare('SELECT config_json FROM gt_format_points_configs WHERE season_id=? AND format_key=?')
+        .bind(event.seasonId, event.format || 'standard')
+        .first()
+      const scored = scoreRows(
+        body.results ?? [],
+        pointRow ? JSON.parse(pointRow.config_json) : null,
       )
-      const scored = scoreRows(body.results ?? [], configs)
       await db.batch(
         scored.map((driver) =>
           db

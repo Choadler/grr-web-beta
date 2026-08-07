@@ -5,6 +5,7 @@ import type {
   GtImportPreview,
   GtManagedResult,
   GtPointsConfig,
+  GtRaceFormat,
   GtPublicData,
   GtScheduledEvent,
   GtSeason,
@@ -48,6 +49,27 @@ const localState = (): GtAdminState => {
 const saveLocal = (state: GtAdminState) => {
   localStorage.setItem(storageKey, JSON.stringify(state))
   return state
+}
+
+function withRaceFormats(state: GtAdminState): GtAdminState {
+  const legacy = state.points as unknown as Record<string, Record<string, GtPointsConfig>>
+  const points = Object.fromEntries(
+    Object.entries(legacy).map(([seasonId, configs]) => {
+      const fallback = configs.standard ?? configs['gt3-am'] ?? configs['gt3-pro'] ?? configs.gtp
+      return [
+        seasonId,
+        {
+          standard: configs.standard ?? structuredClone(fallback ?? defaultGtPoints),
+          endurance: configs.endurance ?? structuredClone(fallback ?? defaultGtPoints),
+        },
+      ]
+    }),
+  ) as GtAdminState['points']
+  return {
+    ...state,
+    points,
+    schedule: state.schedule.map((event) => ({ ...event, format: event.format ?? 'standard' })),
+  }
 }
 
 function withRoster(state: GtAdminState): GtAdminState {
@@ -129,12 +151,11 @@ function withRoster(state: GtAdminState): GtAdminState {
   return { ...state, assignments: merged, teams }
 }
 
-function score(drivers: GtManagedResult[], configs: Record<GtClassKey, GtPointsConfig>) {
+function score(drivers: GtManagedResult[], config: GtPointsConfig) {
   return gtClasses.flatMap(({ key }) => {
     const rows = drivers
       .filter((driver) => driver.classKey === key)
       .sort((a, b) => a.overallPosition - b.overallPosition)
-    const config = configs[key] ?? defaultGtPoints
     const poleStart = Math.min(...rows.map((row) => row.start || 9999))
     const fastest = Math.min(...rows.map((row) => row.bestLapTime || Infinity))
     const mostLed = Math.max(0, ...rows.map((row) => row.lapsLed))
@@ -194,15 +215,14 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
       if (index >= 0) state.seasons[index] = item
       else state.seasons.push(item)
       state.points[item.id] ??= {
-        'gt3-am': structuredClone(defaultGtPoints),
-        'gt3-pro': structuredClone(defaultGtPoints),
-        gtp: structuredClone(defaultGtPoints),
+        standard: structuredClone(defaultGtPoints),
+        endurance: structuredClone(defaultGtPoints),
       }
     }
     if (action === 'savePoints') {
       const seasonId = String(data.seasonId)
-      state.points[seasonId] ??= {} as Record<GtClassKey, GtPointsConfig>
-      state.points[seasonId][String(data.classKey) as GtClassKey] = data.points as GtPointsConfig
+      state.points[seasonId] ??= {} as Record<GtRaceFormat, GtPointsConfig>
+      state.points[seasonId][String(data.format) as GtRaceFormat] = data.points as GtPointsConfig
     }
     if (action === 'saveTeam') {
       const team = data.team as GtTeam
@@ -284,9 +304,12 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
       const eventId = String(data.eventId)
       const seasonId = String(data.seasonId)
       const preview = data.preview as GtImportPreview
-      const results = score(data.drivers as GtManagedResult[], state.points[seasonId])
-      state.results[eventId] = results
       const event = state.schedule.find((item) => item.id === eventId)
+      const results = score(
+        data.drivers as GtManagedResult[],
+        state.points[seasonId]?.[event?.format ?? 'standard'] ?? defaultGtPoints,
+      )
+      state.results[eventId] = results
       if (event) {
         event.status = 'completed'
         event.subsessionId = preview.subsessionId
@@ -318,11 +341,13 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
       })
     }
     if (action === 'saveResults')
-      state.results[String(data.eventId)] = score(
-        data.results as GtManagedResult[],
-        state.points[state.schedule.find((event) => event.id === data.eventId)?.seasonId ?? ''] ??
-          ({} as Record<GtClassKey, GtPointsConfig>),
-      )
+      state.results[String(data.eventId)] = (() => {
+        const event = state.schedule.find((item) => item.id === data.eventId)
+        return score(
+          data.results as GtManagedResult[],
+          state.points[event?.seasonId ?? '']?.[event?.format ?? 'standard'] ?? defaultGtPoints,
+        )
+      })()
     return saveLocal(state) as T
   }
   const response = await fetch(endpoint, {
@@ -340,7 +365,8 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
   return (await response.json()) as T
 }
 
-export const loadGtAdmin = async () => withRoster(await request<GtAdminState>('GET'))
+export const loadGtAdmin = async () =>
+  withRoster(withRaceFormats(await request<GtAdminState>('GET')))
 export const mutateGtAdmin = (body: unknown) => request<GtAdminState>('POST', body)
 
 export function loadLocalGtPublic(): GtPublicData | null {

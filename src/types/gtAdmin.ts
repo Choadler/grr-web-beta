@@ -1,4 +1,5 @@
 export type GtClassKey = 'gt3-am' | 'gt3-pro' | 'gtp'
+export type GtRaceFormat = 'standard' | 'endurance'
 export type GtSeasonStatus = 'draft' | 'active' | 'archived'
 
 export type GtSeason = {
@@ -23,6 +24,7 @@ export type GtScheduledEvent = {
   date: string
   track: string
   laps: number
+  format: GtRaceFormat
   status: 'scheduled' | 'completed'
   subsessionId?: number
 }
@@ -86,7 +88,7 @@ export type GtImportRecord = {
 }
 export type GtAdminState = {
   seasons: GtSeason[]
-  points: Record<string, Record<GtClassKey, GtPointsConfig>>
+  points: Record<string, Record<GtRaceFormat, GtPointsConfig>>
   schedule: GtScheduledEvent[]
   assignments: GtDriverAssignment[]
   teams: GtTeam[]

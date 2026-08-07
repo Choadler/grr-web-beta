@@ -31,7 +31,7 @@ export async function onRequestGet({ env }) {
   const [eventData, resultData] = await Promise.all([
     db
       .prepare(
-        'SELECT id,round_number AS round,race_date AS date,track,laps,status,subsession_id AS subsessionId FROM gt_events WHERE season_id=? ORDER BY round_number',
+        'SELECT id,round_number AS round,race_date AS date,track,laps,race_format AS format,status,subsession_id AS subsessionId FROM gt_events WHERE season_id=? ORDER BY round_number',
       )
       .bind(season.id)
       .all(),
