@@ -28,6 +28,7 @@ async function listPhotos(db) {
     ...photo,
     showcaseEnabled: Boolean(photo.showcaseEnabled),
     imageUrl: `/admin/api/gallery/photo/${photo.id}`,
+    thumbnailUrl: `/admin/api/gallery/thumbnail/${photo.id}`,
   }))
 }
 
@@ -35,18 +36,24 @@ export async function onRequestGet({ env, params }) {
   const missing = missingBinding(env)
   if (missing) return json({ error: missing }, 503)
   const parts = pathParts(params)
-  if (parts[0] === 'photo' && parts[1]) {
+  if ((parts[0] === 'photo' || parts[0] === 'thumbnail') && parts[1]) {
     const photo = await env.INDYCAR_DB.prepare(
-      'SELECT object_key AS objectKey,content_type AS contentType FROM gallery_photos WHERE id=?',
+      `SELECT object_key AS originalKey,content_type AS originalType,
+      optimized_object_key AS optimizedKey,thumbnail_object_key AS thumbnailKey
+      FROM gallery_photos WHERE id=?`,
     )
       .bind(parts[1])
       .first()
     if (!photo) return new Response('Photo not found.', { status: 404 })
-    const object = await env.GALLERY_BUCKET.get(photo.objectKey)
+    const objectKey =
+      parts[0] === 'thumbnail'
+        ? photo.thumbnailKey || photo.optimizedKey || photo.originalKey
+        : photo.optimizedKey || photo.originalKey
+    const object = await env.GALLERY_BUCKET.get(objectKey)
     if (!object) return new Response('Photo file not found.', { status: 404 })
     const headers = new Headers()
     object.writeHttpMetadata(headers)
-    headers.set('Content-Type', photo.contentType)
+    headers.set('Content-Type', objectKey === photo.originalKey ? photo.originalType : 'image/webp')
     headers.set('Cache-Control', 'private, no-store')
     headers.set('X-Content-Type-Options', 'nosniff')
     return new Response(object.body, { headers })
@@ -64,7 +71,8 @@ export async function onRequestPost({ request, env, params }) {
     const id = String(body.id || '')
     if (!id) return json({ error: 'A photo ID is required.' }, 400)
     const photo = await env.INDYCAR_DB.prepare(
-      'SELECT object_key AS objectKey FROM gallery_photos WHERE id=?',
+      `SELECT object_key AS objectKey,optimized_object_key AS optimizedObjectKey,
+      thumbnail_object_key AS thumbnailObjectKey FROM gallery_photos WHERE id=?`,
     )
       .bind(id)
       .first()
@@ -89,7 +97,9 @@ export async function onRequestPost({ request, env, params }) {
         .bind(photographer, league, body.showcaseEnabled === false ? 0 : 1, id)
         .run()
     } else if (body.action === 'delete') {
-      await env.GALLERY_BUCKET.delete(photo.objectKey)
+      await env.GALLERY_BUCKET.delete(
+        [photo.objectKey, photo.optimizedObjectKey, photo.thumbnailObjectKey].filter(Boolean),
+      )
       await env.INDYCAR_DB.prepare('DELETE FROM gallery_photos WHERE id=?').bind(id).run()
     } else return json({ error: 'Unknown gallery action.' }, 400)
 

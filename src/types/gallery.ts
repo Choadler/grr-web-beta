@@ -6,6 +6,7 @@ export type GalleryPhoto = {
   photographer: string
   league: GalleryLeague
   imageUrl: string
+  thumbnailUrl?: string
   submittedAt: string
   status?: GalleryStatus
   reviewedAt?: string | null

@@ -65,8 +65,10 @@ export function LeaguePhotoRails({ league }: { league: GalleryLeague }) {
                   aria-label={`Enlarge photo by ${photo.photographer}`}
                 >
                   <img
-                    src={photo.imageUrl}
+                    src={photo.thumbnailUrl || photo.imageUrl}
                     alt={`${league} race submitted by ${photo.photographer}`}
+                    loading="lazy"
+                    decoding="async"
                   />
                 </button>
                 <figcaption>Photo by {photo.photographer}</figcaption>

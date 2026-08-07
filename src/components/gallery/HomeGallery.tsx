@@ -58,9 +58,10 @@ export function HomeGallery() {
                 aria-label={`Enlarge photo by ${photo.photographer}`}
               >
                 <img
-                  src={photo.imageUrl}
+                  src={photo.thumbnailUrl || photo.imageUrl}
                   alt={`${labels[photo.league]} race submitted by ${photo.photographer}`}
                   loading="lazy"
+                  decoding="async"
                 />
               </button>
               <figcaption>

@@ -8,6 +8,8 @@ const imageTypes = new Map([
   ['image/webp', 'webp'],
 ])
 const maxFileSize = 50 * 1024 * 1024
+const maxDisplaySize = 20 * 1024 * 1024
+const maxThumbnailSize = 5 * 1024 * 1024
 
 const hasExpectedSignature = (type, bytes) => {
   if (type === 'image/jpeg') return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
@@ -39,19 +41,25 @@ export async function onRequestGet({ request, env, params }) {
   if (missing) return json({ error: missing }, 503)
   const parts = pathParts(params)
 
-  if (parts[0] === 'photo' && parts[1]) {
+  if ((parts[0] === 'photo' || parts[0] === 'thumbnail') && parts[1]) {
     const photo = await env.INDYCAR_DB.prepare(
-      "SELECT object_key AS objectKey,content_type AS contentType FROM gallery_photos WHERE id=? AND status='approved'",
+      `SELECT object_key AS originalKey,content_type AS originalType,
+      optimized_object_key AS optimizedKey,thumbnail_object_key AS thumbnailKey
+      FROM gallery_photos WHERE id=? AND status='approved'`,
     )
       .bind(parts[1])
       .first()
     if (!photo) return new Response('Photo not found.', { status: 404 })
-    const object = await env.GALLERY_BUCKET.get(photo.objectKey)
+    const objectKey =
+      parts[0] === 'thumbnail'
+        ? photo.thumbnailKey || photo.optimizedKey || photo.originalKey
+        : photo.optimizedKey || photo.originalKey
+    const object = await env.GALLERY_BUCKET.get(objectKey)
     if (!object) return new Response('Photo file not found.', { status: 404 })
     const headers = new Headers()
     object.writeHttpMetadata(headers)
-    headers.set('Content-Type', photo.contentType)
-    headers.set('Cache-Control', 'public, max-age=300')
+    headers.set('Content-Type', objectKey === photo.originalKey ? photo.originalType : 'image/webp')
+    headers.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800')
     headers.set('ETag', object.httpEtag)
     headers.set('X-Content-Type-Options', 'nosniff')
     return new Response(object.body, { headers })
@@ -77,6 +85,7 @@ export async function onRequestGet({ request, env, params }) {
       ...photo,
       showcaseEnabled: Boolean(photo.showcaseEnabled),
       imageUrl: `/api/gallery/photo/${photo.id}`,
+      thumbnailUrl: `/api/gallery/thumbnail/${photo.id}`,
     })),
   })
 }
@@ -92,6 +101,8 @@ export async function onRequestPost({ request, env, params }) {
     const photographer = String(form.get('photographer') || '').trim()
     const league = String(form.get('league') || '')
     const photo = form.get('photo')
+    const displayPhoto = form.get('displayPhoto')
+    const thumbnail = form.get('thumbnail')
     if (photographer.length < 2 || photographer.length > 80)
       return json({ error: 'Enter your name (2 to 80 characters).' }, 400)
     if (!leagueKeys.has(league)) return json({ error: 'Select a league.' }, 400)
@@ -104,20 +115,67 @@ export async function onRequestPost({ request, env, params }) {
     if (!hasExpectedSignature(photo.type, photoBytes))
       return json({ error: 'The uploaded file is not a valid image.' }, 415)
 
+    const hasVariants = displayPhoto instanceof File && thumbnail instanceof File
+    let displayBytes = null
+    let thumbnailBytes = null
+    if (hasVariants) {
+      if (displayPhoto.type !== 'image/webp' || thumbnail.type !== 'image/webp')
+        return json({ error: 'Optimized gallery images must use WebP.' }, 415)
+      if (!displayPhoto.size || displayPhoto.size > maxDisplaySize)
+        return json({ error: 'The optimized display image is too large.' }, 413)
+      if (!thumbnail.size || thumbnail.size > maxThumbnailSize)
+        return json({ error: 'The gallery thumbnail is too large.' }, 413)
+      displayBytes = new Uint8Array(await displayPhoto.arrayBuffer())
+      thumbnailBytes = new Uint8Array(await thumbnail.arrayBuffer())
+      if (
+        !hasExpectedSignature('image/webp', displayBytes) ||
+        !hasExpectedSignature('image/webp', thumbnailBytes)
+      )
+        return json({ error: 'An optimized gallery image is not a valid WebP file.' }, 415)
+    }
+
     const id = crypto.randomUUID()
     const objectKey = `gallery/${league}/${id}.${extension}`
-    await env.GALLERY_BUCKET.put(objectKey, photoBytes, {
-      httpMetadata: { contentType: photo.type, cacheControl: 'public, max-age=300' },
-      customMetadata: { galleryId: id, league },
-    })
+    const optimizedObjectKey = hasVariants ? `gallery/${league}/${id}-display.webp` : null
+    const thumbnailObjectKey = hasVariants ? `gallery/${league}/${id}-thumbnail.webp` : null
     try {
+      await env.GALLERY_BUCKET.put(objectKey, photoBytes, {
+        httpMetadata: { contentType: photo.type, cacheControl: 'public, max-age=300' },
+        customMetadata: { galleryId: id, league },
+      })
+      if (hasVariants) {
+        await env.GALLERY_BUCKET.put(optimizedObjectKey, displayBytes, {
+          httpMetadata: { contentType: 'image/webp', cacheControl: 'public, max-age=86400' },
+          customMetadata: { galleryId: id, league, variant: 'display' },
+        })
+        await env.GALLERY_BUCKET.put(thumbnailObjectKey, thumbnailBytes, {
+          httpMetadata: { contentType: 'image/webp', cacheControl: 'public, max-age=86400' },
+          customMetadata: { galleryId: id, league, variant: 'thumbnail' },
+        })
+      }
       await env.INDYCAR_DB.prepare(
-        'INSERT INTO gallery_photos(id,photographer_name,league,object_key,content_type,file_size) VALUES(?,?,?,?,?,?)',
+        `INSERT INTO gallery_photos(
+          id,photographer_name,league,object_key,content_type,file_size,
+          optimized_object_key,optimized_file_size,thumbnail_object_key,thumbnail_file_size
+        ) VALUES(?,?,?,?,?,?,?,?,?,?)`,
       )
-        .bind(id, photographer, league, objectKey, photo.type, photo.size)
+        .bind(
+          id,
+          photographer,
+          league,
+          objectKey,
+          photo.type,
+          photo.size,
+          optimizedObjectKey,
+          hasVariants ? displayPhoto.size : null,
+          thumbnailObjectKey,
+          hasVariants ? thumbnail.size : null,
+        )
         .run()
     } catch (error) {
-      await env.GALLERY_BUCKET.delete(objectKey)
+      await env.GALLERY_BUCKET.delete(
+        [objectKey, optimizedObjectKey, thumbnailObjectKey].filter(Boolean),
+      )
       throw error
     }
     return json({ submitted: true, message: 'Photo submitted for administrator approval.' }, 201)

@@ -3,6 +3,7 @@ import { loadGallery, submitGalleryPhoto } from '../services/gallery'
 import type { GalleryLeague, GalleryPhoto } from '../types/gallery'
 import { PageMeta } from '../components/league/PageMeta'
 import { PhotoLightbox } from '../components/gallery/PhotoLightbox'
+import { prepareGalleryPhoto } from '../utils/galleryImage'
 
 const labels: Record<GalleryLeague, string> = {
   cup: 'Cup Series',
@@ -72,7 +73,14 @@ export function GalleryPage() {
         ),
       )
       try {
-        await submitGalleryPhoto({ photographer: photographer.trim(), league, photo: item.file })
+        const prepared = await prepareGalleryPhoto(item.file)
+        await submitGalleryPhoto({
+          photographer: photographer.trim(),
+          league,
+          photo: prepared.original,
+          displayPhoto: prepared.display,
+          thumbnail: prepared.thumbnail,
+        })
         submitted += 1
         setUploads((current) =>
           current.map((entry) =>
@@ -262,7 +270,7 @@ export function GalleryPage() {
                     aria-label={`Enlarge photo by ${item.photographer}`}
                   >
                     <img
-                      src={item.imageUrl}
+                      src={item.thumbnailUrl || item.imageUrl}
                       alt={`${labels[item.league]} race submitted by ${item.photographer}`}
                       loading="lazy"
                     />

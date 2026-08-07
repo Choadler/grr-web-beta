@@ -33,6 +33,8 @@ export async function submitGalleryPhoto(input: {
   photographer: string
   league: GalleryLeague
   photo: File
+  displayPhoto?: File
+  thumbnail?: File
 }) {
   if (import.meta.env.DEV) {
     devPhotos.unshift({
@@ -51,6 +53,8 @@ export async function submitGalleryPhoto(input: {
   form.set('photographer', input.photographer)
   form.set('league', input.league)
   form.set('photo', input.photo)
+  if (input.displayPhoto) form.set('displayPhoto', input.displayPhoto)
+  if (input.thumbnail) form.set('thumbnail', input.thumbnail)
   form.set('website', '')
   const response = await fetch('/api/gallery', { method: 'POST', body: form })
   return (await payload(response)).message ?? 'Photo submitted for administrator approval.'

@@ -158,7 +158,7 @@ export function GalleryAdminPage() {
                   aria-label={`Enlarge submission by ${photo.photographer}`}
                 >
                   <img
-                    src={photo.imageUrl}
+                    src={photo.thumbnailUrl || photo.imageUrl}
                     alt={`Submission by ${photo.photographer}`}
                     loading="lazy"
                   />
