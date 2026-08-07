@@ -50,7 +50,7 @@ async function gtInHouse(signal: AbortSignal): Promise<GtPublicPayload | null> {
   const local = loadLocalGtPublic()
   if (local) return local
   try {
-    return (await fetchJson('/api/gt', signal)) as GtPublicPayload
+    return (await fetchJson('/api/gt?v=overall-results', signal)) as GtPublicPayload
   } catch (error) {
     if (signal.aborted) throw error
     return null
