@@ -321,7 +321,7 @@ a {
   transition: transform 0.45s ease;
 }
 .league-panel:nth-child(1) > img {
-  object-position: center 58%;
+  object-position: center 56%;
 }
 .league-panel:nth-child(2) > img {
   object-position: center 48%;

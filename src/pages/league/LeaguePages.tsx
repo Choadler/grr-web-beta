@@ -55,7 +55,7 @@ const leagueConfig = {
     label: 'Cup Series',
     nav: cupNav,
     image: '/assets/home/cup-series.webp',
-    imagePosition: 'center 58%',
+    imagePosition: 'center 56%',
     schedule: cupCalendar,
   },
   gt: {
