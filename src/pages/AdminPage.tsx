@@ -124,9 +124,15 @@ function ScheduleEditor({ state, seasonId, refresh, ...section }: { state: IndyA
   const [viewEventId, setViewEventId] = useState('')
   const save = async () => { await mutateIndyAdmin({ action: 'saveEvent', event }); setEvent(blank()); await refresh('Schedule updated.') }
   const remove = async (eventId: string) => { if (!confirm('Remove this scheduled event?')) return; await mutateIndyAdmin({ action: 'deleteEvent', eventId }); await refresh('Event removed.') }
+  const deleteResults = async (eventId: string) => {
+    if (!confirm('Delete the published results for this race? The scheduled event will remain.')) return
+    await mutateIndyAdmin({ action: 'deleteResults', eventId })
+    if (viewEventId === eventId) setViewEventId('')
+    await refresh('Race results deleted. The event is scheduled again.')
+  }
   return (
     <AdminSection eyebrow="Calendar" title="Schedule" summary={scheduleSummary} {...section}>
-      <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Round</th><th>Date</th><th>Track</th><th>Laps</th><th>Status</th><th>Actions</th></tr></thead><tbody>{seasonEvents.length ? seasonEvents.map((item) => <tr key={item.id}><td>{item.round}</td><td>{item.date}</td><td>{item.track}</td><td>{item.laps}</td><td>{item.status}</td><td>{item.status === 'completed' && <button type="button" disabled={!state.results[item.id]?.length} onClick={() => setViewEventId(item.id)}>View race</button>} <button type="button" onClick={() => setEvent(item)}>Edit</button> <button type="button" onClick={() => void remove(item.id)}>Remove</button></td></tr>) : <tr><td colSpan={6}>No scheduled events yet.</td></tr>}</tbody></table></div>
+      <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Round</th><th>Date</th><th>Track</th><th>Laps</th><th>Status</th><th>Actions</th></tr></thead><tbody>{seasonEvents.length ? seasonEvents.map((item) => { const hasResults = Boolean(state.results[item.id]?.length); return <tr key={item.id}><td>{item.round}</td><td>{item.date}</td><td>{item.track}</td><td>{item.laps}</td><td>{item.status}</td><td>{hasResults && <><button type="button" onClick={() => setViewEventId(item.id)}>Edit Race</button> <button className="admin-action--danger" type="button" onClick={() => void deleteResults(item.id)}>Delete Results</button> </>}<button type="button" onClick={() => void remove(item.id)}>Remove</button></td></tr> }) : <tr><td colSpan={6}>No scheduled events yet.</td></tr>}</tbody></table></div>
       {viewEventId && state.results[viewEventId]?.length ? <RaceEditor key={viewEventId} event={seasonEvents.find((item) => item.id === viewEventId)!} rows={state.results[viewEventId]} refresh={refresh} close={() => setViewEventId('')} /> : null}
       <h3>{seasonEvents.some((item) => item.id === event.id) ? 'Edit event' : 'Add event'}</h3>
       <div className="admin-form-grid">

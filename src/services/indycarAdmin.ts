@@ -66,6 +66,17 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
       else state.schedule.push(event)
     }
     if (action === 'deleteEvent') state.schedule = state.schedule.filter((item) => item.id !== record(body).eventId)
+    if (action === 'deleteResults') {
+      const eventId = String(record(body).eventId)
+      const event = state.schedule.find((item) => item.id === eventId)
+      if (event) {
+        event.status = 'scheduled'
+        event.subsessionId = undefined
+      }
+      delete state.results[eventId]
+      state.imports = state.imports.filter((item) => item.eventId !== eventId)
+      localStorage.removeItem(`${storageKey}:results:${eventId}`)
+    }
     if (action === 'publishResults') {
       const preview = record(record(body).preview)
       const eventId = String(record(body).eventId)
