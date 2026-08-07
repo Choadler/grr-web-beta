@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { loadGallery } from '../../services/gallery'
 import type { GalleryLeague, GalleryPhoto } from '../../types/gallery'
+import { galleryAuthorKey, selectAuthorBalancedPhotos } from '../../utils/gallerySelection'
 import { PhotoLightbox } from './PhotoLightbox'
 
 const leagues: GalleryLeague[] = ['cup', 'gt', 'indycar']
@@ -10,9 +11,6 @@ const labels: Record<GalleryLeague, string> = {
   gt: 'GT League',
   indycar: 'IndyCar',
 }
-
-const randomTwo = (photos: GalleryPhoto[]) =>
-  [...photos].sort(() => Math.random() - 0.5).slice(0, 2)
 
 export function HomeGallery() {
   const [photos, setPhotos] = useState<GalleryPhoto[]>([])
@@ -23,7 +21,12 @@ export function HomeGallery() {
     Promise.all(leagues.map((league) => loadGallery(league, 30, true)))
       .then((groups) => {
         if (!active) return
-        const balanced = groups.flatMap(randomTwo)
+        const usedAuthors = new Set<string>()
+        const balanced = groups.flatMap((group) => {
+          const selected = selectAuthorBalancedPhotos(group, 2, usedAuthors)
+          selected.forEach((photo) => usedAuthors.add(galleryAuthorKey(photo)))
+          return selected
+        })
         setPhotos(balanced)
       })
       .catch(() => {

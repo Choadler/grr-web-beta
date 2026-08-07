@@ -2,12 +2,7 @@ import { useEffect, useState } from 'react'
 import { PhotoLightbox } from '../gallery/PhotoLightbox'
 import { loadGallery } from '../../services/gallery'
 import type { GalleryLeague, GalleryPhoto } from '../../types/gallery'
-
-const shuffled = (photos: GalleryPhoto[]) =>
-  [...photos]
-    .map((photo) => ({ photo, order: Math.random() }))
-    .sort((a, b) => a.order - b.order)
-    .map(({ photo }) => photo)
+import { authorBalancedGalleryOrder } from '../../utils/gallerySelection'
 
 export function LeaguePhotoRails({ league }: { league: GalleryLeague }) {
   const [photos, setPhotos] = useState<GalleryPhoto[]>([])
@@ -18,7 +13,7 @@ export function LeaguePhotoRails({ league }: { league: GalleryLeague }) {
     const controller = new AbortController()
     loadGallery(league, 30, true)
       .then((items) => {
-        if (!controller.signal.aborted) setPhotos(shuffled(items))
+        if (!controller.signal.aborted) setPhotos(authorBalancedGalleryOrder(items))
       })
       .catch(() => {
         if (!controller.signal.aborted) setPhotos([])
