@@ -1,4 +1,5 @@
 import type { IndyAdminState, IndyImportPreview, IndyManagedResult, IndyPointsConfig, IndyPublicData, IndySeason, IndyScheduledEvent } from '../types/indycarAdmin'
+import { adminFetch } from './adminSession'
 
 const endpoint = '/admin/api/indycar'
 const storageKey = 'grr-indycar-admin-preview-v1'
@@ -121,7 +122,7 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
     return saveLocal(state) as T
   }
 
-  const response = await fetch(endpoint, {
+  const response = await adminFetch(endpoint, {
     method,
     credentials: 'include',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },

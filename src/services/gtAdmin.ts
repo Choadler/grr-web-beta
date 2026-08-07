@@ -12,6 +12,7 @@ import type {
   GtTeam,
 } from '../types/gtAdmin'
 import { gtRoster, gtTeamRoster, normalizeGtDriverName } from '../config/gtRoster'
+import { adminFetch } from './adminSession'
 
 const endpoint = '/admin/api/gt'
 const storageKey = 'grr-gt-admin-preview-v1'
@@ -357,7 +358,7 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
       })()
     return saveLocal(state) as T
   }
-  const response = await fetch(endpoint, {
+  const response = await adminFetch(endpoint, {
     method,
     credentials: 'include',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
