@@ -97,12 +97,7 @@ function PageShell({
           loader={'loader' in config ? config.loader : undefined}
         />
       </aside>
-      <header
-        className="page-hero"
-        style={{
-          backgroundImage: `linear-gradient(90deg, rgba(0,0,0,.88), rgba(0,0,0,.22)), url(${config.image})`,
-        }}
-      >
+      <header className="page-hero">
         <div className="container">
           <p className="eyebrow">{eyebrow ?? config.label}</p>
           <h1>{title}</h1>
@@ -486,8 +481,22 @@ export const IndySchedulePage = () => (
     ]}
   />
 )
+const indyResultColumns: LiveColumn[] = [
+  { key: 'position', label: 'Pos' },
+  { key: 'driver', label: 'Driver' },
+  { key: 'start', label: 'Start' },
+  { key: 'interval', label: 'Int' },
+  { key: 'laps', label: 'Laps' },
+  { key: 'led', label: 'Led' },
+  { key: 'racePoints', label: 'Race Pts' },
+  { key: 'bonus', label: 'Bonus' },
+  { key: 'penalty', label: 'Pen' },
+  { key: 'total', label: 'Total' },
+  { key: 'incidents', label: 'Inc' },
+  { key: 'status', label: 'Status' },
+]
 export const IndyResultsPage = () => (
   <PageShell league="indycar" title="GRR IndyCar Race Results" eyebrow="Season 1">
-    <RaceResultsExplorer title="GRR IndyCar Race Results" loader={indyRaceEvents} />
+    <RaceResultsExplorer title="GRR IndyCar Race Results" loader={indyRaceEvents} columns={indyResultColumns} />
   </PageShell>
 )
