@@ -54,6 +54,7 @@ export const navigation: NavGroup[] = [
       ['Race Results', '/pages/indycar-results'],
     ].map(([label, href]) => ({ label, href })),
   },
+  { label: 'Gallery', href: '/gallery' },
   { label: 'Discord', href: externalLinks.discord },
   { label: 'Merch', href: externalLinks.merchandise },
 ]

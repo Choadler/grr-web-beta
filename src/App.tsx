@@ -7,6 +7,9 @@ import { ChampionshipLeaders } from './components/league/ChampionshipLeaders'
 import { cupStandings, gtSchedule, gtStandings, indyStandings } from './services/dataSources'
 import { AdminPage, IndycarAdminPage } from './pages/AdminPage'
 import { GtAdminPage } from './pages/GtAdminPage'
+import { GalleryPage } from './pages/GalleryPage'
+import { GalleryAdminPage } from './pages/GalleryAdminPage'
+import { HomeGallery } from './components/gallery/HomeGallery'
 import {
   CupBroadcastPage,
   CupLandingPage,
@@ -280,6 +283,7 @@ function Home() {
           </External>
         </div>
       </section>
+      <HomeGallery />
       <section className="donation-section section">
         <div className="container donation-callout">
           <div>
@@ -350,9 +354,11 @@ export function App() {
           <Route path="pages/indycar-standings" element={<IndyStandingsPage />} />
           <Route path="pages/indycar-schedule" element={<IndySchedulePage />} />
           <Route path="pages/indycar-results" element={<IndyResultsPage />} />
+          <Route path="gallery" element={<GalleryPage />} />
           <Route path="admin" element={<AdminPage />} />
           <Route path="admin/indycar" element={<IndycarAdminPage />} />
           <Route path="admin/gt" element={<GtAdminPage />} />
+          <Route path="admin/gallery" element={<GalleryAdminPage />} />
           <Route path="*" element={<Missing />} />
         </Routes>
       </main>

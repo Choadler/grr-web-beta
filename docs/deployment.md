@@ -48,3 +48,15 @@ GT League scoring shares the existing `INDYCAR_DB` D1 binding so the project has
 4. Leave the season in Draft until real race imports and public tables have been reviewed. Activating a populated season makes the public GT pages prefer D1 automatically.
 
 Driver assignments are stored by iRacing Customer ID. The assigned class, team, and car are copied onto each published result, so later roster edits do not rewrite historical races.
+
+## Community gallery storage
+
+The gallery keeps moderation metadata in the existing `INDYCAR_DB` D1 database and stores image files in a private R2 bucket.
+
+1. Apply `migrations/0006_gallery.sql` to the `grr-scoring` database.
+2. In **Storage & databases > R2 Object Storage**, create a private bucket named `grr-gallery`.
+3. In the `grr-web-beta` Pages project, open **Settings > Bindings**, add an **R2 bucket binding**, set the variable name to exactly `GALLERY_BUCKET`, and select `grr-gallery`.
+4. Add the same binding to Preview if gallery uploads will be tested there, then redeploy.
+5. Confirm Cloudflare Access still protects `/admin*`; gallery moderation is available at `/admin/gallery`.
+
+Do not expose the R2 bucket publicly. Approved files are served through `/api/gallery/photo/:id`, while pending and rejected files are available only through the Access-protected admin API. Public uploads accept JPEG, PNG, and WebP files up to 10 MB and validate their file signatures.

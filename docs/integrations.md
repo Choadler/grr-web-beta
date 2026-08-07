@@ -63,6 +63,18 @@ Public endpoint placeholders live in `.env.example`. Never put a private token o
 
 ## Other embeds
 
+## Community gallery
+
+- Public page: `/gallery`.
+- Public submission/read API: `/api/gallery`.
+- Protected moderation page: `/admin/gallery`.
+- Protected moderation API: `/admin/api/gallery`.
+- Metadata binding: existing D1 binding `INDYCAR_DB`.
+- Image binding: private R2 binding `GALLERY_BUCKET`.
+- Schema migration: `migrations/0006_gallery.sql`.
+- Only approved photos are returned publicly or used by the league-specific photo rails.
+- Cup, GT League, and IndyCar pages request only photos tagged to their own league. API failures are handled as an empty gallery so a storage outage cannot blank a public page.
+
 - GT rules Google document: `https://docs.google.com/document/d/e/2PACX-1vRGNnl3uRlz6qmiQ1Z4p3icskAJDxtofIxed5PiQY9emnxq5x1hObSL_pKxYwWFM2VGZiNS-fo-NCC6/pub?embedded=true`.
 - Discord invite: `https://discord.gg/grassrootsracing`.
 - Discord widget is present on the current homepage but its malformed query string should be corrected or removed during Stage 2.

@@ -6,6 +6,7 @@ import { GtSportingCode } from '../../components/league/GtSportingCode'
 import { LiveDataTable, type LiveColumn } from '../../components/league/LiveDataTable'
 import { RaceResultsExplorer } from '../../components/league/RaceResultsExplorer'
 import { LeagueCountdown } from '../../components/league/LeagueCountdown'
+import { LeaguePhotoRails } from '../../components/league/LeaguePhotoRails'
 import { LeagueOverview } from '../../components/league/LeagueOverview'
 import { LeagueNav, type LeagueNavItem } from '../../components/league/LeagueNav'
 import { PageMeta } from '../../components/league/PageMeta'
@@ -117,6 +118,7 @@ function PageShell({
           <h1>{title}</h1>
         </div>
       </header>
+      <LeaguePhotoRails league={league} />
       <div className="page-content container">{children}</div>
     </>
   )
