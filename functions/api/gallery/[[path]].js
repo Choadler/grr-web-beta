@@ -58,7 +58,8 @@ export async function onRequestGet({ request, env, params }) {
     if (!object) return new Response('Photo file not found.', { status: 404 })
     const headers = new Headers()
     object.writeHttpMetadata(headers)
-    headers.set('Content-Type', objectKey === photo.originalKey ? photo.originalType : 'image/webp')
+    if (!headers.has('Content-Type'))
+      headers.set('Content-Type', objectKey === photo.originalKey ? photo.originalType : 'image/jpeg')
     headers.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800')
     headers.set('ETag', object.httpEtag)
     headers.set('X-Content-Type-Options', 'nosniff')
@@ -119,8 +120,8 @@ export async function onRequestPost({ request, env, params }) {
     let displayBytes = null
     let thumbnailBytes = null
     if (hasVariants) {
-      if (displayPhoto.type !== 'image/webp' || thumbnail.type !== 'image/webp')
-        return json({ error: 'Optimized gallery images must use WebP.' }, 415)
+      if (!imageTypes.has(displayPhoto.type) || !imageTypes.has(thumbnail.type))
+        return json({ error: 'Optimized gallery images must use JPEG, PNG, or WebP.' }, 415)
       if (!displayPhoto.size || displayPhoto.size > maxDisplaySize)
         return json({ error: 'The optimized display image is too large.' }, 413)
       if (!thumbnail.size || thumbnail.size > maxThumbnailSize)
@@ -128,16 +129,20 @@ export async function onRequestPost({ request, env, params }) {
       displayBytes = new Uint8Array(await displayPhoto.arrayBuffer())
       thumbnailBytes = new Uint8Array(await thumbnail.arrayBuffer())
       if (
-        !hasExpectedSignature('image/webp', displayBytes) ||
-        !hasExpectedSignature('image/webp', thumbnailBytes)
+        !hasExpectedSignature(displayPhoto.type, displayBytes) ||
+        !hasExpectedSignature(thumbnail.type, thumbnailBytes)
       )
-        return json({ error: 'An optimized gallery image is not a valid WebP file.' }, 415)
+        return json({ error: 'An optimized gallery image is not a valid image file.' }, 415)
     }
 
     const id = crypto.randomUUID()
     const objectKey = `gallery/${league}/${id}.${extension}`
-    const optimizedObjectKey = hasVariants ? `gallery/${league}/${id}-display.webp` : null
-    const thumbnailObjectKey = hasVariants ? `gallery/${league}/${id}-thumbnail.webp` : null
+    const optimizedObjectKey = hasVariants
+      ? `gallery/${league}/${id}-display.${imageTypes.get(displayPhoto.type)}`
+      : null
+    const thumbnailObjectKey = hasVariants
+      ? `gallery/${league}/${id}-thumbnail.${imageTypes.get(thumbnail.type)}`
+      : null
     try {
       await env.GALLERY_BUCKET.put(objectKey, photoBytes, {
         httpMetadata: { contentType: photo.type, cacheControl: 'public, max-age=300' },
@@ -145,11 +150,11 @@ export async function onRequestPost({ request, env, params }) {
       })
       if (hasVariants) {
         await env.GALLERY_BUCKET.put(optimizedObjectKey, displayBytes, {
-          httpMetadata: { contentType: 'image/webp', cacheControl: 'public, max-age=86400' },
+          httpMetadata: { contentType: displayPhoto.type, cacheControl: 'public, max-age=86400' },
           customMetadata: { galleryId: id, league, variant: 'display' },
         })
         await env.GALLERY_BUCKET.put(thumbnailObjectKey, thumbnailBytes, {
-          httpMetadata: { contentType: 'image/webp', cacheControl: 'public, max-age=86400' },
+          httpMetadata: { contentType: thumbnail.type, cacheControl: 'public, max-age=86400' },
           customMetadata: { galleryId: id, league, variant: 'thumbnail' },
         })
       }

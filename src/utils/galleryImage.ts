@@ -6,6 +6,24 @@ type ImageVariant = {
   height: number
 }
 
+const isWebP = async (blob: Blob) => {
+  if (blob.type !== 'image/webp' || blob.size < 12) return false
+  const bytes = new Uint8Array(await blob.slice(0, 12).arrayBuffer())
+  return (
+    String.fromCharCode(...bytes.slice(0, 4)) === 'RIFF' &&
+    String.fromCharCode(...bytes.slice(8, 12)) === 'WEBP'
+  )
+}
+
+const canvasBlob = (canvas: HTMLCanvasElement, type: string, quality: number) =>
+  new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob(
+      (result) => (result ? resolve(result) : reject(new Error('Photo conversion failed.'))),
+      type,
+      quality,
+    ),
+  )
+
 const fitWithin = (width: number, height: number, maxWidth: number, maxHeight: number) => {
   const scale = Math.min(1, maxWidth / width, maxHeight / height)
   return {
@@ -31,16 +49,15 @@ const renderVariant = async (
   context.imageSmoothingEnabled = true
   context.imageSmoothingQuality = 'high'
   context.drawImage(source, 0, 0, dimensions.width, dimensions.height)
-  const blob = await new Promise<Blob>((resolve, reject) =>
-    canvas.toBlob(
-      (result) => (result ? resolve(result) : reject(new Error('Photo conversion failed.'))),
-      'image/webp',
-      quality,
-    ),
-  )
+  let blob = await canvasBlob(canvas, 'image/webp', quality)
+  let extension = 'webp'
+  if (!(await isWebP(blob))) {
+    blob = await canvasBlob(canvas, 'image/jpeg', Math.min(0.9, quality))
+    extension = 'jpg'
+  }
   const baseName = originalName.replace(/\.[^.]+$/, '') || 'race-photo'
   return {
-    file: new File([blob], `${baseName}-${suffix}.webp`, { type: 'image/webp' }),
+    file: new File([blob], `${baseName}-${suffix}.${extension}`, { type: blob.type }),
     ...dimensions,
   }
 }
@@ -51,12 +68,11 @@ export async function prepareGalleryPhoto(original: File) {
   const bitmap = await createImageBitmap(original, { imageOrientation: 'from-image' })
   try {
     const [display, thumbnail] = await Promise.all([
-      renderVariant(bitmap, original.name, 3840, 2160, 0.86, 'display'),
-      renderVariant(bitmap, original.name, 1200, 800, 0.78, 'thumbnail'),
+      renderVariant(bitmap, original.name, 2560, 1440, 0.82, 'display'),
+      renderVariant(bitmap, original.name, 960, 640, 0.72, 'thumbnail'),
     ])
     return { original, display: display.file, thumbnail: thumbnail.file }
   } finally {
     bitmap.close()
   }
 }
-
