@@ -27,11 +27,11 @@ const stageColumns: LiveColumn[] = [
 ]
 
 const podiumClass = (row: Record<string, string | number>) =>
-  Number(row.podiumPosition ?? row.position) === 1
+  Number(row.position) === 1
     ? 'results-row--gold'
-    : Number(row.podiumPosition ?? row.position) === 2
+    : Number(row.position) === 2
       ? 'results-row--silver'
-      : Number(row.podiumPosition ?? row.position) === 3
+      : Number(row.position) === 3
         ? 'results-row--bronze'
         : ''
 
