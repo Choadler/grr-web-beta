@@ -49,6 +49,12 @@ export async function onRequestPost({ request, env }) {
         .bind(item.id, item.seasonId, item.round, item.date, item.track, item.laps, item.status, item.subsessionId ?? null).run()
     } else if (body.action === 'deleteEvent') {
       await db.prepare('DELETE FROM indy_events WHERE id=?').bind(body.eventId).run()
+    } else if (body.action === 'deleteResults') {
+      await db.batch([
+        db.prepare('DELETE FROM indy_results WHERE event_id=?').bind(body.eventId),
+        db.prepare('DELETE FROM indy_imports WHERE event_id=?').bind(body.eventId),
+        db.prepare("UPDATE indy_events SET status='scheduled',subsession_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(body.eventId),
+      ])
     } else if (body.action === 'publishResults') {
       const pointsRow = await db.prepare('SELECT config_json FROM indy_points_configs WHERE season_id=?').bind(body.seasonId).first()
       if (!pointsRow) return json({ error: 'Save a points table before publishing results.' }, 400)
