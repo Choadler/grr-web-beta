@@ -455,6 +455,21 @@ const gtResultColumns: LiveColumn[] = [
   { key: 'incidents', label: 'Inc' },
   { key: 'status', label: 'Status' },
 ]
+const gtOverallResultColumns: LiveColumn[] = [
+  { key: 'position', label: 'Overall Pos' },
+  { key: 'driver', label: 'Driver' },
+  { key: 'class', label: 'Class' },
+  { key: 'car', label: 'Car' },
+  { key: 'start', label: 'Start' },
+  { key: 'interval', label: 'Int' },
+  { key: 'laps', label: 'Laps' },
+  { key: 'racePoints', label: 'Race Pts' },
+  { key: 'bonus', label: 'Bonus' },
+  { key: 'penalty', label: 'Pen' },
+  { key: 'total', label: 'Total' },
+  { key: 'incidents', label: 'Inc' },
+  { key: 'status', label: 'Status' },
+]
 export const GtResultsPage = () => (
   <PageShell league="gt" title="GT League Race Results">
     <RaceResultsExplorer
@@ -462,6 +477,7 @@ export const GtResultsPage = () => (
       loader={gtRaceEvents}
       columns={gtResultColumns}
       secondaryColumns={gtResultColumns}
+      overallColumns={gtOverallResultColumns}
     />
   </PageShell>
 )

@@ -454,7 +454,34 @@ export function loadLocalGtPublic(): GtPublicData | null {
     .map((event) => ({
       id: event.subsessionId ?? event.round,
       label: `${event.track} — ${event.date}`,
-      sessions: gtClasses.map(({ key, label }, index) => {
+      sessions: [
+        {
+          id: (event.subsessionId ?? event.round) * 10,
+          label: 'Overall',
+          rows: rows
+            .filter((row) => row.event.id === event.id)
+            .sort((a, b) => a.overallPosition - b.overallPosition)
+            .map((row) => ({
+              position: row.overallPosition,
+              podiumPosition: row.classPosition,
+              driver: row.driver,
+              class: gtClasses.find(({ key }) => key === row.classKey)?.label ?? row.classKey,
+              car: row.car,
+              start: row.start,
+              interval: row.interval || '-',
+              laps: row.laps,
+              led: row.lapsLed,
+              racePoints: row.racePoints,
+              bonus: row.bonus,
+              penalty: row.penalty,
+              total: row.total,
+              incidents: row.incidents,
+              status: row.status,
+              pole: row.pole ? 1 : 0,
+              fastestLap: row.fastestLap ? 1 : 0,
+            })),
+        },
+        ...gtClasses.map(({ key, label }, index) => {
         const classRows = rows.filter((row) => row.event.id === event.id && row.classKey === key)
         const leader = classRows.find((row) => row.classPosition === 1)
         const fastest = Math.min(
@@ -481,7 +508,8 @@ export function loadLocalGtPublic(): GtPublicData | null {
             fastestLap: row.bestLapTime > 0 && row.bestLapTime === fastest ? 1 : 0,
           })),
         }
-      }),
+        }),
+      ],
     }))
   return { season, schedule, standings, teamStandings, events, source: 'in-house' }
 }

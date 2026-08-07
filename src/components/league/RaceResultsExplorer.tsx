@@ -27,11 +27,11 @@ const stageColumns: LiveColumn[] = [
 ]
 
 const podiumClass = (row: Record<string, string | number>) =>
-  Number(row.position) === 1
+  Number(row.podiumPosition ?? row.position) === 1
     ? 'results-row--gold'
-    : Number(row.position) === 2
+    : Number(row.podiumPosition ?? row.position) === 2
       ? 'results-row--silver'
-      : Number(row.position) === 3
+      : Number(row.podiumPosition ?? row.position) === 3
         ? 'results-row--bronze'
         : ''
 
@@ -40,11 +40,13 @@ export function RaceResultsExplorer({
   loader,
   columns,
   secondaryColumns,
+  overallColumns,
 }: {
   title: string
   loader: RaceEventsLoader
   columns?: LiveColumn[]
   secondaryColumns?: LiveColumn[]
+  overallColumns?: LiveColumn[]
 }) {
   const [events, setEvents] = useState<RaceEvent[]>([])
   const [eventIndex, setEventIndex] = useState(0)
@@ -126,7 +128,13 @@ export function RaceResultsExplorer({
       <LiveDataTable
         key={session.id}
         title={`${title} — ${event.label} — ${session.label}`}
-        columns={sessionIndex ? (secondaryColumns ?? stageColumns) : (columns ?? raceColumns)}
+        columns={
+          session.label === 'Overall' && overallColumns
+            ? overallColumns
+            : sessionIndex
+              ? (secondaryColumns ?? stageColumns)
+              : (columns ?? raceColumns)
+        }
         loader={tableLoader}
         search
         rowClassName={podiumClass}
