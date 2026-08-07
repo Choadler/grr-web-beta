@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { App } from './App'
 import './styles/global.css'
 
-document.documentElement.dataset.buildRevision = 'gt-behind-leader-1'
+document.documentElement.dataset.buildRevision = 'gallery-caption-cache-recovery-1'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

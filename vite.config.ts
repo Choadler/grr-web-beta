@@ -4,10 +4,10 @@ import react from '@vitejs/plugin-react'
 const preserveScriptsOnCloudflare = {
   name: 'preserve-scripts-on-cloudflare',
   augmentChunkHash() {
-    return 'grr-classic-loader-v2'
+    return 'grr-classic-loader-v3'
   },
   renderChunk(code: string) {
-    return `/* grr-classic-loader-v2 */\n${code
+    return `/* grr-classic-loader-v3 */\n${code
       .replaceAll('import.meta.resolve', 'null')
       .replaceAll('import.meta.url', 'document.baseURI')}`
   },
