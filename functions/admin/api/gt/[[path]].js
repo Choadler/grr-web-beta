@@ -70,13 +70,18 @@ const scoreRows = (drivers, config) => {
       .filter((driver) => driver.classKey === classKey)
       .sort((a, b) => Number(a.overallPosition) - Number(b.overallPosition))
     const poleStart = Math.min(...rows.map((row) => Number(row.start) || 9999))
-    const fastestTime = Math.min(...rows.map((row) => Number(row.bestLapTime) || Infinity))
+    const fastestDriver = rows
+      .filter((row) => Number(row.bestLapTime) > 0)
+      .sort(
+        (a, b) =>
+          Number(a.bestLapTime) - Number(b.bestLapTime) ||
+          Number(a.overallPosition) - Number(b.overallPosition),
+      )[0]
     const mostLed = Math.max(0, ...rows.map((row) => Number(row.lapsLed) || 0))
     rows.forEach((driver, index) => {
       const classPosition = index + 1
       const pole = Number(driver.start) === poleStart
-      const fastestLap =
-        Number(driver.bestLapTime) > 0 && Number(driver.bestLapTime) === fastestTime
+      const fastestLap = driver === fastestDriver
       const base =
         Number(config.positions.find((rule) => Number(rule.position) === classPosition)?.points) ||
         0
@@ -99,6 +104,15 @@ const scoreRows = (drivers, config) => {
         total: base + bonus - penalty,
       })
     })
+  }
+  for (const classKey of classes) {
+    const classRows = output.filter((driver) => driver.classKey === classKey)
+    const hasValidLap = classRows.some((driver) => Number(driver.bestLapTime) > 0)
+    const fastestCount = classRows.filter((driver) => driver.fastestLap).length
+    if (hasValidLap && fastestCount !== 1)
+      throw new Error(`Could not assign exactly one fastest lap for ${classKey}.`)
+    if (!hasValidLap && fastestCount !== 0)
+      throw new Error(`A fastest lap was assigned without valid lap data for ${classKey}.`)
   }
   return output
 }
@@ -147,8 +161,7 @@ const rescoreSeasonFormat = async (db, seasonId, format, config) => {
     rows.push(row)
     events.set(row.eventId, rows)
   }
-  for (const [eventId, rows] of events)
-    await updateScoredRows(db, eventId, scoreRows(rows, config))
+  for (const [eventId, rows] of events) await updateScoredRows(db, eventId, scoreRows(rows, config))
 }
 
 export async function onRequestGet({ env }) {
@@ -332,7 +345,9 @@ export async function onRequestPost({ request, env }) {
         .first()
       if (!event) return json({ error: 'That event no longer exists.' }, 404)
       const pointRow = await db
-        .prepare('SELECT config_json FROM gt_format_points_configs WHERE season_id=? AND format_key=?')
+        .prepare(
+          'SELECT config_json FROM gt_format_points_configs WHERE season_id=? AND format_key=?',
+        )
         .bind(body.seasonId, event.format || 'standard')
         .first()
       const drivers = body.drivers
@@ -421,7 +436,9 @@ export async function onRequestPost({ request, env }) {
         .first()
       if (!event) return json({ error: 'That event no longer exists.' }, 404)
       const pointRow = await db
-        .prepare('SELECT config_json FROM gt_format_points_configs WHERE season_id=? AND format_key=?')
+        .prepare(
+          'SELECT config_json FROM gt_format_points_configs WHERE season_id=? AND format_key=?',
+        )
         .bind(event.seasonId, event.format || 'standard')
         .first()
       const scored = scoreRows(

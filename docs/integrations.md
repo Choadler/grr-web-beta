@@ -12,9 +12,6 @@ Cup and IndyCar pages expose SimRacerHub driver-stat links and custom standings/
 
 - Cup standings/schedule/results: SimRacerHub season `28581` via `get_standings.php`.
 - Cup recent results: `red-star-b0d9.cknoedler1013.workers.dev`, series `12921`.
-- GT driver standings: `aged-breeze-c1bb.cknoedler1013.workers.dev`, class paths `/gt/am`, `/gt/pro`, `/gt/gtp`.
-- GT team standings: `holy-bird-8afa.cknoedler1013.workers.dev`, using the same class paths.
-- GT schedule/results: `grr-gt-racebyrace.cknoedler1013.workers.dev/api/race-breakdown`.
 - IndyCar discovery/standings/results: SimRacerHub series `14491`.
 - The client enforces a 12-second request timeout, a 12 MB response-size limit sized for the existing SimRacerHub season payload, safe JSON parsing, and aborts obsolete requests.
 - The shared tables provide loading, empty, error, retry, search, sorting, CSV export, and PNG export behavior.
@@ -53,7 +50,7 @@ The GT module extends the D1 scoring system with GRR-specific multiclass assignm
 - Driver class, team, and car assignments are keyed to season and iRacing Customer ID.
 - Each class has an independent finishing-points table and independent pole, fastest-lap, lap-led, and most-laps-led bonuses.
 - Publishing calculates class position, winner, pole, fastest lap, bonuses, penalties, driver standings, and team standings separately per class.
-- Public GT schedule, standings, team standings, and race results prefer populated active D1 data and retain the existing Worker integrations as fallback.
+- Public GT schedule, standings, team standings, and race results use the in-house D1-backed `/api/gt` endpoint exclusively. The browser may reuse its last successful `/api/gt` response during a temporary outage, but it never falls back to the retired Google Sheets/Worker data.
 
 An import cannot be published until every driver has a GRR class. Assignments selected during import become that driver’s season default, while the published result retains its historical class even if the default changes later.
 
