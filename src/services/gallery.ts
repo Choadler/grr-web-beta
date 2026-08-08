@@ -35,6 +35,9 @@ export async function submitGalleryPhoto(input: {
   photo: File
   displayPhoto?: File
   thumbnail?: File
+  batchId?: string
+  batchIndex?: number
+  batchSize?: number
 }) {
   if (import.meta.env.DEV) {
     devPhotos.unshift({
@@ -55,6 +58,9 @@ export async function submitGalleryPhoto(input: {
   form.set('photo', input.photo)
   if (input.displayPhoto) form.set('displayPhoto', input.displayPhoto)
   if (input.thumbnail) form.set('thumbnail', input.thumbnail)
+  if (input.batchId) form.set('batchId', input.batchId)
+  if (input.batchIndex !== undefined) form.set('batchIndex', String(input.batchIndex))
+  if (input.batchSize !== undefined) form.set('batchSize', String(input.batchSize))
   form.set('website', '')
   const response = await fetch('/api/gallery', { method: 'POST', body: form })
   return (await payload(response)).message ?? 'Photo submitted for administrator approval.'

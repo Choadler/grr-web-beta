@@ -66,7 +66,8 @@ export function GalleryPage() {
     setStatus('')
     setError('')
     let submitted = 0
-    for (const item of waiting) {
+    const batchId = crypto.randomUUID()
+    for (const [batchIndex, item] of waiting.entries()) {
       setUploads((current) =>
         current.map((entry) =>
           entry.id === item.id ? { ...entry, status: 'uploading', message: '' } : entry,
@@ -80,6 +81,9 @@ export function GalleryPage() {
           photo: prepared.original,
           displayPhoto: prepared.display,
           thumbnail: prepared.thumbnail,
+          batchId,
+          batchIndex,
+          batchSize: waiting.length,
         })
         submitted += 1
         setUploads((current) =>

@@ -10,6 +10,38 @@ const imageTypes = new Map([
 const maxFileSize = 50 * 1024 * 1024
 const maxDisplaySize = 20 * 1024 * 1024
 const maxThumbnailSize = 5 * 1024 * 1024
+const leagueLabels = { cup: 'Cup Series', gt: 'GT League', indycar: 'IndyCar' }
+
+const notifyGalleryModerators = async ({ webhookUrl, count, photographer, league, batchId }) => {
+  if (!webhookUrl) return
+  try {
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: 'GRR Gallery',
+        allowed_mentions: { parse: [] },
+        embeds: [
+          {
+            title: `📸 ${count} new ${count === 1 ? 'photo is' : 'photos are'} awaiting approval`,
+            color: 0x37ae0f,
+            fields: [
+              { name: 'Submitted by', value: photographer, inline: true },
+              { name: 'League', value: leagueLabels[league] || league, inline: true },
+            ],
+            url: 'https://grassrootsracing.org/admin/gallery',
+            footer: { text: `Submission ${batchId}` },
+          },
+        ],
+      }),
+    })
+    if (!response.ok) {
+      console.error('Discord gallery notification failed.', response.status)
+    }
+  } catch (error) {
+    console.error('Discord gallery notification failed.', error)
+  }
+}
 
 const hasExpectedSignature = (type, bytes) => {
   if (type === 'image/jpeg') return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
@@ -91,7 +123,7 @@ export async function onRequestGet({ request, env, params }) {
   })
 }
 
-export async function onRequestPost({ request, env, params }) {
+export async function onRequestPost({ request, env, params, waitUntil }) {
   const missing = bindings(env)
   if (missing) return json({ error: missing }, 503)
   if (pathParts(params).length) return json({ error: 'Gallery route not found.' }, 404)
@@ -104,6 +136,9 @@ export async function onRequestPost({ request, env, params }) {
     const photo = form.get('photo')
     const displayPhoto = form.get('displayPhoto')
     const thumbnail = form.get('thumbnail')
+    const batchId = String(form.get('batchId') || '').trim()
+    const batchIndex = Number(form.get('batchIndex'))
+    const batchSize = Number(form.get('batchSize'))
     if (photographer.length < 2 || photographer.length > 80)
       return json({ error: 'Enter your name (2 to 80 characters).' }, 400)
     if (!leagueKeys.has(league)) return json({ error: 'Select a league.' }, 400)
@@ -182,6 +217,25 @@ export async function onRequestPost({ request, env, params }) {
         [objectKey, optimizedObjectKey, thumbnailObjectKey].filter(Boolean),
       )
       throw error
+    }
+    const isFinalBatchPhoto =
+      batchId.length > 0 &&
+      batchId.length <= 100 &&
+      Number.isInteger(batchIndex) &&
+      Number.isInteger(batchSize) &&
+      batchSize >= 1 &&
+      batchSize <= 10 &&
+      batchIndex === batchSize - 1
+    if (isFinalBatchPhoto) {
+      const notification = notifyGalleryModerators({
+        webhookUrl: env.DISCORD_GALLERY_WEBHOOK_URL,
+        count: batchSize,
+        photographer,
+        league,
+        batchId,
+      })
+      if (typeof waitUntil === 'function') waitUntil(notification)
+      else await notification
     }
     return json({ submitted: true, message: 'Photo submitted for administrator approval.' }, 201)
   } catch (error) {
