@@ -499,6 +499,7 @@ export const GtResultsPage = () => (
       columns={gtResultColumns}
       secondaryColumns={gtResultColumns}
       overallColumns={gtOverallResultColumns}
+      overallPngOptions={{ preset: 'gt-overall-discord' }}
     />
   </PageShell>
 )

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { DataLoader, TableRow } from '../../types/league'
-import { copyPng, downloadCsv } from '../../utils/tableExport'
+import { copyPng, downloadCsv, type PngExportOptions } from '../../utils/tableExport'
 import { DataTable, EmptyTableRow } from './DataTable'
 import { ErrorState, LoadingState } from './States'
 
@@ -20,6 +20,7 @@ export function LiveDataTable({
   rowClassName,
   toolbarActions,
   tableClassName,
+  pngOptions,
 }: {
   title: string
   columns: LiveColumn[]
@@ -28,6 +29,7 @@ export function LiveDataTable({
   rowClassName?: (row: TableRow) => string
   toolbarActions?: ReactNode
   tableClassName?: string
+  pngOptions?: PngExportOptions
 }) {
   const [rows, setRows] = useState<TableRow[]>([])
   const [query, setQuery] = useState('')
@@ -82,7 +84,7 @@ export function LiveDataTable({
   const handleCopyPng = async () => {
     setPngStatus('copying')
     try {
-      const result = await copyPng(title, columns, visibleRows)
+      const result = await copyPng(title, columns, visibleRows, pngOptions)
       setPngStatus(result)
       window.setTimeout(() => setPngStatus('idle'), 2500)
     } catch {

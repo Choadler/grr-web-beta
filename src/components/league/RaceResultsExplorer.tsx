@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { RaceEvent, RaceEventsLoader } from '../../types/league'
 import { ErrorState, LoadingState } from './States'
 import { LiveDataTable, type LiveColumn } from './LiveDataTable'
+import type { PngExportOptions } from '../../utils/tableExport'
 
 const raceColumns: LiveColumn[] = [
   { key: 'position', label: 'Pos' },
@@ -41,12 +42,14 @@ export function RaceResultsExplorer({
   columns,
   secondaryColumns,
   overallColumns,
+  overallPngOptions,
 }: {
   title: string
   loader: RaceEventsLoader
   columns?: LiveColumn[]
   secondaryColumns?: LiveColumn[]
   overallColumns?: LiveColumn[]
+  overallPngOptions?: PngExportOptions
 }) {
   const [events, setEvents] = useState<RaceEvent[]>([])
   const [eventIndex, setEventIndex] = useState(0)
@@ -140,6 +143,7 @@ export function RaceResultsExplorer({
         }
         search
         rowClassName={podiumClass}
+        pngOptions={session.label === 'Overall' ? overallPngOptions : undefined}
       />
     </>
   )
