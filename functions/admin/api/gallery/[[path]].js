@@ -2,6 +2,36 @@ const json = (value, status = 200) =>
   Response.json(value, { status, headers: { 'Cache-Control': 'no-store' } })
 
 const leagueKeys = new Set(['cup', 'gt', 'indycar'])
+const leagueLabels = { cup: 'Cup Series', gt: 'GT League', indycar: 'IndyCar' }
+
+const notifyGalleryPublic = async ({ webhookUrl, count, photographer, league }) => {
+  if (!webhookUrl || count < 1) return
+  const attribution =
+    count === 1 && photographer && league
+      ? `Photo by **${photographer}** from **${leagueLabels[league] || league}**.`
+      : `${count} community race photos have been approved.`
+  try {
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: 'GRR Gallery',
+        allowed_mentions: { parse: [] },
+        embeds: [
+          {
+            title: `\u{1F4F8} ${count} new ${count === 1 ? 'photo is' : 'photos are'} live in the GRR Gallery!`,
+            description: `${attribution}\n\nView the latest community photos in the gallery.`,
+            color: 0x37ae0f,
+            url: 'https://grassrootsracing.org/gallery',
+          },
+        ],
+      }),
+    })
+    if (!response.ok) console.error('Discord public gallery notification failed.', response.status)
+  } catch (error) {
+    console.error('Discord public gallery notification failed.', error)
+  }
+}
 
 const pathParts = (params) => {
   const value = params.path
@@ -63,17 +93,39 @@ export async function onRequestGet({ env, params }) {
   return json({ photos: await listPhotos(env.INDYCAR_DB) })
 }
 
-export async function onRequestPost({ request, env, params }) {
+export async function onRequestPost({ request, env, params, waitUntil }) {
   const missing = missingBinding(env)
   if (missing) return json({ error: missing }, 503)
   if (pathParts(params).length) return json({ error: 'Gallery admin route not found.' }, 404)
   try {
     const body = await request.json()
+    if (body.action === 'approveAll') {
+      const pending = await env.INDYCAR_DB.prepare(
+        "SELECT COUNT(*) AS count FROM gallery_photos WHERE status='pending'",
+      ).first()
+      const count = Number(pending?.count || 0)
+      if (count) {
+        const reviewer = request.headers.get('Cf-Access-Authenticated-User-Email') || 'admin'
+        await env.INDYCAR_DB.prepare(
+          "UPDATE gallery_photos SET status='approved',reviewed_at=CURRENT_TIMESTAMP,reviewed_by=? WHERE status='pending'",
+        )
+          .bind(reviewer)
+          .run()
+        const notification = notifyGalleryPublic({
+          webhookUrl: env.DISCORD_GALLERY_PUBLIC_WEBHOOK_URL,
+          count,
+        })
+        if (typeof waitUntil === 'function') waitUntil(notification)
+        else await notification
+      }
+      return json({ photos: await listPhotos(env.INDYCAR_DB) })
+    }
     const id = String(body.id || '')
     if (!id) return json({ error: 'A photo ID is required.' }, 400)
     const photo = await env.INDYCAR_DB.prepare(
       `SELECT object_key AS objectKey,optimized_object_key AS optimizedObjectKey,
-      thumbnail_object_key AS thumbnailObjectKey FROM gallery_photos WHERE id=?`,
+      thumbnail_object_key AS thumbnailObjectKey,photographer_name AS photographer,
+      league,status FROM gallery_photos WHERE id=?`,
     )
       .bind(id)
       .first()
@@ -86,6 +138,16 @@ export async function onRequestPost({ request, env, params }) {
       )
         .bind(body.action === 'approve' ? 'approved' : 'rejected', reviewer, id)
         .run()
+      if (body.action === 'approve' && photo.status !== 'approved') {
+        const notification = notifyGalleryPublic({
+          webhookUrl: env.DISCORD_GALLERY_PUBLIC_WEBHOOK_URL,
+          count: 1,
+          photographer: photo.photographer,
+          league: photo.league,
+        })
+        if (typeof waitUntil === 'function') waitUntil(notification)
+        else await notification
+      }
     } else if (body.action === 'update') {
       const photographer = String(body.photographer || '').trim()
       const league = String(body.league || '')

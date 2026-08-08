@@ -104,3 +104,26 @@ export async function moderateGalleryPhoto(
   })
   return (await payload(response)).photos ?? []
 }
+
+export async function approveAllGalleryPhotos() {
+  if (import.meta.env.DEV) {
+    const reviewedAt = new Date().toISOString()
+    devPhotos.forEach((photo, index) => {
+      if (photo.status === 'pending')
+        devPhotos[index] = {
+          ...photo,
+          status: 'approved',
+          reviewedAt,
+          reviewedBy: 'Local administrator',
+        }
+    })
+    return [...devPhotos]
+  }
+  const response = await adminFetch('/admin/api/gallery', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'approveAll' }),
+  })
+  return (await payload(response)).photos ?? []
+}

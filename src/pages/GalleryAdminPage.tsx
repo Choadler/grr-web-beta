@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { loadGalleryAdmin, moderateGalleryPhoto } from '../services/gallery'
+import {
+  approveAllGalleryPhotos,
+  loadGalleryAdmin,
+  moderateGalleryPhoto,
+} from '../services/gallery'
 import type { GalleryLeague, GalleryPhoto, GalleryStatus } from '../types/gallery'
 import { PhotoLightbox } from '../components/gallery/PhotoLightbox'
 
@@ -94,9 +98,7 @@ export function GalleryAdminPage() {
     if (!waiting.length || !confirm(`Approve all ${waiting.length} pending photos?`)) return
     setBusyId('all')
     try {
-      let updated = photos
-      for (const photo of waiting) updated = await moderateGalleryPhoto(photo.id, 'approve')
-      setPhotos(updated)
+      setPhotos(await approveAllGalleryPhotos())
       setError('')
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Bulk approval failed.')
