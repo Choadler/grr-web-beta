@@ -37,6 +37,50 @@ type AdminIdentity = {
 
 const publicHostname = 'www.grassrootsracing.org'
 const adminHostname = 'grassrootsracing.org'
+const adminSessionMarker = 'grr_admin_session'
+
+type StoredAdminIdentity = AdminIdentity & {
+  expiresAt: number
+}
+
+function readAdminSessionMarker(): AdminIdentity | null {
+  if (typeof document === 'undefined') return null
+
+  const encoded = document.cookie
+    .split('; ')
+    .find((cookie) => cookie.startsWith(`${adminSessionMarker}=`))
+    ?.slice(adminSessionMarker.length + 1)
+
+  if (!encoded) return null
+
+  try {
+    const stored = JSON.parse(decodeURIComponent(encoded)) as Partial<StoredAdminIdentity>
+    if (typeof stored.email !== 'string' || typeof stored.expiresAt !== 'number') return null
+    if (stored.expiresAt <= Date.now()) {
+      clearAdminSessionMarker()
+      return null
+    }
+    return { email: stored.email, name: stored.name }
+  } catch {
+    clearAdminSessionMarker()
+    return null
+  }
+}
+
+function writeAdminSessionMarker(identity: AdminIdentity, expiresAt: number) {
+  const value = encodeURIComponent(JSON.stringify({ ...identity, expiresAt }))
+  const domain = window.location.hostname.endsWith('grassrootsracing.org')
+    ? '; Domain=.grassrootsracing.org; Secure'
+    : ''
+  document.cookie = `${adminSessionMarker}=${value}; Path=/; Expires=${new Date(expiresAt).toUTCString()}; SameSite=Lax${domain}`
+}
+
+function clearAdminSessionMarker() {
+  const domain = window.location.hostname.endsWith('grassrootsracing.org')
+    ? '; Domain=.grassrootsracing.org; Secure'
+    : ''
+  document.cookie = `${adminSessionMarker}=; Path=/; Max-Age=0; SameSite=Lax${domain}`
+}
 
 const isAdminPath = (pathname: string) =>
   pathname === '/admin' || pathname.startsWith('/admin/')
@@ -77,9 +121,16 @@ function NavigationBoundary({ children }: { children: React.ReactNode }) {
 }
 
 function useAdminIdentity() {
-  const [identity, setIdentity] = useState<AdminIdentity | null>(null)
+  const [identity, setIdentity] = useState<AdminIdentity | null>(() => readAdminSessionMarker())
 
   useEffect(() => {
+    // The Access identity endpoint is available on the protected admin host.
+    // Public pages live on www, so they use the short-lived shared marker that
+    // was written after Access verified the session on the admin host.
+    if (window.location.hostname === publicHostname) {
+      return
+    }
+
     const controller = new AbortController()
     fetch('/cdn-cgi/access/get-identity', {
       credentials: 'include',
@@ -89,15 +140,36 @@ function useAdminIdentity() {
       .then(async (response) => {
         if (!response.ok) return null
         const payload = (await response.json()) as Record<string, unknown>
-        return typeof payload.email === 'string'
-          ? { email: payload.email, name: typeof payload.name === 'string' ? payload.name : undefined }
-          : null
+        if (typeof payload.email !== 'string') return null
+
+        const expirationSeconds = Number(payload.exp)
+        const expiresAt = Number.isFinite(expirationSeconds)
+          ? expirationSeconds * 1000
+          : Date.now() + 24 * 60 * 60 * 1000
+
+        return {
+          identity: {
+            email: payload.email,
+            name: typeof payload.name === 'string' ? payload.name : undefined,
+          },
+          expiresAt,
+        }
       })
       .then((admin) => {
-        if (!controller.signal.aborted) setIdentity(admin)
+        if (controller.signal.aborted) return
+        if (!admin) {
+          clearAdminSessionMarker()
+          setIdentity(null)
+          return
+        }
+        writeAdminSessionMarker(admin.identity, admin.expiresAt)
+        setIdentity(admin.identity)
       })
       .catch(() => {
-        if (!controller.signal.aborted) setIdentity(null)
+        if (!controller.signal.aborted && window.location.hostname === adminHostname) {
+          clearAdminSessionMarker()
+          setIdentity(null)
+        }
       })
     return () => controller.abort()
   }, [])
@@ -137,7 +209,11 @@ function AdminSessionControls({ identity, className = '' }: { identity: AdminIde
       <Link className="admin-session__dashboard" to="/admin">
         Dashboard
       </Link>
-      <a className="admin-session__signout" href="/cdn-cgi/access/logout">
+      <a
+        className="admin-session__signout"
+        href={`https://${adminHostname}/cdn-cgi/access/logout`}
+        onClick={clearAdminSessionMarker}
+      >
         Sign out
       </a>
     </div>
