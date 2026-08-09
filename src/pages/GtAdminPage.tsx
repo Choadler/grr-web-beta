@@ -1035,7 +1035,32 @@ function RaceEditor({
   refresh: (message?: string) => Promise<void>
   close: () => void
 }) {
-  const [results, setResults] = useState(rows)
+  const [results, setResults] = useState(() =>
+    [...rows].sort((left, right) => left.overallPosition - right.overallPosition),
+  )
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  const move = (from: number, to: number) => {
+    if (to < 0 || to >= results.length || from === to) return
+    setResults((current) => {
+      const reordered = [...current]
+      const [moved] = reordered.splice(from, 1)
+      reordered.splice(to, 0, moved)
+      return reordered.map((row, index) => ({ ...row, overallPosition: index + 1 }))
+    })
+  }
+
+  const save = async () => {
+    setBusy(true)
+    try {
+      await mutateGtAdmin({ action: 'saveResults', eventId: event.id, results })
+      await refresh('GT race order, class assignments, penalties, and points were updated.')
+      close()
+    } finally {
+      setBusy(false)
+    }
+  }
   return (
     <div className="admin-race-editor">
       <div className="admin-race-editor__heading">
@@ -1047,24 +1072,59 @@ function RaceEditor({
         </button>
       </div>
       <p>
-        Change a driver’s class, team, or penalty, then rescore. Class positions, poles, fastest
-        laps, bonuses, and totals are recalculated.
+        Drag drivers into overall finishing order, use the move buttons for keyboard control, and
+        adjust class, team, or penalty values before rescoring. Each GT class is still positioned
+        and scored independently.
       </p>
       <div className="admin-table-wrap">
-        <table className="admin-table">
+        <table className="admin-table admin-results-editor">
           <thead>
             <tr>
+              <th>Order</th>
               <th>Overall</th>
               <th>Driver</th>
               <th>Class</th>
+              <th>Start</th>
               <th>Team</th>
               <th>Penalty</th>
+              <th>Current total</th>
             </tr>
           </thead>
           <tbody>
             {results.map((row, index) => (
-              <tr key={row.id ?? row.customerId ?? row.driver}>
-                <td>{row.overallPosition}</td>
+              <tr
+                key={row.id ?? row.customerId ?? row.driver}
+                draggable
+                onDragStart={() => setDragIndex(index)}
+                onDragOver={(dragEvent) => dragEvent.preventDefault()}
+                onDrop={() => {
+                  if (dragIndex !== null) move(dragIndex, index)
+                  setDragIndex(null)
+                }}
+                onDragEnd={() => setDragIndex(null)}
+              >
+                <td>
+                  <span className="drag-handle" title="Drag to reorder" aria-hidden="true">
+                    &#8597;
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={`Move ${row.driver} up`}
+                    disabled={index === 0}
+                    onClick={() => move(index, index - 1)}
+                  >
+                    &uarr;
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Move ${row.driver} down`}
+                    disabled={index === results.length - 1}
+                    onClick={() => move(index, index + 1)}
+                  >
+                    &darr;
+                  </button>
+                </td>
+                <td>{index + 1}</td>
                 <td>{row.driver}</td>
                 <td>
                   <select
@@ -1086,6 +1146,7 @@ function RaceEditor({
                     ))}
                   </select>
                 </td>
+                <td>{row.start}</td>
                 <td>
                   <input
                     value={row.team}
@@ -1107,13 +1168,14 @@ function RaceEditor({
                       setResults(
                         results.map((item, itemIndex) =>
                           itemIndex === index
-                            ? { ...item, penalty: Number(event.target.value) }
+                            ? { ...item, penalty: Math.max(0, Number(event.target.value) || 0) }
                             : item,
                         ),
                       )
                     }
                   />
                 </td>
+                <td>{row.total}</td>
               </tr>
             ))}
           </tbody>
@@ -1122,13 +1184,10 @@ function RaceEditor({
       <button
         className="button"
         type="button"
-        onClick={async () => {
-          await mutateGtAdmin({ action: 'saveResults', eventId: event.id, results })
-          await refresh('GT race rescored.')
-          close()
-        }}
+        disabled={busy}
+        onClick={save}
       >
-        Save & rescore race
+        {busy ? 'Rescoring...' : 'Save & rescore race'}
       </button>
     </div>
   )

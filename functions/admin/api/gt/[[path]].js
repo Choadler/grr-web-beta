@@ -35,7 +35,7 @@ async function state(db) {
         `SELECT id,event_id AS eventId,customer_id AS customerId,driver_name AS driver,class_key AS classKey,class_position AS classPosition,
       overall_position AS overallPosition,start_position AS start,finish_interval AS interval,laps_completed AS laps,laps_led AS lapsLed,incidents,status,
       best_lap_time AS bestLapTime,pole,fastest_lap AS fastestLap,team_name AS team,car_name AS car,base_points AS racePoints,bonus_points AS bonus,
-      penalty_points AS penalty,total_points AS total FROM gt_results ORDER BY event_id,class_key,class_position`,
+      penalty_points AS penalty,total_points AS total FROM gt_results ORDER BY event_id,overall_position,id`,
       )
       .all(),
   ])
@@ -123,11 +123,12 @@ const updateScoredRows = async (db, eventId, rows) => {
     rows.map((driver) =>
       db
         .prepare(
-          `UPDATE gt_results SET class_key=?,class_position=?,pole=?,fastest_lap=?,team_name=?,car_name=?,base_points=?,bonus_points=?,penalty_points=?,total_points=? WHERE id=? AND event_id=?`,
+          `UPDATE gt_results SET class_key=?,class_position=?,overall_position=?,pole=?,fastest_lap=?,team_name=?,car_name=?,base_points=?,bonus_points=?,penalty_points=?,total_points=? WHERE id=? AND event_id=?`,
         )
         .bind(
           driver.classKey,
           driver.classPosition,
+          driver.overallPosition,
           driver.pole ? 1 : 0,
           driver.fastestLap ? 1 : 0,
           driver.team || '',
@@ -441,8 +442,12 @@ export async function onRequestPost({ request, env }) {
         )
         .bind(event.seasonId, event.format || 'standard')
         .first()
+      const orderedResults = Array.isArray(body.results)
+        ? body.results.map((row, index) => ({ ...row, overallPosition: index + 1 }))
+        : []
+      if (!orderedResults.length) return json({ error: 'No race results were supplied.' }, 400)
       const scored = scoreRows(
-        body.results ?? [],
+        orderedResults,
         pointRow ? JSON.parse(pointRow.config_json) : null,
       )
       await updateScoredRows(db, body.eventId, scored)
