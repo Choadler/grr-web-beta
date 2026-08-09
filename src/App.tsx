@@ -85,10 +85,10 @@ const External = ({
     <span className="sr-only"> (opens in a new tab)</span>
   </a>
 )
-function AdminSessionControls({ identity }: { identity: AdminIdentity | null }) {
+function AdminSessionControls({ identity, className = '' }: { identity: AdminIdentity | null; className?: string }) {
   if (!identity) return null
   return (
-    <div className="admin-session" aria-label="Administrator session">
+    <div className={`admin-session ${className}`.trim()} aria-label="Administrator session">
       <span className="admin-session__identity" title={identity.email}>
         <small>Signed in</small>
         <strong>Admin</strong>
@@ -105,6 +105,12 @@ function AdminSessionControls({ identity }: { identity: AdminIdentity | null }) 
 
 function Header({ identity }: { identity: AdminIdentity | null }) {
   const [open, setOpen] = useState(false)
+  const [expandedGroup, setExpandedGroup] = useState<string | null>(null)
+  const closeMenu = () => {
+    setOpen(false)
+    setExpandedGroup(null)
+  }
+
   useEffect(() => {
     const close = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false)
@@ -112,6 +118,11 @@ function Header({ identity }: { identity: AdminIdentity | null }) {
     document.addEventListener('keydown', close)
     return () => document.removeEventListener('keydown', close)
   }, [])
+
+  useEffect(() => {
+    document.body.classList.toggle('mobile-nav-open', open)
+    return () => document.body.classList.remove('mobile-nav-open')
+  }, [open])
   return (
     <header className="site-header">
       <a className="skip-link" href="#main-content">
@@ -126,22 +137,26 @@ function Header({ identity }: { identity: AdminIdentity | null }) {
           className={open ? 'main-nav is-open' : 'main-nav'}
           aria-label="Primary"
         >
-          <ul>
+          <div className="mobile-nav-heading">
+            <strong>Navigation</strong>
+            <button type="button" onClick={closeMenu} aria-label="Close menu">Close</button>
+          </div>
+          <ul className="desktop-nav-list">
             {navigation.map((g) => (
               <li className={g.items ? 'nav-group' : ''} key={g.label}>
                 <NavLink
                   className={g.href === externalLinks.discord ? 'discord-button' : undefined}
                   to={g.href}
-                  onClick={() => setOpen(false)}
+                  onClick={closeMenu}
                 >
                   {g.label}
-                  {g.items && <span aria-hidden="true"> ▾</span>}
+                  {g.items && <span aria-hidden="true"> &#9662;</span>}
                 </NavLink>
                 {g.items && (
                   <ul className="dropdown">
                     {g.items.map((i) => (
                       <li key={i.href}>
-                        <NavLink to={i.href} onClick={() => setOpen(false)}>
+                        <NavLink to={i.href} onClick={closeMenu}>
                           {i.label}
                         </NavLink>
                       </li>
@@ -151,8 +166,48 @@ function Header({ identity }: { identity: AdminIdentity | null }) {
               </li>
             ))}
           </ul>
+          <ul className="mobile-nav-list">
+            {navigation.map((group) => {
+              const expanded = expandedGroup === group.label
+              return (
+                <li className={group.items ? 'mobile-nav-group' : ''} key={`mobile-${group.label}`}>
+                  <div className="mobile-nav-row">
+                    <NavLink
+                      className={group.href === externalLinks.discord ? 'discord-button' : undefined}
+                      to={group.href}
+                      onClick={closeMenu}
+                    >
+                      {group.label}
+                    </NavLink>
+                    {group.items && (
+                      <button
+                        type="button"
+                        aria-expanded={expanded}
+                        aria-label={`${expanded ? 'Collapse' : 'Expand'} ${group.label} links`}
+                        onClick={() => setExpandedGroup(expanded ? null : group.label)}
+                      >
+                        <span aria-hidden="true">{expanded ? `\u2212` : '+'}</span>
+                      </button>
+                    )}
+                  </div>
+                  {group.items && expanded && (
+                    <ul className="mobile-nav-submenu">
+                      {group.items.map((item) => (
+                        <li key={`mobile-${item.href}`}>
+                          <NavLink to={item.href} onClick={closeMenu}>
+                            {item.label}
+                          </NavLink>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+          <AdminSessionControls identity={identity} className="admin-session--mobile" />
         </nav>
-        <AdminSessionControls identity={identity} />
+        <AdminSessionControls identity={identity} className="admin-session--desktop" />
         <button
           className="menu-toggle"
           type="button"
@@ -160,7 +215,7 @@ function Header({ identity }: { identity: AdminIdentity | null }) {
           aria-controls="main-navigation"
           onClick={() => setOpen(!open)}
         >
-          <span aria-hidden="true">{open ? '×' : '☰'}</span>
+          <span aria-hidden="true">{open ? 'Close' : 'Menu'}</span>
           <span className="sr-only">{open ? 'Close menu' : 'Open menu'}</span>
         </button>
       </div>
@@ -183,7 +238,7 @@ function Footer() {
           <Link to="/admin">Admin</Link>
         </nav>
       </div>
-      <p className="copyright">© {new Date().getFullYear()} Grassroots Racing</p>
+      <p className="copyright">&copy; {new Date().getFullYear()} Grassroots Racing</p>
     </footer>
   )
 }
