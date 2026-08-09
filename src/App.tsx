@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, Route, Routes } from 'react-router-dom'
+import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { currentSiteAssets, externalLinks, navigation } from './config/site'
 import { cupSchedule as cupCalendar, indycarSchedule as indyCalendar } from './config/schedules'
 import { LeagueCountdown } from './components/league/LeagueCountdown'
@@ -33,6 +33,47 @@ import {
 type AdminIdentity = {
   email: string
   name?: string
+}
+
+const publicHostname = 'www.grassrootsracing.org'
+const adminHostname = 'grassrootsracing.org'
+
+const isAdminPath = (pathname: string) =>
+  pathname === '/admin' || pathname.startsWith('/admin/')
+
+function canonicalProductionUrl(location: ReturnType<typeof useLocation>) {
+  const { hostname } = window.location
+  if (hostname !== publicHostname && hostname !== adminHostname) return null
+
+  const targetHostname = isAdminPath(location.pathname) ? adminHostname : publicHostname
+  if (hostname === targetHostname) return null
+
+  return `https://${targetHostname}${location.pathname}${location.search}${location.hash}`
+}
+
+function NavigationBoundary({ children }: { children: React.ReactNode }) {
+  const location = useLocation()
+  const targetUrl = canonicalProductionUrl(location)
+
+  useEffect(() => {
+    if (targetUrl) window.location.replace(targetUrl)
+  }, [targetUrl])
+
+  useEffect(() => {
+    if (!targetUrl) window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [location.pathname, location.search, targetUrl])
+
+  // Do not mount a public page on the Access-protected admin origin (or vice
+  // versa). Mounting it briefly can start API calls against the wrong origin.
+  if (targetUrl) {
+    return (
+      <main id="main-content" className="container">
+        <p role="status">Opening page...</p>
+      </main>
+    )
+  }
+
+  return children
 }
 
 function useAdminIdentity() {
@@ -383,7 +424,7 @@ function Missing() {
     </section>
   )
 }
-export function App() {
+function SiteApp() {
   const adminIdentity = useAdminIdentity()
   return (
     <>
@@ -419,5 +460,13 @@ export function App() {
       </main>
       <Footer />
     </>
+  )
+}
+
+export function App() {
+  return (
+    <NavigationBoundary>
+      <SiteApp />
+    </NavigationBoundary>
   )
 }
