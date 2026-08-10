@@ -227,6 +227,10 @@ function Header({ identity }: { identity: AdminIdentity | null }) {
     setOpen(false)
     setExpandedGroup(null)
   }
+  const closeDesktopMenu = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    closeMenu()
+    if (event.detail > 0) event.currentTarget.blur()
+  }
 
   useEffect(() => {
     const close = (e: KeyboardEvent) => {
@@ -264,7 +268,7 @@ function Header({ identity }: { identity: AdminIdentity | null }) {
                 <NavLink
                   className={g.href === externalLinks.discord ? 'discord-button' : undefined}
                   to={g.href}
-                  onClick={closeMenu}
+                  onClick={closeDesktopMenu}
                 >
                   {g.label}
                   {g.items && <span aria-hidden="true"> &#9662;</span>}
@@ -273,7 +277,7 @@ function Header({ identity }: { identity: AdminIdentity | null }) {
                   <ul className="dropdown">
                     {g.items.map((i) => (
                       <li key={i.href}>
-                        <NavLink to={i.href} onClick={closeMenu}>
+                        <NavLink to={i.href} onClick={closeDesktopMenu}>
                           {i.label}
                         </NavLink>
                       </li>
