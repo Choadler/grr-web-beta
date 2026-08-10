@@ -219,28 +219,18 @@ function SeasonEditor({
     await refresh('Season saved.')
     setBusy(false)
   }
+  const activate = async (item: IndySeason) => {
+    if (!confirm(`Set ${item.name} as the active public IndyCar season?`)) return
+    setBusy(true)
+    await mutateIndyAdmin({ action: 'saveSeason', season: { ...item, status: 'active' } })
+    setSeason({ ...item, status: 'active' })
+    await refresh(`${item.name} is now the active IndyCar season.`)
+    setBusy(false)
+  }
   return (
     <AdminSection eyebrow="Season control" title="IndyCar season" {...section}>
       <div className="admin-season-picker">
-        {state.seasons.length > 0 ? (
-          <label>
-            Existing season
-            <select
-              value={isNew ? '' : season.id}
-              onChange={(event) => {
-                const selected = state.seasons.find((item) => item.id === event.target.value)
-                if (selected) setSeason(selected)
-              }}
-            >
-              {isNew ? <option value="">New season — unsaved</option> : null}
-              {state.seasons.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name} ({item.status})
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : <p>No IndyCar seasons have been created yet.</p>}
+        <div><strong>Season Manager</strong><p>Select a season to edit or choose which season is public.</p></div>
         <button
           className="button button--secondary"
           type="button"
@@ -253,6 +243,14 @@ function SeasonEditor({
           {isNew ? 'Creating New Season' : '+ Create New Season'}
         </button>
       </div>
+      {state.seasons.length ? <div className="admin-table-wrap"><table className="admin-table admin-season-list">
+        <thead><tr><th>Season</th><th>Status</th><th>Race Time</th><th>Actions</th></tr></thead>
+        <tbody>{state.seasons.map((item) => <tr className={!isNew && item.id === season.id ? 'is-selected' : undefined} key={item.id}>
+          <td><strong>{item.name}</strong></td><td><span className={`admin-season-status admin-season-status--${item.status}`}>{item.status}</span></td><td>{item.raceTime} · {item.timezone}</td>
+          <td><div className="admin-season-list__actions"><button type="button" onClick={() => { setSeason(item); setCopyFrom('') }}>Edit</button><button className="button button--compact" type="button" disabled={busy || item.status === 'active'} onClick={() => void activate(item)}>{item.status === 'active' ? 'Active Season' : 'Set Active'}</button></div></td>
+        </tr>)}</tbody>
+      </table></div> : <p className="admin-notice">No IndyCar seasons have been created yet. Create the first season to get started.</p>}
+      <h3 className="admin-season-editor-title">{isNew ? 'Create New Season' : `Edit ${season.name}`}</h3>
       <div className="admin-form-grid">
         <label>
           Season name
