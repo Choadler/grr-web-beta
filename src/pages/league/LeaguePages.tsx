@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { DataTable, EmptyTableRow } from '../../components/league/DataTable'
 import { CupSportingCode } from '../../components/league/CupSportingCode'
@@ -75,12 +75,47 @@ const leagueConfig = {
   },
 } as const
 const cupOverviewStandings = [{ loader: cupStandings }]
-const gtOverviewStandings = [
-  { label: 'GT3 AM', loader: gtStandings('am') },
-  { label: 'GT3 Pro', loader: gtStandings('pro') },
-  { label: 'GTP', loader: gtStandings('gtp') },
-]
 const indyOverviewStandings = [{ loader: indyStandings }]
+
+function GtSeasonSelector() {
+  const [seasons, setSeasons] = useState<{ id: string; name: string; status: string }[]>([])
+  const selected = new URLSearchParams(window.location.search).get('season') ?? ''
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch('/api/gt?list=seasons', { signal: controller.signal, headers: { Accept: 'application/json' } })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error('Season list unavailable')))
+      .then((payload: { seasons?: { id: string; name: string; status: string }[] }) => setSeasons(payload.seasons ?? []))
+      .catch(() => undefined)
+    return () => controller.abort()
+  }, [])
+  if (!seasons.length) return null
+  const active = seasons.find((season) => season.status === 'active')?.id ?? ''
+  return <label className="gt-season-selector">Season<select value={selected || active} onChange={(event) => {
+    const url = new URL(window.location.href)
+    if (event.target.value === active) url.searchParams.delete('season')
+    else url.searchParams.set('season', event.target.value)
+    window.location.assign(url.toString())
+  }}>{seasons.map((season) => <option key={season.id} value={season.id}>{season.name}{season.status === 'active' ? ' — Current' : ''}</option>)}</select></label>
+}
+
+function useGtSeasonClasses() {
+  const fallback = [
+    { key: 'gt3-am' as const, label: 'GT3 AM' },
+    { key: 'gt3-pro' as const, label: 'GT3 Pro' },
+    { key: 'gtp' as const, label: 'GTP' },
+  ]
+  const [classes, setClasses] = useState(fallback)
+  useEffect(() => {
+    const controller = new AbortController()
+    const season = new URLSearchParams(window.location.search).get('season')
+    fetch(`/api/gt?list=classes${season ? `&season=${encodeURIComponent(season)}` : ''}`, { signal: controller.signal, headers: { Accept: 'application/json' } })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error('Class list unavailable')))
+      .then((payload: { classes?: typeof fallback }) => { if (payload.classes?.length) setClasses(payload.classes) })
+      .catch(() => undefined)
+    return () => controller.abort()
+  }, [])
+  return classes
+}
 
 function PageShell({
   league,
@@ -118,6 +153,7 @@ function PageShell({
         <div className="container">
           <p className="eyebrow">{eyebrow ?? config.label}</p>
           <h1>{title}</h1>
+          {league === 'gt' ? <GtSeasonSelector /> : null}
         </div>
       </header>
       <LeaguePhotoRails league={league} />
@@ -176,11 +212,13 @@ export function CupLandingPage() {
   )
 }
 export function GtLandingPage() {
+  const classes = useGtSeasonClasses()
+  const standings = classes.map((item) => ({ label: item.label, loader: gtStandings(item.key) }))
   return (
     <PageShell league="gt" title="GRR GT League">
       <LinkGrid links={gtNav.slice(1)} />
       <LeagueOverview
-        standings={gtOverviewStandings}
+        standings={standings}
         results={gtRaceEvents}
         standingsHref="/pages/gt-standings"
         resultsHref="/pages/gt-race-results"
@@ -404,8 +442,10 @@ export function CupBroadcastPage() {
   )
 }
 
-export const GtSchedulePage = () => (
-  <DataPage
+export const GtSchedulePage = () => {
+  const classes = useGtSeasonClasses()
+  const winnerKey = { 'gt3-am': 'am', 'gt3-pro': 'pro', gtp: 'gtp' } as const
+  return <DataPage
     league="gt"
     title="GT League Schedule"
     loader={gtSchedule}
@@ -416,18 +456,17 @@ export const GtSchedulePage = () => (
       { key: 'round', label: 'Round' },
       { key: 'date', label: 'Date' },
       { key: 'track', label: 'Track' },
-      { key: 'am', label: 'GT3 AM Winner' },
-      { key: 'pro', label: 'GT3 Pro Winner' },
-      { key: 'gtp', label: 'GTP Winner' },
+      ...classes.map((item) => ({ key: winnerKey[item.key], label: `${item.label} Winner` })),
     ]}
   />
-)
-export const GtStandingsPage = () => (
-  <DataPage
+}
+export const GtStandingsPage = () => {
+  const classes = useGtSeasonClasses()
+  return <DataPage
     league="gt"
     title="GT League Standings"
-    filters={['GT3 AM', 'GT3 Pro', 'GTP']}
-    loaders={[gtStandings('am'), gtStandings('pro'), gtStandings('gtp')]}
+    filters={classes.map((item) => item.label)}
+    loaders={classes.map((item) => gtStandings(item.key))}
     search
     tableClassName="data-table--gt-standings"
     columns={[
@@ -441,13 +480,14 @@ export const GtStandingsPage = () => (
       { key: 'podiums', label: 'Podiums' },
     ]}
   />
-)
-export const GtTeamStandingsPage = () => (
-  <DataPage
+}
+export const GtTeamStandingsPage = () => {
+  const classes = useGtSeasonClasses()
+  return <DataPage
     league="gt"
     title="GT League Team Standings"
-    filters={['GT3 AM', 'GT3 Pro', 'GTP']}
-    loaders={[gtTeamStandings('am'), gtTeamStandings('pro'), gtTeamStandings('gtp')]}
+    filters={classes.map((item) => item.label)}
+    loaders={classes.map((item) => gtTeamStandings(item.key))}
     search
     tableClassName="data-table--gt-standings"
     columns={[
@@ -461,7 +501,7 @@ export const GtTeamStandingsPage = () => (
       { key: 'podiums', label: 'Podiums' },
     ]}
   />
-)
+}
 const gtResultColumns: LiveColumn[] = [
   { key: 'position', label: 'Class Pos' },
   { key: 'driver', label: 'Driver' },

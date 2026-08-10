@@ -41,7 +41,7 @@ type GtPublicPayload = {
   season?: { name?: string }
 }
 
-const gtClassKey = { am: 'gt3-am', pro: 'gt3-pro', gtp: 'gtp' } as const
+const gtClassKey = { am: 'gt3-am', pro: 'gt3-pro', gtp: 'gtp', 'gt3-am': 'gt3-am', 'gt3-pro': 'gt3-pro' } as const
 
 function addBehindLeader(result: DataResult): DataResult {
   const leaderPoints = result.rows.reduce(
@@ -61,7 +61,9 @@ function addBehindLeader(result: DataResult): DataResult {
 async function gtInHouse(signal: AbortSignal): Promise<GtPublicPayload> {
   const local = loadLocalGtPublic()
   if (local) return local
-  return (await fetchJson('/api/gt?v=overall-results', signal)) as GtPublicPayload
+  const season = typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get('season')
+  const seasonQuery = season ? `&season=${encodeURIComponent(season)}` : ''
+  return (await fetchJson(`/api/gt?v=overall-results${seasonQuery}`, signal)) as GtPublicPayload
 }
 
 const requireGtArray = (value: unknown, description: string): unknown[] => {
@@ -111,7 +113,7 @@ export const gtRaceEvents: RaceEventsLoader = async (signal) => {
 }
 
 export const gtStandings =
-  (classKey: 'am' | 'pro' | 'gtp'): DataLoader =>
+  (classKey: keyof typeof gtClassKey): DataLoader =>
   async (signal) => {
     const local = await gtInHouse(signal)
     const rows = local?.standings?.[gtClassKey[classKey]]
@@ -121,7 +123,7 @@ export const gtStandings =
     })
   }
 export const gtTeamStandings =
-  (classKey: 'am' | 'pro' | 'gtp'): DataLoader =>
+  (classKey: keyof typeof gtClassKey): DataLoader =>
   async (signal) => {
     const local = await gtInHouse(signal)
     const rows = local?.teamStandings?.[gtClassKey[classKey]]

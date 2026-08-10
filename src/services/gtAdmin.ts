@@ -10,6 +10,7 @@ import type {
   GtPublicData,
   GtScheduledEvent,
   GtSeason,
+  GtSeasonClass,
   GtTeam,
 } from '../types/gtAdmin'
 import { gtRoster, gtTeamRoster, normalizeGtDriverName } from '../config/gtRoster'
@@ -31,6 +32,7 @@ export const defaultGtPoints: GtPointsConfig = {
 }
 export const emptyGtState: GtAdminState = {
   seasons: [],
+  classes: {},
   points: {},
   schedule: [],
   assignments: [],
@@ -43,7 +45,7 @@ const record = (value: unknown) =>
 const localState = (): GtAdminState => {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey) ?? '') as Partial<GtAdminState>
-    return { ...emptyGtState, ...saved, points: saved.points ?? {}, results: saved.results ?? {} }
+    return { ...emptyGtState, ...saved, classes: saved.classes ?? {}, points: saved.points ?? {}, results: saved.results ?? {} }
   } catch {
     return structuredClone(emptyGtState)
   }
@@ -99,7 +101,7 @@ function withRoster(state: GtAdminState): GtAdminState {
     )
   const chosen = new Map<string, GtDriverAssignment>()
   assignments.forEach((item) => {
-    const key = `${item.seasonId}:${normalizeGtDriverName(item.driver)}`
+    const key = `${item.seasonId}:${normalizeGtDriverName(item.driver)}:${item.classKey}`
     const current = chosen.get(key)
     if (!current || (item.customerId > 0 && current.customerId < 0)) chosen.set(key, item)
   })
@@ -224,6 +226,10 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
         endurance: structuredClone(defaultGtPoints),
       }
       const sourceId = String(data.copyFrom ?? '')
+      if (isNew)
+        state.classes[item.id] = sourceId && state.classes[sourceId]?.length
+          ? structuredClone(state.classes[sourceId])
+          : gtClasses.map((entry, classIndex) => ({ ...entry, sortOrder: classIndex + 1 }))
       const copy = record(data.copy)
       if (isNew && sourceId) {
         if (copy.settings && state.points[sourceId]) state.points[item.id] = structuredClone(state.points[sourceId])
@@ -292,7 +298,7 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
       const item = data.assignment as GtDriverAssignment
       const index = state.assignments.findIndex(
         (assignment) =>
-          assignment.seasonId === item.seasonId && assignment.customerId === item.customerId,
+          assignment.seasonId === item.seasonId && assignment.customerId === item.customerId && assignment.classKey === item.classKey,
       )
       if (index >= 0) state.assignments[index] = item
       else state.assignments.push(item)
@@ -301,14 +307,14 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
       (data.assignments as GtDriverAssignment[]).forEach((item) => {
         const index = state.assignments.findIndex(
           (assignment) =>
-            assignment.seasonId === item.seasonId && assignment.customerId === item.customerId,
+            assignment.seasonId === item.seasonId && assignment.customerId === item.customerId && assignment.classKey === item.classKey,
         )
         if (index >= 0) state.assignments[index] = item
         else state.assignments.push(item)
       })
     if (action === 'deleteAssignment')
       state.assignments = state.assignments.filter(
-        (item) => !(item.seasonId === data.seasonId && item.customerId === data.customerId),
+        (item) => !(item.seasonId === data.seasonId && item.customerId === data.customerId && item.classKey === data.classKey),
       )
     if (action === 'deleteResults') {
       const eventId = String(data.eventId)
@@ -400,11 +406,18 @@ export const loadGtImportSource = async (item: GtAdminState['imports'][number], 
   if (!response.ok) throw new Error(`Could not load the original GT import (${response.status}).`)
   return (await response.json()) as GtImportSource
 }
+export const gtClassesForSeason = (state: Pick<GtAdminState, 'classes'>, seasonId: string) =>
+  state.classes[seasonId]?.length
+    ? state.classes[seasonId]
+    : gtClasses.map((item, index) => ({ ...item, sortOrder: index + 1 }) as GtSeasonClass)
 
 export function loadLocalGtPublic(): GtPublicData | null {
   if (!import.meta.env.DEV) return null
   const state = localState()
-  const season = state.seasons.find((item) => item.status === 'active')
+  const requestedSeason = new URLSearchParams(window.location.search).get('season')
+  const season = requestedSeason
+    ? state.seasons.find((item) => item.id === requestedSeason && item.status !== 'draft')
+    : state.seasons.find((item) => item.status === 'active')
   if (!season) return null
   const seasonEvents = state.schedule
     .filter((item) => item.seasonId === season.id)
@@ -535,5 +548,5 @@ export function loadLocalGtPublic(): GtPublicData | null {
         }),
       ],
     }))
-  return { season, schedule, standings, teamStandings, events, source: 'in-house' }
+  return { season, classes: gtClassesForSeason(state, season.id), schedule, standings, teamStandings, events, source: 'in-house' }
 }

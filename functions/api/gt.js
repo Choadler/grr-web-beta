@@ -3,8 +3,8 @@ const json = (value, status = 200) =>
     status,
     headers: { 'Cache-Control': 'public, max-age=30, stale-while-revalidate=300' },
   })
-const classes = ['gt3-am', 'gt3-pro', 'gtp']
-const labels = { 'gt3-am': 'GT3 AM', 'gt3-pro': 'GT3 Pro', gtp: 'GTP' }
+const defaultClasses = ['gt3-am', 'gt3-pro', 'gtp']
+const defaultLabels = { 'gt3-am': 'GT3 AM', 'gt3-pro': 'GT3 Pro', gtp: 'GTP' }
 const intervalNumber = (value) => {
   const parsed = Number(String(value ?? '').replace(/^\+/, ''))
   return Number.isFinite(parsed) ? parsed : null
@@ -31,15 +31,30 @@ const formatOverallInterval = (row, leader) => {
 export async function onRequestGet({ env, request }) {
   if (!env.INDYCAR_DB) return json({ error: 'In-house GT data is not configured.' }, 503)
   const db = env.INDYCAR_DB
-  const requestedSeason = new URL(request.url).searchParams.get('season')
+  const url = new URL(request.url)
+  if (url.searchParams.get('list') === 'seasons') {
+    const seasons = await db.prepare("SELECT id,name,status FROM gt_seasons WHERE status<>'draft' ORDER BY created_at DESC").all()
+    return json({ seasons: seasons.results })
+  }
+  if (url.searchParams.get('list') === 'classes') {
+    const requested = url.searchParams.get('season')
+    const selected = requested
+      ? await db.prepare("SELECT id FROM gt_seasons WHERE id=? AND status<>'draft'").bind(requested).first()
+      : await db.prepare("SELECT id FROM gt_seasons WHERE status='active'").first()
+    if (!selected) return json({ error: 'That GT season is not publicly available.' }, 404)
+    const seasonClasses = await db.prepare('SELECT class_key AS key,label,sort_order AS sortOrder FROM gt_season_classes WHERE season_id=? ORDER BY sort_order').bind(selected.id).all()
+    return json({ classes: seasonClasses.results })
+  }
+  const requestedSeason = url.searchParams.get('season')
   const season = requestedSeason
     ? await db.prepare("SELECT id,name,status,race_time AS raceTime,timezone FROM gt_seasons WHERE id=? AND status<>'draft' LIMIT 1").bind(requestedSeason).first()
     : await db.prepare("SELECT id,name,status,race_time AS raceTime,timezone FROM gt_seasons WHERE status='active' LIMIT 1").first()
   if (!season) return json({ error: requestedSeason ? 'That GT season is not publicly available.' : 'No active in-house GT season.' }, 404)
-  const [eventData, resultData] = await Promise.all([
+  const [classData, eventData, resultData] = await Promise.all([
+    db.prepare('SELECT class_key AS key,label,sort_order AS sortOrder FROM gt_season_classes WHERE season_id=? ORDER BY sort_order').bind(season.id).all(),
     db
       .prepare(
-        'SELECT id,round_number AS round,race_date AS date,track,laps,race_format AS format,status,subsession_id AS subsessionId FROM gt_events WHERE season_id=? ORDER BY round_number',
+        'SELECT id,round_number AS round,race_date AS date,track,track_config AS trackConfig,laps,race_format AS format,status,subsession_id AS subsessionId FROM gt_events WHERE season_id=? ORDER BY round_number',
       )
       .bind(season.id)
       .all(),
@@ -50,6 +65,11 @@ export async function onRequestGet({ env, request }) {
       .bind(season.id)
       .all(),
   ])
+  const seasonClasses = classData.results.length
+    ? classData.results
+    : defaultClasses.map((key, index) => ({ key, label: defaultLabels[key], sortOrder: index + 1 }))
+  const classes = seasonClasses.map((item) => item.key)
+  const labels = Object.fromEntries(seasonClasses.map((item) => [item.key, item.label]))
   const rows = resultData.results
   const standings = {}
   const teamStandings = {}
@@ -184,5 +204,5 @@ export async function onRequestGet({ env, request }) {
         }),
       ],
     }))
-  return json({ season, schedule, standings, teamStandings, events, source: 'in-house' })
+  return json({ season, classes: seasonClasses, schedule, standings, teamStandings, events, source: 'in-house' })
 }

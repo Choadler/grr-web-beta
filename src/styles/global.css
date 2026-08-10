@@ -2358,6 +2358,23 @@ button:focus-visible {
   background: #121612;
   color: #fff;
 }
+.gt-season-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 0.8rem;
+  color: var(--lime);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gt-season-selector select {
+  min-width: 10rem;
+  border-color: rgba(151, 255, 65, 0.45);
+  background: rgba(5, 10, 5, 0.9);
+}
+
 .filter-group {
   display: flex;
   gap: 0.4rem;

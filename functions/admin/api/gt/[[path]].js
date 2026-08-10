@@ -3,16 +3,17 @@ const json = (value, status = 200) =>
 const classes = ['gt3-am', 'gt3-pro', 'gtp']
 
 async function state(db) {
-  const [seasons, points, schedule, assignments, teams, imports, results] = await Promise.all([
+  const [seasons, seasonClasses, points, schedule, assignments, teams, imports, results] = await Promise.all([
     db
       .prepare(
         'SELECT id,name,status,race_time AS raceTime,timezone,legacy_roster_fallback AS legacyRosterFallback FROM gt_seasons ORDER BY created_at DESC',
       )
       .all(),
+    db.prepare('SELECT season_id,class_key,label,sort_order FROM gt_season_classes ORDER BY season_id,sort_order').all(),
     db.prepare('SELECT season_id,format_key,config_json FROM gt_format_points_configs').all(),
     db
       .prepare(
-        'SELECT id,season_id AS seasonId,round_number AS round,race_date AS date,track,laps,race_format AS format,status,subsession_id AS subsessionId FROM gt_events ORDER BY race_date,round_number',
+        'SELECT id,season_id AS seasonId,round_number AS round,race_date AS date,track,track_config AS trackConfig,laps,race_format AS format,status,subsession_id AS subsessionId FROM gt_events ORDER BY race_date,round_number',
       )
       .all(),
     db
@@ -42,10 +43,14 @@ async function state(db) {
   const configs = {}
   for (const row of points.results)
     (configs[row.season_id] ??= {})[row.format_key] = JSON.parse(row.config_json)
+  const classesBySeason = {}
+  for (const row of seasonClasses.results)
+    (classesBySeason[row.season_id] ??= []).push({ key: row.class_key, label: row.label, sortOrder: row.sort_order })
   const byEvent = {}
   for (const row of results.results) (byEvent[row.eventId] ??= []).push(row)
   return {
     seasons: seasons.results,
+    classes: classesBySeason,
     points: configs,
     schedule: schedule.results,
     assignments: assignments.results,
@@ -200,6 +205,12 @@ export async function onRequestPost({ request, env }) {
         )
         .bind(item.id, item.name, item.status, item.raceTime, item.timezone)
         .run()
+      if (!existing) {
+        const sourceClasses = body.copyFrom
+          ? await db.prepare('SELECT class_key,label,sort_order FROM gt_season_classes WHERE season_id=? ORDER BY sort_order').bind(body.copyFrom).all()
+          : { results: classes.map((classKey, index) => ({ class_key: classKey, label: classKey === 'gtp' ? 'GTP' : classKey === 'gt3-am' ? 'GT3 AM' : 'GT3 Pro', sort_order: index + 1 })) }
+        await db.batch(sourceClasses.results.map((entry) => db.prepare('INSERT INTO gt_season_classes(season_id,class_key,label,sort_order) VALUES(?,?,?,?)').bind(item.id, entry.class_key, entry.label, entry.sort_order)))
+      }
       if (!existing && body.copyFrom) {
         const statements = []
         if (body.copy?.settings) {
@@ -215,8 +226,8 @@ export async function onRequestPost({ request, env }) {
           for (const team of teams.results) statements.push(db.prepare('INSERT INTO gt_teams(id,season_id,team_name,class_key,car_name,members_json) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(), item.id, team.team_name, team.class_key, team.car_name, team.members_json))
         }
         if (body.copy?.schedule) {
-          const events = await db.prepare('SELECT round_number,race_date,track,laps,race_format FROM gt_events WHERE season_id=? ORDER BY round_number').bind(body.copyFrom).all()
-          for (const event of events.results) statements.push(db.prepare("INSERT INTO gt_events(id,season_id,round_number,race_date,track,laps,race_format,status) VALUES(?,?,?,?,?,?,?,'scheduled')").bind(crypto.randomUUID(), item.id, event.round_number, event.race_date, event.track, event.laps, event.race_format))
+          const events = await db.prepare('SELECT round_number,race_date,track,track_config,laps,race_format FROM gt_events WHERE season_id=? ORDER BY round_number').bind(body.copyFrom).all()
+          for (const event of events.results) statements.push(db.prepare("INSERT INTO gt_events(id,season_id,round_number,race_date,track,track_config,laps,race_format,status) VALUES(?,?,?,?,?,?,?,?,'scheduled')").bind(crypto.randomUUID(), item.id, event.round_number, event.race_date, event.track, event.track_config, event.laps, event.race_format))
         }
         if (statements.length) await db.batch(statements)
       }
@@ -302,7 +313,7 @@ export async function onRequestPost({ request, env }) {
       const item = body.event
       await db
         .prepare(
-          `INSERT INTO gt_events(id,season_id,round_number,race_date,track,laps,race_format,status,subsession_id) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET round_number=excluded.round_number,race_date=excluded.race_date,track=excluded.track,laps=excluded.laps,race_format=excluded.race_format,status=excluded.status,subsession_id=excluded.subsession_id,updated_at=CURRENT_TIMESTAMP`,
+          `INSERT INTO gt_events(id,season_id,round_number,race_date,track,track_config,laps,race_format,status,subsession_id) VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET round_number=excluded.round_number,race_date=excluded.race_date,track=excluded.track,track_config=excluded.track_config,laps=excluded.laps,race_format=excluded.race_format,status=excluded.status,subsession_id=excluded.subsession_id,updated_at=CURRENT_TIMESTAMP`,
         )
         .bind(
           item.id,
@@ -310,6 +321,7 @@ export async function onRequestPost({ request, env }) {
           item.round,
           item.date,
           item.track,
+          item.trackConfig || '',
           item.laps,
           item.format || 'standard',
           item.status,
@@ -322,7 +334,7 @@ export async function onRequestPost({ request, env }) {
       const item = body.assignment
       await db
         .prepare(
-          `INSERT INTO gt_driver_assignments(season_id,customer_id,driver_name,class_key,team_name,car_name) VALUES(?,?,?,?,?,?) ON CONFLICT(season_id,customer_id) DO UPDATE SET driver_name=excluded.driver_name,class_key=excluded.class_key,team_name=excluded.team_name,car_name=excluded.car_name,updated_at=CURRENT_TIMESTAMP`,
+          `INSERT INTO gt_driver_assignments(season_id,customer_id,driver_name,class_key,team_name,car_name) VALUES(?,?,?,?,?,?) ON CONFLICT(season_id,customer_id,class_key) DO UPDATE SET driver_name=excluded.driver_name,team_name=excluded.team_name,car_name=excluded.car_name,updated_at=CURRENT_TIMESTAMP`,
         )
         .bind(
           item.seasonId,
@@ -342,7 +354,7 @@ export async function onRequestPost({ request, env }) {
         items.map((item) =>
           db
             .prepare(
-              `INSERT INTO gt_driver_assignments(season_id,customer_id,driver_name,class_key,team_name,car_name) VALUES(?,?,?,?,?,?) ON CONFLICT(season_id,customer_id) DO UPDATE SET driver_name=excluded.driver_name,class_key=excluded.class_key,team_name=excluded.team_name,car_name=excluded.car_name,updated_at=CURRENT_TIMESTAMP`,
+              `INSERT INTO gt_driver_assignments(season_id,customer_id,driver_name,class_key,team_name,car_name) VALUES(?,?,?,?,?,?) ON CONFLICT(season_id,customer_id,class_key) DO UPDATE SET driver_name=excluded.driver_name,team_name=excluded.team_name,car_name=excluded.car_name,updated_at=CURRENT_TIMESTAMP`,
             )
             .bind(
               item.seasonId,
@@ -356,8 +368,8 @@ export async function onRequestPost({ request, env }) {
       )
     } else if (body.action === 'deleteAssignment')
       await db
-        .prepare('DELETE FROM gt_driver_assignments WHERE season_id=? AND customer_id=?')
-        .bind(body.seasonId, body.customerId)
+        .prepare('DELETE FROM gt_driver_assignments WHERE season_id=? AND customer_id=? AND class_key=?')
+        .bind(body.seasonId, body.customerId, body.classKey)
         .run()
     else if (body.action === 'deleteResults')
       await db.batch([
@@ -416,7 +428,7 @@ export async function onRequestPost({ request, env }) {
           statements.push(
             db
               .prepare(
-                `INSERT INTO gt_driver_assignments(season_id,customer_id,driver_name,class_key,team_name,car_name) VALUES(?,?,?,?,?,?) ON CONFLICT(season_id,customer_id) DO UPDATE SET driver_name=excluded.driver_name,class_key=excluded.class_key,team_name=excluded.team_name,car_name=excluded.car_name,updated_at=CURRENT_TIMESTAMP`,
+                `INSERT INTO gt_driver_assignments(season_id,customer_id,driver_name,class_key,team_name,car_name) VALUES(?,?,?,?,?,?) ON CONFLICT(season_id,customer_id,class_key) DO UPDATE SET driver_name=excluded.driver_name,team_name=excluded.team_name,car_name=excluded.car_name,updated_at=CURRENT_TIMESTAMP`,
               )
               .bind(
                 body.seasonId,

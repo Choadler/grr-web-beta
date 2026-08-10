@@ -3,7 +3,7 @@ import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { SportingCodeAdmin } from '../components/admin/SportingCodeAdmin'
 import { LeagueAdminNav, type LeagueAdminTool } from '../components/admin/LeagueAdminNav'
 import { ImportSourceViewer, type ImportSource } from '../components/admin/ImportSourceViewer'
-import { defaultGtPoints, gtClasses, loadGtAdmin, loadGtImportSource, mutateGtAdmin } from '../services/gtAdmin'
+import { defaultGtPoints, gtClassesForSeason, loadGtAdmin, loadGtImportSource, mutateGtAdmin } from '../services/gtAdmin'
 import { parseGtResultJson } from '../services/gtImport'
 import { gtDriverNamesMatch } from '../config/gtRoster'
 import type {
@@ -300,8 +300,10 @@ function AssignmentsEditor({
     car: '',
   })
   const rows = state.assignments.filter((entry) => entry.seasonId === seasonId)
+  const seasonClasses = gtClassesForSeason(state, seasonId)
   const [newItem, setNewItem] = useState(blank())
   const [editing, setEditing] = useState<GtDriverAssignment | null>(null)
+  const [editingClass, setEditingClass] = useState<GtClassKey | null>(null)
   const [search, setSearch] = useState('')
   const [classFilter, setClassFilter] = useState('all')
   const [carFilter, setCarFilter] = useState('all')
@@ -366,7 +368,7 @@ function AssignmentsEditor({
           value={value.classKey}
           onChange={(event) => setValue({ ...value, classKey: event.target.value as GtClassKey })}
         >
-          {gtClasses.map((entry) => (
+          {seasonClasses.map((entry) => (
             <option key={entry.key} value={entry.key}>
               {entry.label}
             </option>
@@ -430,7 +432,7 @@ function AssignmentsEditor({
           Class
           <select value={classFilter} onChange={(event) => setClassFilter(event.target.value)}>
             <option value="all">All classes</option>
-            {gtClasses.map((entry) => (
+            {seasonClasses.map((entry) => (
               <option key={entry.key} value={entry.key}>
                 {entry.label}
               </option>
@@ -482,19 +484,25 @@ function AssignmentsEditor({
           </thead>
           <tbody>
             {visibleRows.map((row) => (
-              <Fragment key={`${row.customerId}:${row.driver}`}>
+              <Fragment key={`${row.customerId}:${row.classKey}:${row.driver}`}>
                 <tr>
                   <td>{row.driver}</td>
                   <td>{row.customerId > 0 ? row.customerId : 'Pending'}</td>
-                  <td>{gtClasses.find((item) => item.key === row.classKey)?.label}</td>
+                  <td>{seasonClasses.find((item) => item.key === row.classKey)?.label}</td>
                   <td>{row.team || '—'}</td>
                   <td>{row.car || '—'}</td>
                   <td>
                     <button
                       type="button"
-                      onClick={() =>
-                        setEditing(editing?.customerId === row.customerId ? null : { ...row })
-                      }
+                      onClick={() => {
+                        if (editing?.customerId === row.customerId && editingClass === row.classKey) {
+                          setEditing(null)
+                          setEditingClass(null)
+                        } else {
+                          setEditing({ ...row })
+                          setEditingClass(row.classKey)
+                        }
+                      }}
                     >
                       Edit
                     </button>{' '}
@@ -507,6 +515,7 @@ function AssignmentsEditor({
                           action: 'deleteAssignment',
                           seasonId,
                           customerId: row.customerId,
+                          classKey: row.classKey,
                         })
                         await refresh('Assignment removed.')
                       }}
@@ -515,7 +524,7 @@ function AssignmentsEditor({
                     </button>
                   </td>
                 </tr>
-                {editing?.customerId === row.customerId ? (
+                {editing?.customerId === row.customerId && editingClass === row.classKey ? (
                   <tr className="admin-table__editor">
                     <td colSpan={6}>
                       {editFields(editing, setEditing)}
@@ -525,14 +534,17 @@ function AssignmentsEditor({
                           type="button"
                           disabled={!editing.driver}
                           onClick={async () => {
+                            if (editingClass && editingClass !== editing.classKey)
+                              await mutateGtAdmin({ action: 'deleteAssignment', seasonId, customerId: editing.customerId, classKey: editingClass })
                             await mutateGtAdmin({ action: 'saveAssignment', assignment: editing })
                             setEditing(null)
+                            setEditingClass(null)
                             await refresh('Driver assignment saved.')
                           }}
                         >
                           Save changes
                         </button>
-                        <button type="button" onClick={() => setEditing(null)}>
+                        <button type="button" onClick={() => { setEditing(null); setEditingClass(null) }}>
                           Cancel
                         </button>
                       </div>
@@ -558,6 +570,7 @@ function TeamsEditor({
   seasonId: string
   refresh: (message?: string) => Promise<void>
 } & Control) {
+  const seasonClasses = gtClassesForSeason(state, seasonId)
   const drivers = state.assignments
     .filter((item) => item.seasonId === seasonId)
     .sort((a, b) => a.driver.localeCompare(b.driver))
@@ -634,7 +647,7 @@ function TeamsEditor({
           >
             <strong>{item.name}</strong>
             <span>
-              {gtClasses.find((entry) => entry.key === item.classKey)?.label} ·{' '}
+              {seasonClasses.find((entry) => entry.key === item.classKey)?.label} ·{' '}
               {item.memberNames.length} driver{item.memberNames.length === 1 ? '' : 's'}
             </span>
           </button>
@@ -666,7 +679,7 @@ function TeamsEditor({
             value={team.classKey}
             onChange={(event) => setTeam({ ...team, classKey: event.target.value as GtClassKey })}
           >
-            {gtClasses.map((entry) => (
+            {seasonClasses.map((entry) => (
               <option key={entry.key} value={entry.key}>
                 {entry.label}
               </option>
@@ -759,7 +772,7 @@ function TeamsEditor({
             <span>
               <strong>{driver.driver}</strong>
               <small>
-                {gtClasses.find((entry) => entry.key === driver.classKey)?.label} ·{' '}
+                {seasonClasses.find((entry) => entry.key === driver.classKey)?.label} ·{' '}
                 {driver.car || 'No car'}
               </small>
             </span>
@@ -830,7 +843,7 @@ function TeamsEditor({
               teams.map((row) => (
                 <tr key={row.id}>
                   <td>{row.name}</td>
-                  <td>{gtClasses.find((entry) => entry.key === row.classKey)?.label}</td>
+                  <td>{seasonClasses.find((entry) => entry.key === row.classKey)?.label}</td>
                   <td>{row.car || '—'}</td>
                   <td>{row.memberNames.join(', ')}</td>
                   <td>
@@ -874,6 +887,7 @@ function ScheduleEditor({
   seasonId: string
   refresh: (message?: string) => Promise<void>
 } & Control) {
+  const seasonClasses = gtClassesForSeason(state, seasonId)
   const rows = state.schedule
     .filter((item) => item.seasonId === seasonId)
     .sort((a, b) => a.round - b.round)
@@ -934,7 +948,7 @@ function ScheduleEditor({
                           await refresh(`${assignment.driver} class updated.`)
                         }}
                       >
-                        {gtClasses.map((item) => (
+                        {seasonClasses.map((item) => (
                           <option key={item.key} value={item.key}>
                             {item.label}
                           </option>
@@ -973,7 +987,7 @@ function ScheduleEditor({
               <tr key={row.id}>
                 <td>{row.round}</td>
                 <td>{row.date}</td>
-                <td>{row.track}</td>
+                <td>{row.track}{row.trackConfig ? <small className="admin-table__subline">{row.trackConfig}</small> : null}</td>
                 <td>
                   <select
                     aria-label={`Race format for round ${row.round}`}
@@ -1065,6 +1079,13 @@ function ScheduleEditor({
           />
         </label>
         <label>
+          Track configuration
+          <input
+            value={event.trackConfig ?? ''}
+            onChange={(e) => setEvent({ ...event, trackConfig: e.target.value })}
+          />
+        </label>
+        <label>
           Laps
           <input
             type="number"
@@ -1092,6 +1113,7 @@ function ScheduleEditor({
           rows={state.results[viewId]}
           refresh={refresh}
           close={() => setViewId('')}
+          classes={seasonClasses}
         />
       ) : null}
     </Section>
@@ -1103,11 +1125,13 @@ function RaceEditor({
   rows,
   refresh,
   close,
+  classes,
 }: {
   event: GtScheduledEvent
   rows: GtManagedResult[]
   refresh: (message?: string) => Promise<void>
   close: () => void
+  classes: { key: GtClassKey; label: string }[]
 }) {
   const [results, setResults] = useState(() =>
     [...rows].sort((left, right) => left.overallPosition - right.overallPosition),
@@ -1213,7 +1237,7 @@ function RaceEditor({
                       )
                     }
                   >
-                    {gtClasses.map((item) => (
+                    {classes.map((item) => (
                       <option key={item.key} value={item.key}>
                         {item.label}
                       </option>
@@ -1277,6 +1301,7 @@ function Importer({
   seasonId: string
   refresh: (message?: string) => Promise<void>
 } & Control) {
+  const seasonClasses = gtClassesForSeason(state, seasonId)
   const [preview, setPreview] = useState<GtImportPreview | null>(null)
   const [drivers, setDrivers] = useState<GtManagedResult[]>([])
   const [rawJson, setRawJson] = useState<unknown>(null)
@@ -1388,7 +1413,7 @@ function Importer({
                         }
                       >
                         <option value="">Assign class…</option>
-                        {gtClasses.map((item) => (
+                        {seasonClasses.map((item) => (
                           <option key={item.key} value={item.key}>
                             {item.label}
                           </option>
@@ -1493,6 +1518,7 @@ function Importer({
           rows={state.results[viewId]}
           refresh={refresh}
           close={() => setViewId('')}
+          classes={seasonClasses}
         />
       ) : null}
       {source ? <ImportSourceViewer source={source} close={() => setSource(null)} /> : null}
