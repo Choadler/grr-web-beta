@@ -774,6 +774,76 @@ a {
 .admin-card__content > :first-child {
   margin-top: 1.25rem;
 }
+.admin-card--standalone {
+  padding: 0;
+}
+.admin-card__standalone-heading {
+  padding: 1.25rem;
+  border-bottom: 1px solid #263525;
+}
+.admin-card__standalone-heading small {
+  color: #8de58d;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.admin-card__standalone-heading h2 {
+  margin: 0.25rem 0 0;
+  text-transform: uppercase;
+}
+.admin-card__standalone-heading p {
+  margin: 0.5rem 0 0;
+  color: #b9c4b7;
+}
+.admin-dashboard__intro {
+  max-width: 70ch;
+  margin: 0 0 1.25rem;
+  color: #c4cbc2;
+}
+.admin-function-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+.admin-function-nav {
+  margin-bottom: 1.25rem;
+  border: 1px solid #3b5039;
+  background: #0c120d;
+}
+.admin-function-nav__back {
+  display: block;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid #263525;
+  color: #9ee79e;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.admin-function-nav > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.65rem;
+}
+.admin-function-nav > div a {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid transparent;
+  color: #c4cbc2;
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.admin-function-nav > div a:hover,
+.admin-function-nav > div a:focus-visible,
+.admin-function-nav > div a.is-active {
+  border-color: var(--green);
+  background: #1b2a1a;
+  color: #fff;
+}
 .admin-card__actions {
   display: flex;
   justify-content: flex-end;
@@ -1224,6 +1294,7 @@ a {
 }
 @media (max-width: 800px) {
   .admin-dashboard-grid,
+  .admin-function-grid,
   .admin-form-grid,
   .admin-form-grid--bonuses,
   .admin-team-picker {
@@ -2492,6 +2563,13 @@ button:focus-visible {
 
   .sporting-rich-editor__toolbar button {
     flex: 1 1 auto;
+  }
+  .admin-function-nav > div {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .admin-function-nav > div a {
+    flex: 0 0 auto;
   }
 }
 .gallery-filters {

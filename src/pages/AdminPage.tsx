@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate, useParams } from 'react-router-dom'
+import { LeagueAdminNav, type LeagueAdminTool } from '../components/admin/LeagueAdminNav'
 import { loadIndyAdmin, mutateIndyAdmin, defaultIndyPoints } from '../services/indycarAdmin'
 import { parseIndycarResultJson } from '../services/indycarImport'
 import type {
@@ -154,8 +155,9 @@ function RaceEditor({
 }
 
 type AdminSectionControl = {
-  open: boolean
-  onToggle: (open: boolean) => void
+  open?: boolean
+  onToggle?: (open: boolean) => void
+  standalone?: boolean
 }
 
 function AdminSection({
@@ -164,6 +166,7 @@ function AdminSection({
   summary,
   open,
   onToggle,
+  standalone,
   children,
 }: {
   eyebrow: string
@@ -171,11 +174,15 @@ function AdminSection({
   summary?: string
   children: React.ReactNode
 } & AdminSectionControl) {
+  if (standalone) return <section className="admin-card admin-card--standalone">
+    <header className="admin-card__standalone-heading"><small>{eyebrow}</small><h2>{title}</h2>{summary ? <p>{summary}</p> : null}</header>
+    <div className="admin-card__content">{children}</div>
+  </section>
   return (
     <details
       className="admin-card admin-card--collapsible"
       open={open}
-      onToggle={(event) => onToggle(event.currentTarget.open)}
+      onToggle={(event) => onToggle?.(event.currentTarget.open)}
     >
       <summary>
         <span>
@@ -668,16 +675,18 @@ function ResultsImporter({
   )
 }
 
+const indycarAdminTools: LeagueAdminTool[] = [
+  { path: 'seasons', eyebrow: 'Season control', title: 'Seasons', description: 'Create seasons, choose the active season, and manage race timing.' },
+  { path: 'points', eyebrow: 'Scoring', title: 'Points', description: 'Configure finishing-position and bonus-point values.' },
+  { path: 'schedule', eyebrow: 'Calendar', title: 'Schedule', description: 'Create, reorder, update, and remove scheduled events.' },
+  { path: 'results', eyebrow: 'Race control', title: 'Race Results', description: 'Import iRacing results, review race order, penalties, and scoring.' },
+]
+
 export function IndycarAdminPage() {
+  const { tool } = useParams<{ tool?: string }>()
   const [state, setState] = useState<IndyAdminState | null>(null)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState('')
-  const [openSection, setOpenSection] = useState('season')
-  const section = (name: string): AdminSectionControl => ({
-    open: openSection === name,
-    onToggle: (open) =>
-      setOpenSection(open ? name : (current) => (current === name ? '' : current)),
-  })
   const refresh = async (message = '') => {
     try {
       setState(await loadIndyAdmin())
@@ -708,6 +717,7 @@ export function IndycarAdminPage() {
     () => state?.seasons.find((item) => item.status === 'active') ?? state?.seasons[0],
     [state],
   )
+  if (tool && !indycarAdminTools.some((item) => item.path === tool)) return <Navigate to="/admin/indycar" replace />
   if (!state)
     return (
       <section className="admin-dashboard">
@@ -729,37 +739,14 @@ export function IndycarAdminPage() {
             Dashboard
           </Link>
         </div>
+        {!tool ? <p className="admin-dashboard__intro">Choose a management area. Each tool now has its own focused workspace.</p> : null}
+        <LeagueAdminNav basePath="/admin/indycar" leagueName="IndyCar" tools={indycarAdminTools} activeTool={tool} />
         <AdminNotice error={error} saved={saved} />
-        <SeasonEditor state={state} refresh={refresh} {...section('season')} />
-        {activeSeason ? (
-          <>
-            <PointsEditor
-              key={`points-${activeSeason.id}`}
-              state={state}
-              seasonId={activeSeason.id}
-              refresh={refresh}
-              {...section('points')}
-            />
-            <ScheduleEditor
-              key={`schedule-${activeSeason.id}`}
-              state={state}
-              seasonId={activeSeason.id}
-              refresh={refresh}
-              {...section('schedule')}
-            />
-            <ResultsImporter
-              key={`results-${activeSeason.id}`}
-              state={state}
-              seasonId={activeSeason.id}
-              refresh={refresh}
-              {...section('import')}
-            />
-          </>
-        ) : (
-          <p className="admin-notice">
-            Create a season before configuring its points, schedule, and results.
-          </p>
-        )}
+        {tool === 'seasons' ? <SeasonEditor state={state} refresh={refresh} standalone /> : null}
+        {activeSeason && tool === 'points' ? <PointsEditor key={`points-${activeSeason.id}`} state={state} seasonId={activeSeason.id} refresh={refresh} standalone /> : null}
+        {activeSeason && tool === 'schedule' ? <ScheduleEditor key={`schedule-${activeSeason.id}`} state={state} seasonId={activeSeason.id} refresh={refresh} standalone /> : null}
+        {activeSeason && tool === 'results' ? <ResultsImporter key={`results-${activeSeason.id}`} state={state} seasonId={activeSeason.id} refresh={refresh} standalone /> : null}
+        {tool && tool !== 'seasons' && !activeSeason ? <p className="admin-notice">Create a season in <Link to="/admin/indycar/seasons">Seasons</Link> before using this tool.</p> : null}
       </div>
     </section>
   )

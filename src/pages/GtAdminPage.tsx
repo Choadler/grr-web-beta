@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate, useParams } from 'react-router-dom'
 import { SportingCodeAdmin } from '../components/admin/SportingCodeAdmin'
+import { LeagueAdminNav, type LeagueAdminTool } from '../components/admin/LeagueAdminNav'
 import { defaultGtPoints, gtClasses, loadGtAdmin, mutateGtAdmin } from '../services/gtAdmin'
 import { parseGtResultJson } from '../services/gtImport'
 import { gtDriverNamesMatch } from '../config/gtRoster'
@@ -18,20 +19,25 @@ import type {
 } from '../types/gtAdmin'
 
 const id = () => crypto.randomUUID()
-type Control = { open: boolean; onToggle: (open: boolean) => void }
+type Control = { open?: boolean; onToggle?: (open: boolean) => void; standalone?: boolean }
 function Section({
   title,
   eyebrow,
   summary,
   open,
   onToggle,
+  standalone,
   children,
 }: { title: string; eyebrow: string; summary?: string; children: React.ReactNode } & Control) {
+  if (standalone) return <section className="admin-card admin-card--standalone">
+    <header className="admin-card__standalone-heading"><small>{eyebrow}</small><h2>{title}</h2>{summary ? <p>{summary}</p> : null}</header>
+    <div className="admin-card__content">{children}</div>
+  </section>
   return (
     <details
       className="admin-card admin-card--collapsible"
       open={open}
-      onToggle={(event) => onToggle(event.currentTarget.open)}
+      onToggle={(event) => onToggle?.(event.currentTarget.open)}
     >
       <summary>
         <span>
@@ -1424,11 +1430,21 @@ function Importer({
   )
 }
 
+const gtAdminTools: LeagueAdminTool[] = [
+  { path: 'sporting-code', eyebrow: 'Published rules', title: 'Sporting Code', description: 'Edit, preview, publish, and restore the GT sporting code.' },
+  { path: 'seasons', eyebrow: 'Season control', title: 'Seasons', description: 'Create seasons, choose the active season, and manage race timing.' },
+  { path: 'assignments', eyebrow: 'Driver roster', title: 'Driver Assignments', description: 'Assign drivers to classes, teams, and cars.' },
+  { path: 'teams', eyebrow: 'Team roster', title: 'Teams', description: 'Create teams and manage their class, car, and membership.' },
+  { path: 'points', eyebrow: 'Scoring', title: 'Points', description: 'Configure standard and endurance race points and bonuses.' },
+  { path: 'schedule', eyebrow: 'Calendar', title: 'Schedule', description: 'Create, reorder, update, and remove scheduled events.' },
+  { path: 'results', eyebrow: 'Race control', title: 'Race Results', description: 'Import iRacing results, review classes, penalties, and scoring.' },
+]
+
 export function GtAdminPage() {
+  const { tool } = useParams<{ tool?: string }>()
   const [state, setState] = useState<GtAdminState | null>(null)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
-  const [open, setOpen] = useState('season')
   const refresh = async (message = '') => {
     try {
       setState(await loadGtAdmin())
@@ -1456,10 +1472,7 @@ export function GtAdminPage() {
     () => state?.seasons.find((item) => item.status === 'active') ?? state?.seasons[0],
     [state],
   )
-  const control = (name: string): Control => ({
-    open: open === name,
-    onToggle: (value) => setOpen(value ? name : (current) => (current === name ? '' : current)),
-  })
+  if (tool && !gtAdminTools.some((item) => item.path === tool)) return <Navigate to="/admin/gt" replace />
   if (!state)
     return (
       <section className="admin-dashboard">
@@ -1481,39 +1494,18 @@ export function GtAdminPage() {
             Dashboard
           </Link>
         </div>
+        {!tool ? <p className="admin-dashboard__intro">Choose a management area. Each tool now has its own focused workspace.</p> : null}
+        <LeagueAdminNav basePath="/admin/gt" leagueName="GT League" tools={gtAdminTools} activeTool={tool} />
         {notice && <p className="admin-notice admin-notice--success">{notice}</p>}
         {error && <p className="admin-notice admin-notice--error">{error}</p>}
-        <SportingCodeAdmin league="gt" />
-        <SeasonEditor state={state} refresh={refresh} {...control('season')} />
-        {active && (
-          <>
-            <AssignmentsEditor
-              state={state}
-              seasonId={active.id}
-              refresh={refresh}
-              {...control('assignments')}
-            />
-            <TeamsEditor
-              state={state}
-              seasonId={active.id}
-              refresh={refresh}
-              {...control('teams')}
-            />
-            <PointsEditor
-              state={state}
-              seasonId={active.id}
-              refresh={refresh}
-              {...control('points')}
-            />
-            <ScheduleEditor
-              state={state}
-              seasonId={active.id}
-              refresh={refresh}
-              {...control('schedule')}
-            />
-            <Importer state={state} seasonId={active.id} refresh={refresh} {...control('import')} />
-          </>
-        )}
+        {tool === 'sporting-code' ? <SportingCodeAdmin league="gt" /> : null}
+        {tool === 'seasons' ? <SeasonEditor state={state} refresh={refresh} standalone /> : null}
+        {active && tool === 'assignments' ? <AssignmentsEditor state={state} seasonId={active.id} refresh={refresh} standalone /> : null}
+        {active && tool === 'teams' ? <TeamsEditor state={state} seasonId={active.id} refresh={refresh} standalone /> : null}
+        {active && tool === 'points' ? <PointsEditor state={state} seasonId={active.id} refresh={refresh} standalone /> : null}
+        {active && tool === 'schedule' ? <ScheduleEditor state={state} seasonId={active.id} refresh={refresh} standalone /> : null}
+        {active && tool === 'results' ? <Importer state={state} seasonId={active.id} refresh={refresh} standalone /> : null}
+        {tool && tool !== 'seasons' && tool !== 'sporting-code' && !active ? <p className="admin-notice">Create a season in <Link to="/admin/gt/seasons">Seasons</Link> before using this tool.</p> : null}
       </div>
     </section>
   )

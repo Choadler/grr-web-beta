@@ -533,9 +533,9 @@ function SiteApp() {
           <Route path="pages/indycar-results" element={<IndyResultsPage />} />
           <Route path="gallery" element={<GalleryPage />} />
           <Route path="admin" element={<AdminPage />} />
-          <Route path="admin/indycar" element={<IndycarAdminPage />} />
-          <Route path="admin/cup" element={<CupAdminPage />} />
-          <Route path="admin/gt" element={<GtAdminPage />} />
+          <Route path="admin/indycar/:tool?" element={<IndycarAdminPage />} />
+          <Route path="admin/cup/:tool?" element={<CupAdminPage />} />
+          <Route path="admin/gt/:tool?" element={<GtAdminPage />} />
           <Route path="admin/gallery" element={<GalleryAdminPage />} />
           <Route path="*" element={<Missing />} />
         </Routes>
