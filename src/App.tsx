@@ -24,6 +24,8 @@ import {
   GtRulesPage,
   GtSchedulePage,
   GtStandingsPage,
+  GtStatsPage,
+  GtRecordsPage,
   GtTeamStandingsPage,
   IndyLandingPage,
   IndyResultsPage,
@@ -527,6 +529,8 @@ function SiteApp() {
           <Route path="pages/gt-league-team-standings" element={<GtTeamStandingsPage />} />
           <Route path="pages/gt-team-standings" element={<GtTeamStandingsPage />} />
           <Route path="pages/gt-race-results" element={<GtResultsPage />} />
+          <Route path="pages/gt-stats" element={<GtStatsPage />} />
+          <Route path="pages/gt-records" element={<GtRecordsPage />} />
           <Route path="pages/indycar" element={<IndyLandingPage />} />
           <Route path="pages/indycar-sporting-code" element={<IndySportingCodePage />} />
           <Route path="pages/indycar-standings" element={<IndyStandingsPage />} />

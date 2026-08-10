@@ -45,6 +45,52 @@ export async function onRequestGet({ env, request }) {
     const seasonClasses = await db.prepare('SELECT class_key AS key,label,sort_order AS sortOrder FROM gt_season_classes WHERE season_id=? ORDER BY sort_order').bind(selected.id).all()
     return json({ classes: seasonClasses.results })
   }
+  if (url.searchParams.get('view') === 'history') {
+    const historyData = await db.prepare(
+      `SELECT r.customer_id AS customerId,r.driver_name AS driver,r.class_key AS classKey,
+        COALESCE(c.label, r.class_key) AS classLabel,r.class_position AS classPosition,
+        r.total_points AS points,r.pole,r.fastest_lap AS fastestLap,r.season_id AS seasonId
+       FROM gt_results r
+       JOIN gt_seasons s ON s.id=r.season_id AND s.status<>'draft'
+       LEFT JOIN gt_season_classes c ON c.season_id=r.season_id AND c.class_key=r.class_key
+       ORDER BY s.created_at,r.event_id,r.class_position`,
+    ).all()
+    const drivers = new Map()
+    const classDrivers = new Map()
+    for (const row of historyData.results) {
+      const identity = row.customerId ? `id:${row.customerId}` : `name:${row.driver.toLowerCase()}`
+      const update = (map, key, base) => {
+        const item = map.get(key) ?? { ...base, starts: 0, wins: 0, podiums: 0, poles: 0, fastestLaps: 0, points: 0, seasons: new Set(), classes: new Set() }
+        item.driver = row.driver
+        item.starts += 1
+        item.wins += Number(row.classPosition) === 1 ? 1 : 0
+        item.podiums += Number(row.classPosition) <= 3 ? 1 : 0
+        item.poles += Number(row.pole) ? 1 : 0
+        item.fastestLaps += Number(row.fastestLap) ? 1 : 0
+        item.points += Number(row.points) || 0
+        item.seasons.add(row.seasonId)
+        item.classes.add(row.classLabel)
+        map.set(key, item)
+      }
+      update(drivers, identity, {})
+      update(classDrivers, `${row.classKey}:${identity}`, { classKey: row.classKey, classLabel: row.classLabel })
+    }
+    const finish = (item) => ({ ...item, seasons: item.seasons.size, classes: [...item.classes].join(', ') })
+    const stats = [...drivers.values()].map(finish)
+      .sort((a, b) => b.wins - a.wins || b.podiums - a.podiums || b.starts - a.starts || a.driver.localeCompare(b.driver))
+      .map((item, index) => ({ rank: index + 1, ...item }))
+    const metrics = [['wins', 'Most Wins'], ['podiums', 'Most Podiums'], ['starts', 'Most Starts'], ['poles', 'Most Poles'], ['fastestLaps', 'Most Fastest Laps']]
+    const records = []
+    for (const classKey of [...new Set([...classDrivers.values()].map((item) => item.classKey))]) {
+      const entries = [...classDrivers.values()].filter((item) => item.classKey === classKey).map(finish)
+      const classLabel = entries[0]?.classLabel ?? classKey
+      for (const [key, label] of metrics) {
+        const value = Math.max(0, ...entries.map((item) => item[key]))
+        if (value) records.push({ classKey, classLabel, record: label, value, drivers: entries.filter((item) => item[key] === value).map((item) => item.driver).sort().join(', ') })
+      }
+    }
+    return json({ stats, records })
+  }
   const requestedSeason = url.searchParams.get('season')
   const season = requestedSeason
     ? await db.prepare("SELECT id,name,status,race_time AS raceTime,timezone FROM gt_seasons WHERE id=? AND status<>'draft' LIMIT 1").bind(requestedSeason).first()

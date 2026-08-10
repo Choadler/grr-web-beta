@@ -66,9 +66,35 @@ async function gtInHouse(signal: AbortSignal): Promise<GtPublicPayload> {
   return (await fetchJson(`/api/gt?v=overall-results${seasonQuery}`, signal)) as GtPublicPayload
 }
 
+export type GtHistoryPayload = {
+  stats: Record<string, string | number>[]
+  records: Record<string, string | number>[]
+}
+
 const requireGtArray = (value: unknown, description: string): unknown[] => {
   if (Array.isArray(value)) return value
   throw new Error(`The in-house GT ${description} response is unavailable.`)
+}
+
+export async function gtHistory(signal: AbortSignal): Promise<GtHistoryPayload> {
+  return (await fetchJson('/api/gt?view=history', signal)) as GtHistoryPayload
+}
+
+export const gtHistoricalStats: DataLoader = async (signal) => {
+  const payload = await gtHistory(signal)
+  return { rows: payload.stats as never[] }
+}
+
+export const gtHistoricalRecords: DataLoader = async (signal) => {
+  const payload = await gtHistory(signal)
+  return {
+    rows: payload.records.map((row) => ({
+      class: row.classLabel,
+      record: row.record,
+      driver: row.drivers,
+      total: row.value,
+    })) as never[],
+  }
 }
 
 export const cupStandings: DataLoader = async (signal) =>

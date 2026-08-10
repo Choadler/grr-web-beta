@@ -18,6 +18,8 @@ import {
   cupSchedule,
   cupStandings,
   gtRaceEvents,
+  gtHistoricalRecords,
+  gtHistoricalStats,
   gtSchedule,
   gtStandings,
   gtTeamStandings,
@@ -42,6 +44,8 @@ const gtNav: LeagueNavItem[] = [
   { label: 'GT Standings', href: '/pages/gt-standings' },
   { label: 'GT Team Standings', href: '/pages/gt-league-team-standings' },
   { label: 'GT Race Results', href: '/pages/gt-race-results' },
+  { label: 'GT Stats', href: '/pages/gt-stats' },
+  { label: 'GT Records', href: '/pages/gt-records' },
 ]
 const indyNav: LeagueNavItem[] = [
   { label: 'IndyCar Sporting Code', href: '/pages/indycar-sporting-code' },
@@ -77,9 +81,10 @@ const leagueConfig = {
 const cupOverviewStandings = [{ loader: cupStandings }]
 const indyOverviewStandings = [{ loader: indyStandings }]
 
-function GtSeasonSelector() {
+type GtSeasonSummary = { id: string; name: string; status: string }
+
+function useGtSeasons() {
   const [seasons, setSeasons] = useState<{ id: string; name: string; status: string }[]>([])
-  const selected = new URLSearchParams(window.location.search).get('season') ?? ''
   useEffect(() => {
     const controller = new AbortController()
     fetch('/api/gt?list=seasons', { signal: controller.signal, headers: { Accept: 'application/json' } })
@@ -88,14 +93,7 @@ function GtSeasonSelector() {
       .catch(() => undefined)
     return () => controller.abort()
   }, [])
-  if (!seasons.length) return null
-  const active = seasons.find((season) => season.status === 'active')?.id ?? ''
-  return <label className="gt-season-selector">Season<select value={selected || active} onChange={(event) => {
-    const url = new URL(window.location.href)
-    if (event.target.value === active) url.searchParams.delete('season')
-    else url.searchParams.set('season', event.target.value)
-    window.location.assign(url.toString())
-  }}>{seasons.map((season) => <option key={season.id} value={season.id}>{season.name}{season.status === 'active' ? ' — Current' : ''}</option>)}</select></label>
+  return seasons
 }
 
 function useGtSeasonClasses() {
@@ -153,7 +151,6 @@ function PageShell({
         <div className="container">
           <p className="eyebrow">{eyebrow ?? config.label}</p>
           <h1>{title}</h1>
-          {league === 'gt' ? <GtSeasonSelector /> : null}
         </div>
       </header>
       <LeaguePhotoRails league={league} />
@@ -197,6 +194,24 @@ function LinkGrid({ links }: { links: LeagueNavItem[] }) {
   )
 }
 
+function GtArchiveSection() {
+  const seasons = useGtSeasons().filter((season) => season.status !== 'active')
+  if (!seasons.length) return null
+  return <section className="gt-archive" aria-labelledby="gt-archive-title">
+    <div className="section-heading"><p className="eyebrow">Past seasons</p><h2 id="gt-archive-title">GT Archive</h2></div>
+    <div className="gt-archive-grid">
+      {seasons.map((season: GtSeasonSummary) => <article className="gt-archive-card" key={season.id}>
+        <h3>{season.name}</h3>
+        <div className="gt-archive-links">
+          <Link to={`/pages/gt-standings?season=${encodeURIComponent(season.id)}`}>Standings</Link>
+          <Link to={`/pages/gt-schedule?season=${encodeURIComponent(season.id)}`}>Schedule</Link>
+          <Link to={`/pages/gt-race-results?season=${encodeURIComponent(season.id)}`}>Results</Link>
+        </div>
+      </article>)}
+    </div>
+  </section>
+}
+
 export function CupLandingPage() {
   return (
     <PageShell league="cup" title="GRR Cup Series">
@@ -224,6 +239,7 @@ export function GtLandingPage() {
         resultsHref="/pages/gt-race-results"
         multiClass
       />
+      <GtArchiveSection />
       <DiscordCallout />
     </PageShell>
   )
@@ -543,6 +559,13 @@ export const GtResultsPage = () => (
     />
   </PageShell>
 )
+
+export const GtStatsPage = () => <DataPage league="gt" title="GT League Stats" eyebrow="All-time driver statistics" loader={gtHistoricalStats} search tableClassName="data-table--gt-history" columns={[
+  { key: 'rank', label: 'Rank' }, { key: 'driver', label: 'Driver' }, { key: 'classes', label: 'Classes' }, { key: 'seasons', label: 'Seasons' }, { key: 'starts', label: 'Starts' }, { key: 'wins', label: 'Wins' }, { key: 'podiums', label: 'Podiums' }, { key: 'poles', label: 'Poles' }, { key: 'fastestLaps', label: 'Fastest Laps' }, { key: 'points', label: 'Points' },
+]} />
+export const GtRecordsPage = () => <DataPage league="gt" title="GT League Records" eyebrow="Class records across every published season" loader={gtHistoricalRecords} tableClassName="data-table--gt-history" columns={[
+  { key: 'class', label: 'Class' }, { key: 'record', label: 'Record' }, { key: 'driver', label: 'Driver' }, { key: 'total', label: 'Total' },
+]} />
 
 export const IndyStandingsPage = () => (
   <DataPage

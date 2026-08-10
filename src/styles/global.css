@@ -3860,3 +3860,42 @@ button:focus-visible {
   .admin-season-picker { align-items: stretch; flex-direction: column; }
   .admin-season-picker > .button { width: 100%; }
 }
+.gt-archive {
+  margin-top: 2rem;
+}
+
+.gt-archive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.75rem;
+}
+
+.gt-archive-card {
+  padding: 1rem;
+  border: 1px solid rgba(166, 255, 67, 0.22);
+  background: rgba(15, 20, 13, 0.92);
+}
+
+.gt-archive-card h3 {
+  margin: 0 0 0.75rem;
+  text-transform: uppercase;
+}
+
+.gt-archive-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.gt-archive-links a {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--color-accent, #a6ff43);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.data-table--gt-history {
+  min-width: 760px;
+}
