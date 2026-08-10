@@ -1,4 +1,4 @@
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 
 export type LeagueAdminTool = {
   path: string
@@ -18,8 +18,10 @@ export function LeagueAdminNav({
   tools: LeagueAdminTool[]
   activeTool?: string
 }) {
+  const { search } = useLocation()
+  const destination = (path: string) => `${path}${search}`
   if (!activeTool) return <div className="admin-function-grid">
-    {tools.map((tool) => <Link className="admin-module" to={`${basePath}/${tool.path}`} key={tool.path}>
+    {tools.map((tool) => <Link className="admin-module" to={destination(`${basePath}/${tool.path}`)} key={tool.path}>
       <span>{tool.eyebrow}</span>
       <strong>{tool.title}</strong>
       <p>{tool.description}</p>
@@ -28,11 +30,11 @@ export function LeagueAdminNav({
   </div>
 
   return <nav className="admin-function-nav" aria-label={`${leagueName} management`}>
-    <Link className="admin-function-nav__back" to={basePath}>← {leagueName} dashboard</Link>
+    <Link className="admin-function-nav__back" to={destination(basePath)}>← {leagueName} dashboard</Link>
     <div>
       {tools.map((tool) => <NavLink
         className={({ isActive }) => isActive ? 'is-active' : undefined}
-        to={`${basePath}/${tool.path}`}
+        to={destination(`${basePath}/${tool.path}`)}
         key={tool.path}
       >{tool.title}</NavLink>)}
     </div>

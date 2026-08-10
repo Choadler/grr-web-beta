@@ -1,4 +1,4 @@
-import type { IndyAdminState, IndyImportPreview, IndyManagedResult, IndyPointsConfig, IndyPublicData, IndySeason, IndyScheduledEvent } from '../types/indycarAdmin'
+import type { IndyAdminState, IndyImportPreview, IndyImportSource, IndyManagedResult, IndyPointsConfig, IndyPublicData, IndySeason, IndyScheduledEvent } from '../types/indycarAdmin'
 import { adminFetch } from './adminSession'
 
 const endpoint = '/admin/api/indycar'
@@ -54,10 +54,14 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
     if (action === 'saveSeason') {
       const season = record(body).season as IndySeason
       const existing = state.seasons.findIndex((item) => item.id === season.id)
+      if (existing >= 0 && state.seasons[existing].status === 'active' && season.status !== 'active') throw new Error('Set another IndyCar season active before archiving the current public season.')
       if (season.status === 'active') state.seasons.forEach((item) => (item.status = 'archived'))
       if (existing >= 0) state.seasons[existing] = season
       else state.seasons.push(season)
-      state.points[season.id] ??= defaultIndyPoints
+      const sourceId = String(record(body).copyFrom ?? '')
+      const copy = record(record(body).copy)
+      state.points[season.id] ??= sourceId && copy.settings && state.points[sourceId] ? structuredClone(state.points[sourceId]) : structuredClone(defaultIndyPoints)
+      if (existing < 0 && sourceId && copy.schedule) state.schedule.push(...state.schedule.filter((item) => item.seasonId === sourceId).map((item) => ({ ...item, id: crypto.randomUUID(), seasonId: season.id, status: 'scheduled' as const, subsessionId: undefined })))
     }
     if (action === 'savePoints') state.points[String(record(body).seasonId)] = record(body).points as IndyPointsConfig
     if (action === 'saveEvent') {
@@ -86,8 +90,10 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
         event.status = 'completed'
         event.subsessionId = Number(preview.subsessionId) || undefined
       }
+      const importId = crypto.randomUUID()
+      state.imports = state.imports.filter((item) => item.eventId !== eventId)
       state.imports.push({
-        id: crypto.randomUUID(),
+        id: importId,
         seasonId: String(record(body).seasonId),
         eventId,
         subsessionId: Number(preview.subsessionId) || undefined,
@@ -95,6 +101,7 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
         filename: String(record(body).filename),
       })
       localStorage.setItem(`${storageKey}:results:${eventId}`, JSON.stringify(preview))
+      localStorage.setItem(`${storageKey}:import:${importId}`, JSON.stringify(record(body).rawJson ?? preview))
       const config = state.points[String(record(body).seasonId)] ?? defaultIndyPoints
       const drivers = (preview.drivers as IndyImportPreview['drivers']) ?? []
       const mostLed = Math.max(0, ...drivers.map((driver) => driver.lapsLed))
@@ -140,6 +147,16 @@ const record = (value: unknown) =>
 
 export const loadIndyAdmin = () => request<IndyAdminState>('GET')
 export const mutateIndyAdmin = (body: unknown) => request<IndyAdminState>('POST', body)
+export const loadIndyImportSource = async (item: IndyAdminState['imports'][number], state: IndyAdminState) => {
+  if (import.meta.env.DEV) {
+    const event = state.schedule.find((entry) => entry.id === item.eventId)
+    const season = state.seasons.find((entry) => entry.id === item.seasonId)
+    return { ...item, seasonName: season?.name ?? '', round: event?.round ?? 0, track: event?.track ?? '', rawJson: JSON.parse(localStorage.getItem(`${storageKey}:import:${item.id}`) ?? localStorage.getItem(`${storageKey}:results:${item.eventId}`) ?? 'null') } as IndyImportSource
+  }
+  const response = await adminFetch(`${endpoint}?import=${encodeURIComponent(item.id)}`, { credentials: 'include', headers: { Accept: 'application/json' } })
+  if (!response.ok) throw new Error(`Could not load the original import (${response.status}).`)
+  return (await response.json()) as IndyImportSource
+}
 
 const formatRaceInterval = (value: string, laps: number, leaderLaps: number, position: number) => {
   if (position === 1) return '-'

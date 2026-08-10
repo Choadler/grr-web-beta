@@ -8,6 +8,7 @@ export type GtSeason = {
   status: GtSeasonStatus
   raceTime: string
   timezone: string
+  legacyRosterFallback?: number
 }
 export type GtPointsRule = { position: number; points: number }
 export type GtPointsConfig = {
@@ -85,6 +86,12 @@ export type GtImportRecord = {
   subsessionId?: number
   filename: string
   importedAt: string
+}
+export type GtImportSource = GtImportRecord & {
+  seasonName: string
+  round: number
+  track: string
+  rawJson: unknown
 }
 export type GtAdminState = {
   seasons: GtSeason[]

@@ -6,7 +6,7 @@ async function state(db) {
   const [seasons, points, schedule, assignments, teams, imports, results] = await Promise.all([
     db
       .prepare(
-        'SELECT id,name,status,race_time AS raceTime,timezone FROM gt_seasons ORDER BY created_at DESC',
+        'SELECT id,name,status,race_time AS raceTime,timezone,legacy_roster_fallback AS legacyRosterFallback FROM gt_seasons ORDER BY created_at DESC',
       )
       .all(),
     db.prepare('SELECT season_id,format_key,config_json FROM gt_format_points_configs').all(),
@@ -165,8 +165,16 @@ const rescoreSeasonFormat = async (db, seasonId, format, config) => {
   for (const [eventId, rows] of events) await updateScoredRows(db, eventId, scoreRows(rows, config))
 }
 
-export async function onRequestGet({ env }) {
+export async function onRequestGet({ env, request }) {
   if (!env.INDYCAR_DB) return json({ error: 'INDYCAR_DB is not configured.' }, 503)
+  const importId = new URL(request.url).searchParams.get('import')
+  if (importId) {
+    const source = await env.INDYCAR_DB.prepare(`SELECT i.id,i.season_id AS seasonId,i.event_id AS eventId,i.filename,i.imported_at AS importedAt,i.raw_json AS rawJson,
+      s.name AS seasonName,e.round_number AS round,e.track FROM gt_imports i
+      JOIN gt_seasons s ON s.id=i.season_id JOIN gt_events e ON e.id=i.event_id AND e.season_id=i.season_id WHERE i.id=?`).bind(importId).first()
+    if (!source) return json({ error: 'That GT import was not found.' }, 404)
+    return json({ ...source, rawJson: JSON.parse(source.rawJson) })
+  }
   return json(await state(env.INDYCAR_DB))
 }
 
@@ -177,6 +185,8 @@ export async function onRequestPost({ request, env }) {
   try {
     if (body.action === 'saveSeason') {
       const item = body.season
+      const existing = await db.prepare('SELECT id,status FROM gt_seasons WHERE id=?').bind(item.id).first()
+      if (existing?.status === 'active' && item.status !== 'active') return json({ error: 'Set another GT season active before archiving the current public season.' }, 409)
       if (item.status === 'active')
         await db
           .prepare(
@@ -190,6 +200,26 @@ export async function onRequestPost({ request, env }) {
         )
         .bind(item.id, item.name, item.status, item.raceTime, item.timezone)
         .run()
+      if (!existing && body.copyFrom) {
+        const statements = []
+        if (body.copy?.settings) {
+          const configs = await db.prepare('SELECT format_key,config_json FROM gt_format_points_configs WHERE season_id=?').bind(body.copyFrom).all()
+          for (const config of configs.results) statements.push(db.prepare('INSERT INTO gt_format_points_configs(season_id,format_key,config_json) VALUES(?,?,?)').bind(item.id, config.format_key, config.config_json))
+        }
+        if (body.copy?.drivers || body.copy?.teams) {
+          const drivers = await db.prepare('SELECT customer_id,driver_name,class_key,team_name,car_name FROM gt_driver_assignments WHERE season_id=?').bind(body.copyFrom).all()
+          for (const driver of drivers.results) statements.push(db.prepare('INSERT INTO gt_driver_assignments(season_id,customer_id,driver_name,class_key,team_name,car_name) VALUES(?,?,?,?,?,?)').bind(item.id, driver.customer_id, driver.driver_name, driver.class_key, body.copy?.teams ? driver.team_name : '', driver.car_name))
+        }
+        if (body.copy?.teams) {
+          const teams = await db.prepare('SELECT team_name,class_key,car_name,members_json FROM gt_teams WHERE season_id=?').bind(body.copyFrom).all()
+          for (const team of teams.results) statements.push(db.prepare('INSERT INTO gt_teams(id,season_id,team_name,class_key,car_name,members_json) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(), item.id, team.team_name, team.class_key, team.car_name, team.members_json))
+        }
+        if (body.copy?.schedule) {
+          const events = await db.prepare('SELECT round_number,race_date,track,laps,race_format FROM gt_events WHERE season_id=? ORDER BY round_number').bind(body.copyFrom).all()
+          for (const event of events.results) statements.push(db.prepare("INSERT INTO gt_events(id,season_id,round_number,race_date,track,laps,race_format,status) VALUES(?,?,?,?,?,?,?,'scheduled')").bind(crypto.randomUUID(), item.id, event.round_number, event.race_date, event.track, event.laps, event.race_format))
+        }
+        if (statements.length) await db.batch(statements)
+      }
     } else if (body.action === 'savePoints') {
       const config = body.points
       await db

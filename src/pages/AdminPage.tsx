@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { LeagueAdminNav, type LeagueAdminTool } from '../components/admin/LeagueAdminNav'
-import { loadIndyAdmin, mutateIndyAdmin, defaultIndyPoints } from '../services/indycarAdmin'
+import { ImportSourceViewer, type ImportSource } from '../components/admin/ImportSourceViewer'
+import { loadIndyAdmin, loadIndyImportSource, mutateIndyAdmin, defaultIndyPoints } from '../services/indycarAdmin'
 import { parseIndycarResultJson } from '../services/indycarImport'
 import type {
   IndyAdminState,
@@ -201,16 +202,20 @@ function AdminSection({
 
 function SeasonEditor({
   state,
+  seasonId,
   refresh,
   ...section
-}: { state: IndyAdminState; refresh: (message?: string) => Promise<void> } & AdminSectionControl) {
+}: { state: IndyAdminState; seasonId?: string; refresh: (message?: string) => Promise<void> } & AdminSectionControl) {
   const [season, setSeason] = useState<IndySeason>(
-    state.seasons.find((item) => item.status === 'active') ?? state.seasons[0] ?? newSeason(),
+    state.seasons.find((item) => item.id === seasonId) ?? state.seasons.find((item) => item.status === 'active') ?? state.seasons[0] ?? newSeason(),
   )
+  const [copyFrom, setCopyFrom] = useState('')
+  const [copy, setCopy] = useState({ settings: true, schedule: false })
+  const isNew = !state.seasons.some((item) => item.id === season.id)
   const [busy, setBusy] = useState(false)
   const save = async () => {
     setBusy(true)
-    await mutateIndyAdmin({ action: 'saveSeason', season })
+    await mutateIndyAdmin({ action: 'saveSeason', season, copyFrom: isNew ? copyFrom : '', copy })
     await refresh('Season saved.')
     setBusy(false)
   }
@@ -271,6 +276,11 @@ function SeasonEditor({
           />
         </label>
       </div>
+      {isNew && state.seasons.length ? <fieldset className="admin-copy-options"><legend>Initialize from another season</legend>
+        <label>Copy from<select value={copyFrom} onChange={(event) => setCopyFrom(event.target.value)}><option value="">Start blank</option>{state.seasons.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+        {copyFrom ? <div><label><input type="checkbox" checked={copy.settings} onChange={(event) => setCopy({ ...copy, settings: event.target.checked })} /> Scoring settings</label><label><input type="checkbox" checked={copy.schedule} onChange={(event) => setCopy({ ...copy, schedule: event.target.checked })} /> Schedule structure</label></div> : null}
+        <small>Results, standings, penalties, completed-race state, and imported JSON are never copied.</small>
+      </fieldset> : null}
       <button
         className="button"
         type="button"
@@ -541,9 +551,11 @@ function ResultsImporter({
   const [filename, setFilename] = useState('')
   const [eventId, setEventId] = useState('')
   const [viewId, setViewId] = useState('')
+  const [source, setSource] = useState<ImportSource | null>(null)
   const [error, setError] = useState('')
   const events = state.schedule.filter((item) => item.seasonId === seasonId)
   const publishedSeasons = state.seasons
+    .filter((season) => season.id === seasonId)
     .map((season) => ({
       season,
       events: state.schedule
@@ -704,6 +716,7 @@ function ResultsImporter({
                 <button type="button" onClick={() => setViewId(item.id)}>
                   Edit Race
                 </button>{' '}
+                {state.imports.find((entry) => entry.eventId === item.id) ? <button type="button" onClick={async () => setSource(await loadIndyImportSource(state.imports.find((entry) => entry.eventId === item.id)!, state))}>View Original JSON</button> : null}{' '}
                 <button
                   className="admin-action--danger"
                   type="button"
@@ -736,6 +749,7 @@ function ResultsImporter({
           close={() => setViewId('')}
         />
       ) : null}
+      {source ? <ImportSourceViewer source={source} close={() => setSource(null)} /> : null}
     </AdminSection>
   )
 }
@@ -749,6 +763,7 @@ const indycarAdminTools: LeagueAdminTool[] = [
 
 export function IndycarAdminPage() {
   const { tool } = useParams<{ tool?: string }>()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [state, setState] = useState<IndyAdminState | null>(null)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState('')
@@ -778,9 +793,9 @@ export function IndycarAdminPage() {
       active = false
     }
   }, [])
-  const activeSeason = useMemo(
-    () => state?.seasons.find((item) => item.status === 'active') ?? state?.seasons[0],
-    [state],
+  const selectedSeason = useMemo(
+    () => state?.seasons.find((item) => item.id === searchParams.get('season')) ?? state?.seasons.find((item) => item.status === 'active') ?? state?.seasons[0],
+    [state, searchParams],
   )
   if (tool && !indycarAdminTools.some((item) => item.path === tool)) return <Navigate to="/admin/indycar" replace />
   if (!state)
@@ -804,14 +819,23 @@ export function IndycarAdminPage() {
             Dashboard
           </Link>
         </div>
+        {state.seasons.length ? <div className="admin-season-context">
+          <div><span>IndyCar</span><strong>{selectedSeason?.name}</strong>{selectedSeason ? <em>{selectedSeason.status}</em> : null}</div>
+          <label>Season<select value={selectedSeason?.id ?? ''} onChange={(event) => setSearchParams({ season: event.target.value })}>{state.seasons.map((season) => <option key={season.id} value={season.id}>{season.name} ({season.status})</option>)}</select></label>
+        </div> : null}
         {!tool ? <p className="admin-dashboard__intro">Choose a management area. Each tool now has its own focused workspace.</p> : null}
         <LeagueAdminNav basePath="/admin/indycar" leagueName="IndyCar" tools={indycarAdminTools} activeTool={tool} />
         <AdminNotice error={error} saved={saved} />
-        {tool === 'seasons' ? <SeasonEditor state={state} refresh={refresh} standalone /> : null}
-        {activeSeason && tool === 'points' ? <PointsEditor key={`points-${activeSeason.id}`} state={state} seasonId={activeSeason.id} refresh={refresh} standalone /> : null}
-        {activeSeason && tool === 'schedule' ? <ScheduleEditor key={`schedule-${activeSeason.id}`} state={state} seasonId={activeSeason.id} refresh={refresh} standalone /> : null}
-        {activeSeason && tool === 'results' ? <ResultsImporter key={`results-${activeSeason.id}`} state={state} seasonId={activeSeason.id} refresh={refresh} standalone /> : null}
-        {tool && tool !== 'seasons' && !activeSeason ? <p className="admin-notice">Create a season in <Link to="/admin/indycar/seasons">Seasons</Link> before using this tool.</p> : null}
+        {!tool && selectedSeason ? <section className="admin-card admin-card--standalone"><header className="admin-card__standalone-heading"><small>Season overview</small><h2>{selectedSeason.name}</h2></header><div className="admin-season-metrics">
+          <div><strong>{new Set(state.schedule.filter((event) => event.seasonId === selectedSeason.id).flatMap((event) => (state.results[event.id] ?? []).map((row) => row.customerId ? `id:${row.customerId}` : `name:${row.driver.toLowerCase()}`))).size}</strong><span>Drivers with results</span></div>
+          <div><strong>{state.schedule.filter((event) => event.seasonId === selectedSeason.id).length}</strong><span>Scheduled races</span></div>
+          <div><strong>{state.schedule.filter((event) => event.seasonId === selectedSeason.id && event.status === 'completed').length}</strong><span>Completed races</span></div>
+        </div></section> : null}
+        {tool === 'seasons' ? <SeasonEditor key={selectedSeason?.id} state={state} seasonId={selectedSeason?.id} refresh={refresh} standalone /> : null}
+        {selectedSeason && tool === 'points' ? <PointsEditor key={`points-${selectedSeason.id}`} state={state} seasonId={selectedSeason.id} refresh={refresh} standalone /> : null}
+        {selectedSeason && tool === 'schedule' ? <ScheduleEditor key={`schedule-${selectedSeason.id}`} state={state} seasonId={selectedSeason.id} refresh={refresh} standalone /> : null}
+        {selectedSeason && tool === 'results' ? <ResultsImporter key={`results-${selectedSeason.id}`} state={state} seasonId={selectedSeason.id} refresh={refresh} standalone /> : null}
+        {tool && tool !== 'seasons' && !selectedSeason ? <p className="admin-notice">Create a season in <Link to="/admin/indycar/seasons">Seasons</Link> before using this tool.</p> : null}
       </div>
     </section>
   )

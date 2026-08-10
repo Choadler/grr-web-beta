@@ -22,8 +22,16 @@ async function state(db) {
   }
 }
 
-export async function onRequestGet({ env }) {
+export async function onRequestGet({ env, request }) {
   if (!env.INDYCAR_DB) return json({ error: 'INDYCAR_DB is not configured. Bind the D1 database in Cloudflare Pages.' }, 503)
+  const importId = new URL(request.url).searchParams.get('import')
+  if (importId) {
+    const source = await env.INDYCAR_DB.prepare(`SELECT i.id,i.season_id AS seasonId,i.event_id AS eventId,i.filename,i.imported_at AS importedAt,i.raw_json AS rawJson,
+      s.name AS seasonName,e.round_number AS round,e.track FROM indy_imports i
+      JOIN indy_seasons s ON s.id=i.season_id JOIN indy_events e ON e.id=i.event_id AND e.season_id=i.season_id WHERE i.id=?`).bind(importId).first()
+    if (!source) return json({ error: 'That IndyCar import was not found.' }, 404)
+    return json({ ...source, rawJson: JSON.parse(source.rawJson) })
+  }
   return json(await state(env.INDYCAR_DB))
 }
 
@@ -34,10 +42,24 @@ export async function onRequestPost({ request, env }) {
   try {
     if (body.action === 'saveSeason') {
       const item = body.season
+      const existing = await db.prepare('SELECT id,status FROM indy_seasons WHERE id=?').bind(item.id).first()
+      if (existing?.status === 'active' && item.status !== 'active') return json({ error: 'Set another IndyCar season active before archiving the current public season.' }, 409)
       if (item.status === 'active') await db.prepare("UPDATE indy_seasons SET status='archived',updated_at=CURRENT_TIMESTAMP WHERE status='active' AND id<>?").bind(item.id).run()
       await db.prepare(`INSERT INTO indy_seasons(id,name,status,race_time,timezone) VALUES(?,?,?,?,?)
         ON CONFLICT(id) DO UPDATE SET name=excluded.name,status=excluded.status,race_time=excluded.race_time,timezone=excluded.timezone,updated_at=CURRENT_TIMESTAMP`)
         .bind(item.id, item.name, item.status, item.raceTime, item.timezone).run()
+      if (!existing && body.copyFrom) {
+        const statements = []
+        if (body.copy?.settings) {
+          const sourcePoints = await db.prepare('SELECT config_json FROM indy_points_configs WHERE season_id=?').bind(body.copyFrom).first()
+          if (sourcePoints) statements.push(db.prepare('INSERT INTO indy_points_configs(season_id,config_json) VALUES(?,?)').bind(item.id, sourcePoints.config_json))
+        }
+        if (body.copy?.schedule) {
+          const sourceEvents = await db.prepare('SELECT round_number,race_date,track,laps FROM indy_events WHERE season_id=? ORDER BY round_number').bind(body.copyFrom).all()
+          for (const event of sourceEvents.results) statements.push(db.prepare("INSERT INTO indy_events(id,season_id,round_number,race_date,track,laps,status) VALUES(?,?,?,?,?,?,'scheduled')").bind(crypto.randomUUID(), item.id, event.round_number, event.race_date, event.track, event.laps))
+        }
+        if (statements.length) await db.batch(statements)
+      }
     } else if (body.action === 'savePoints') {
       await db.prepare(`INSERT INTO indy_points_configs(season_id,config_json) VALUES(?,?)
         ON CONFLICT(season_id) DO UPDATE SET config_json=excluded.config_json,updated_at=CURRENT_TIMESTAMP`)
@@ -56,6 +78,9 @@ export async function onRequestPost({ request, env }) {
         db.prepare("UPDATE indy_events SET status='scheduled',subsession_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(body.eventId),
       ])
     } else if (body.action === 'publishResults') {
+      const event = await db.prepare('SELECT season_id AS seasonId FROM indy_events WHERE id=?').bind(body.eventId).first()
+      if (!event) return json({ error: 'That scheduled event no longer exists.' }, 404)
+      if (event.seasonId !== body.seasonId) return json({ error: 'The selected season does not own that event.' }, 409)
       const pointsRow = await db.prepare('SELECT config_json FROM indy_points_configs WHERE season_id=?').bind(body.seasonId).first()
       if (!pointsRow) return json({ error: 'Save a points table before publishing results.' }, 400)
       const config = JSON.parse(pointsRow.config_json)

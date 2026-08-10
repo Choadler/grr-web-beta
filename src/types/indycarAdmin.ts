@@ -77,6 +77,18 @@ export type IndyAdminState = {
   }>
 }
 
+export type IndyImportSource = {
+  id: string
+  seasonId: string
+  seasonName: string
+  eventId: string
+  round: number
+  track: string
+  filename: string
+  importedAt: string
+  rawJson: unknown
+}
+
 export type IndyPublicData = {
   season?: IndySeason
   schedule: TableRow[]

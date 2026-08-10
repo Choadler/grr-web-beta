@@ -3,6 +3,7 @@ import type {
   GtClassKey,
   GtDriverAssignment,
   GtImportPreview,
+  GtImportSource,
   GtManagedResult,
   GtPointsConfig,
   GtRaceFormat,
@@ -76,7 +77,7 @@ function withRaceFormats(state: GtAdminState): GtAdminState {
 function withRoster(state: GtAdminState): GtAdminState {
   const assignments = [...state.assignments]
   state.seasons
-    .filter((season) => season.status !== 'archived')
+    .filter((season) => season.status !== 'archived' && season.legacyRosterFallback !== 0)
     .forEach((season) =>
       gtRoster.forEach((entry, index) => {
         if (
@@ -105,7 +106,7 @@ function withRoster(state: GtAdminState): GtAdminState {
   const merged = [...chosen.values()]
   const teams = [...state.teams]
   state.seasons
-    .filter((season) => season.status !== 'archived')
+    .filter((season) => season.status !== 'archived' && season.legacyRosterFallback !== 0)
     .forEach((season) =>
       gtTeamRoster.forEach((entry) => {
         if (
@@ -208,6 +209,9 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
     if (method === 'GET') return state as T
     if (action === 'saveSeason') {
       const item = data.season as GtSeason
+      const isNew = !state.seasons.some((season) => season.id === item.id)
+      const current = state.seasons.find((season) => season.id === item.id)
+      if (current?.status === 'active' && item.status !== 'active') throw new Error('Set another GT season active before archiving the current public season.')
       if (item.status === 'active')
         state.seasons.forEach((season) => {
           if (season.id !== item.id) season.status = 'archived'
@@ -218,6 +222,14 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
       state.points[item.id] ??= {
         standard: structuredClone(defaultGtPoints),
         endurance: structuredClone(defaultGtPoints),
+      }
+      const sourceId = String(data.copyFrom ?? '')
+      const copy = record(data.copy)
+      if (isNew && sourceId) {
+        if (copy.settings && state.points[sourceId]) state.points[item.id] = structuredClone(state.points[sourceId])
+        if (copy.drivers || copy.teams) state.assignments.push(...state.assignments.filter((entry) => entry.seasonId === sourceId).map((entry) => ({ ...entry, id: undefined, seasonId: item.id, team: copy.teams ? entry.team : '' })))
+        if (copy.teams) state.teams.push(...state.teams.filter((team) => team.seasonId === sourceId).map((team) => ({ ...team, id: crypto.randomUUID(), seasonId: item.id })))
+        if (copy.schedule) state.schedule.push(...state.schedule.filter((event) => event.seasonId === sourceId).map((event) => ({ ...event, id: crypto.randomUUID(), seasonId: item.id, status: 'scheduled' as const, subsessionId: undefined })))
       }
     }
     if (action === 'savePoints') {
@@ -323,14 +335,16 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
         event.subsessionId = preview.subsessionId
       }
       state.imports = state.imports.filter((item) => item.eventId !== eventId)
+      const importId = crypto.randomUUID()
       state.imports.push({
-        id: crypto.randomUUID(),
+        id: importId,
         seasonId,
         eventId,
         subsessionId: preview.subsessionId,
         filename: String(data.filename),
         importedAt: new Date().toISOString(),
       })
+      localStorage.setItem(`${storageKey}:import:${importId}`, JSON.stringify(data.rawJson ?? preview))
       results.forEach((driver) => {
         if (!driver.customerId) return
         const assignment: GtDriverAssignment = {
@@ -376,6 +390,16 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
 export const loadGtAdmin = async () =>
   withRoster(withRaceFormats(await request<GtAdminState>('GET')))
 export const mutateGtAdmin = (body: unknown) => request<GtAdminState>('POST', body)
+export const loadGtImportSource = async (item: GtAdminState['imports'][number], state: GtAdminState) => {
+  if (import.meta.env.DEV) {
+    const event = state.schedule.find((entry) => entry.id === item.eventId)
+    const season = state.seasons.find((entry) => entry.id === item.seasonId)
+    return { ...item, seasonName: season?.name ?? '', round: event?.round ?? 0, track: event?.track ?? '', rawJson: JSON.parse(localStorage.getItem(`${storageKey}:import:${item.id}`) ?? 'null') } as GtImportSource
+  }
+  const response = await adminFetch(`${endpoint}?import=${encodeURIComponent(item.id)}`, { credentials: 'include', headers: { Accept: 'application/json' } })
+  if (!response.ok) throw new Error(`Could not load the original GT import (${response.status}).`)
+  return (await response.json()) as GtImportSource
+}
 
 export function loadLocalGtPublic(): GtPublicData | null {
   if (!import.meta.env.DEV) return null

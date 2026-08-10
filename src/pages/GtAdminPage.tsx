@@ -1,8 +1,9 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { SportingCodeAdmin } from '../components/admin/SportingCodeAdmin'
 import { LeagueAdminNav, type LeagueAdminTool } from '../components/admin/LeagueAdminNav'
-import { defaultGtPoints, gtClasses, loadGtAdmin, mutateGtAdmin } from '../services/gtAdmin'
+import { ImportSourceViewer, type ImportSource } from '../components/admin/ImportSourceViewer'
+import { defaultGtPoints, gtClasses, loadGtAdmin, loadGtImportSource, mutateGtAdmin } from '../services/gtAdmin'
 import { parseGtResultJson } from '../services/gtImport'
 import { gtDriverNamesMatch } from '../config/gtRoster'
 import type {
@@ -59,16 +60,21 @@ const newSeason = (): GtSeason => ({
   status: 'draft',
   raceTime: '20:00',
   timezone: 'America/New_York',
+  legacyRosterFallback: 0,
 })
 
 function SeasonEditor({
   state,
+  seasonId,
   refresh,
   ...control
-}: { state: GtAdminState; refresh: (message?: string) => Promise<void> } & Control) {
+}: { state: GtAdminState; seasonId?: string; refresh: (message?: string) => Promise<void> } & Control) {
   const [season, setSeason] = useState(
-    state.seasons.find((item) => item.status === 'active') ?? state.seasons[0] ?? newSeason(),
+    state.seasons.find((item) => item.id === seasonId) ?? state.seasons.find((item) => item.status === 'active') ?? state.seasons[0] ?? newSeason(),
   )
+  const [copyFrom, setCopyFrom] = useState('')
+  const [copy, setCopy] = useState({ drivers: true, teams: true, schedule: false, settings: true })
+  const isNew = !state.seasons.some((item) => item.id === season.id)
   return (
     <Section title="GT League season" eyebrow="Season control" {...control}>
       {state.seasons.length > 0 && (
@@ -126,11 +132,16 @@ function SeasonEditor({
           />
         </label>
       </div>
+      {isNew && state.seasons.length ? <fieldset className="admin-copy-options"><legend>Initialize from another season</legend>
+        <label>Copy from<select value={copyFrom} onChange={(event) => setCopyFrom(event.target.value)}><option value="">Start blank</option>{state.seasons.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+        {copyFrom ? <div>{([['drivers', 'Driver roster'], ['teams', 'Teams and assignments'], ['schedule', 'Schedule structure'], ['settings', 'Scoring settings']] as const).map(([key, label]) => <label key={key}><input type="checkbox" checked={copy[key]} onChange={(event) => setCopy({ ...copy, [key]: event.target.checked })} /> {label}</label>)}</div> : null}
+        <small>Results, standings, penalties, completed-race state, and imported JSON are never copied.</small>
+      </fieldset> : null}
       <button
         className="button"
         type="button"
         onClick={async () => {
-          await mutateGtAdmin({ action: 'saveSeason', season })
+          await mutateGtAdmin({ action: 'saveSeason', season, copyFrom: isNew ? copyFrom : '', copy })
           await refresh('GT season saved.')
         }}
       >
@@ -1256,6 +1267,7 @@ function Importer({
   const [filename, setFilename] = useState('')
   const [eventId, setEventId] = useState('')
   const [viewId, setViewId] = useState('')
+  const [source, setSource] = useState<ImportSource | null>(null)
   const events = state.schedule.filter((item) => item.seasonId === seasonId)
   const unassigned = drivers.filter((item) => !item.classKey).length
   const read = async (file?: File) => {
@@ -1445,6 +1457,7 @@ function Importer({
             <button type="button" onClick={() => setViewId(item.id)}>
               Edit Race
             </button>{' '}
+            {state.imports.find((entry) => entry.eventId === item.id) ? <button type="button" onClick={async () => setSource(await loadGtImportSource(state.imports.find((entry) => entry.eventId === item.id)!, state))}>View Original JSON</button> : null}{' '}
             <button
               className="admin-action--danger"
               type="button"
@@ -1466,6 +1479,7 @@ function Importer({
           close={() => setViewId('')}
         />
       ) : null}
+      {source ? <ImportSourceViewer source={source} close={() => setSource(null)} /> : null}
     </Section>
   )
 }
@@ -1482,6 +1496,7 @@ const gtAdminTools: LeagueAdminTool[] = [
 
 export function GtAdminPage() {
   const { tool } = useParams<{ tool?: string }>()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [state, setState] = useState<GtAdminState | null>(null)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
@@ -1508,9 +1523,9 @@ export function GtAdminPage() {
       active = false
     }
   }, [])
-  const active = useMemo(
-    () => state?.seasons.find((item) => item.status === 'active') ?? state?.seasons[0],
-    [state],
+  const selectedSeason = useMemo(
+    () => state?.seasons.find((item) => item.id === searchParams.get('season')) ?? state?.seasons.find((item) => item.status === 'active') ?? state?.seasons[0],
+    [state, searchParams],
   )
   if (tool && !gtAdminTools.some((item) => item.path === tool)) return <Navigate to="/admin/gt" replace />
   if (!state)
@@ -1534,18 +1549,28 @@ export function GtAdminPage() {
             Dashboard
           </Link>
         </div>
+        {state.seasons.length ? <div className="admin-season-context">
+          <div><span>GT League</span><strong>{selectedSeason?.name}</strong>{selectedSeason ? <em>{selectedSeason.status}</em> : null}</div>
+          <label>Season<select value={selectedSeason?.id ?? ''} onChange={(event) => setSearchParams({ season: event.target.value })}>{state.seasons.map((season) => <option key={season.id} value={season.id}>{season.name} ({season.status})</option>)}</select></label>
+        </div> : null}
         {!tool ? <p className="admin-dashboard__intro">Choose a management area. Each tool now has its own focused workspace.</p> : null}
         <LeagueAdminNav basePath="/admin/gt" leagueName="GT League" tools={gtAdminTools} activeTool={tool} />
         {notice && <p className="admin-notice admin-notice--success">{notice}</p>}
         {error && <p className="admin-notice admin-notice--error">{error}</p>}
+        {!tool && selectedSeason ? <section className="admin-card admin-card--standalone"><header className="admin-card__standalone-heading"><small>Season overview</small><h2>{selectedSeason.name}</h2></header><div className="admin-season-metrics">
+          <div><strong>{state.assignments.filter((item) => item.seasonId === selectedSeason.id).length}</strong><span>Drivers</span></div>
+          <div><strong>{state.teams.filter((item) => item.seasonId === selectedSeason.id).length}</strong><span>Teams</span></div>
+          <div><strong>{state.schedule.filter((event) => event.seasonId === selectedSeason.id).length}</strong><span>Scheduled races</span></div>
+          <div><strong>{state.schedule.filter((event) => event.seasonId === selectedSeason.id && event.status === 'completed').length}</strong><span>Completed races</span></div>
+        </div></section> : null}
         {tool === 'sporting-code' ? <SportingCodeAdmin league="gt" /> : null}
-        {tool === 'seasons' ? <SeasonEditor state={state} refresh={refresh} standalone /> : null}
-        {active && tool === 'assignments' ? <AssignmentsEditor state={state} seasonId={active.id} refresh={refresh} standalone /> : null}
-        {active && tool === 'teams' ? <TeamsEditor state={state} seasonId={active.id} refresh={refresh} standalone /> : null}
-        {active && tool === 'points' ? <PointsEditor state={state} seasonId={active.id} refresh={refresh} standalone /> : null}
-        {active && tool === 'schedule' ? <ScheduleEditor state={state} seasonId={active.id} refresh={refresh} standalone /> : null}
-        {active && tool === 'results' ? <Importer state={state} seasonId={active.id} refresh={refresh} standalone /> : null}
-        {tool && tool !== 'seasons' && tool !== 'sporting-code' && !active ? <p className="admin-notice">Create a season in <Link to="/admin/gt/seasons">Seasons</Link> before using this tool.</p> : null}
+        {tool === 'seasons' ? <SeasonEditor key={selectedSeason?.id} state={state} seasonId={selectedSeason?.id} refresh={refresh} standalone /> : null}
+        {selectedSeason && tool === 'assignments' ? <AssignmentsEditor key={`assignments-${selectedSeason.id}`} state={state} seasonId={selectedSeason.id} refresh={refresh} standalone /> : null}
+        {selectedSeason && tool === 'teams' ? <TeamsEditor key={`teams-${selectedSeason.id}`} state={state} seasonId={selectedSeason.id} refresh={refresh} standalone /> : null}
+        {selectedSeason && tool === 'points' ? <PointsEditor key={`points-${selectedSeason.id}`} state={state} seasonId={selectedSeason.id} refresh={refresh} standalone /> : null}
+        {selectedSeason && tool === 'schedule' ? <ScheduleEditor key={`schedule-${selectedSeason.id}`} state={state} seasonId={selectedSeason.id} refresh={refresh} standalone /> : null}
+        {selectedSeason && tool === 'results' ? <Importer key={`results-${selectedSeason.id}`} state={state} seasonId={selectedSeason.id} refresh={refresh} standalone /> : null}
+        {tool && tool !== 'seasons' && tool !== 'sporting-code' && !selectedSeason ? <p className="admin-notice">Create a season in <Link to="/admin/gt/seasons">Seasons</Link> before using this tool.</p> : null}
       </div>
     </section>
   )
