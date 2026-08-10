@@ -4,9 +4,9 @@ const formatInterval = (value, laps, leaderLaps, position) => {
   if (position === 1) return '-'
   const lapDifference = Math.max(0, Number(leaderLaps) - Number(laps))
   if (lapDifference > 0) return `${lapDifference} Lap${lapDifference === 1 ? '' : 's'}`
-  const milliseconds = Number(value)
-  if (!Number.isFinite(milliseconds) || milliseconds <= 0) return '-'
-  const totalHundredths = Math.round(milliseconds / 10)
+  const tenThousandths = Number(value)
+  if (!Number.isFinite(tenThousandths) || tenThousandths <= 0) return '-'
+  const totalHundredths = Math.round(tenThousandths / 100)
   const minutes = Math.floor(totalHundredths / 6000)
   const seconds = Math.floor((totalHundredths % 6000) / 100)
   const hundredths = totalHundredths % 100
