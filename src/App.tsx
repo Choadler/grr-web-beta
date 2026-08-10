@@ -10,6 +10,7 @@ import { GtAdminPage } from './pages/GtAdminPage'
 import { CupAdminPage } from './pages/CupAdminPage'
 import { GalleryPage } from './pages/GalleryPage'
 import { GalleryAdminPage } from './pages/GalleryAdminPage'
+import { DriverComparisonPage } from './pages/DriverComparisonPage'
 import { HomeGallery } from './components/gallery/HomeGallery'
 import {
   CupBroadcastPage,
@@ -532,6 +533,7 @@ function SiteApp() {
           <Route path="pages/indycar-schedule" element={<IndySchedulePage />} />
           <Route path="pages/indycar-results" element={<IndyResultsPage />} />
           <Route path="gallery" element={<GalleryPage />} />
+          <Route path="driver-comparison" element={<DriverComparisonPage />} />
           <Route path="admin" element={<AdminPage />} />
           <Route path="admin/indycar/:tool?" element={<IndycarAdminPage />} />
           <Route path="admin/cup/:tool?" element={<CupAdminPage />} />
