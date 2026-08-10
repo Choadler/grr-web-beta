@@ -133,6 +133,25 @@ test('carries a customer-ID-verified alias across series', () => {
   ])
 })
 
+test('reconciles shortened and corrected names only when a stable ID verifies them', () => {
+  const full = { key: 'name:giancarlo moneti schliemann', name: 'Giancarlo Moneti Schliemann', starts: 0 }
+  const short = { key: 'name:giancarlo schliemann', name: 'Giancarlo Schliemann', starts: 0 }
+  const unrelated = { key: 'name:giancarlo schliemann jr', name: 'Giancarlo Schliemann Jr', starts: 0 }
+  const fullResult = result(full, 1)
+  const shortResult = result(short, 2)
+  fullResult.sourceDriverId = '631896'
+  shortResult.sourceDriverId = '631896'
+  const reconciled = reconcileVerifiedDriverAliases(dataset([
+    race('gt-1', 'gt', [fullResult]),
+    race('gt-2', 'gt', [shortResult]),
+    race('cup-1', 'cup', [result(short, 3), result(unrelated, 4)]),
+  ]))
+  assert.deepEqual(comparisonDriverOptions(reconciled), [
+    { key: 'name:giancarlo moneti schliemann', name: 'Giancarlo Moneti Schliemann', starts: 3 },
+    { key: 'name:giancarlo schliemann jr', name: 'Giancarlo Schliemann Jr', starts: 1 },
+  ])
+})
+
 test('standardizes verified GT track aliases without merging distinct layouts', () => {
   assert.equal(canonicalGtTrackName('CTMP'), 'Canadian Tire Motorsports Park')
   assert.equal(canonicalGtTrackName('SPA'), 'Circuit de Spa-Francorchamps')

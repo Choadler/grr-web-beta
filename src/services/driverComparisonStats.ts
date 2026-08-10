@@ -41,8 +41,6 @@ export function reconcileVerifiedDriverAliases(dataset: ComparisonDataset): Comp
   identityNames.forEach((names) => {
     const entries = [...names.entries()]
     if (entries.length < 2) return
-    const bases = new Set(entries.map(([name]) => canonicalDriverName(name).replace(/\d+$/, '').trim()))
-    if (bases.size !== 1) return
     const preferred = entries.sort((a, b) =>
       Number(/\d+$/.test(a[0])) - Number(/\d+$/.test(b[0])) || b[1] - a[1] || a[0].localeCompare(b[0]),
     )[0][0]
