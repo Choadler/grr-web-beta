@@ -6,11 +6,7 @@ const formatInterval = (value, laps, leaderLaps, position) => {
   if (lapDifference > 0) return `${lapDifference} Lap${lapDifference === 1 ? '' : 's'}`
   const tenThousandths = Number(value)
   if (!Number.isFinite(tenThousandths) || tenThousandths <= 0) return '-'
-  const totalHundredths = Math.round(tenThousandths / 100)
-  const minutes = Math.floor(totalHundredths / 6000)
-  const seconds = Math.floor((totalHundredths % 6000) / 100)
-  const hundredths = totalHundredths % 100
-  return `${minutes}.${String(seconds).padStart(2, '0')}.${String(hundredths).padStart(2, '0')}`
+  return `+${(tenThousandths / 10000).toFixed(3)}`
 }
 
 export async function onRequestGet({ env }) {
