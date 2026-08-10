@@ -1,5 +1,5 @@
 import { publicEndpoints } from '../config/integrations'
-import { cupSchedule as cupCalendar, indycarSchedule as indyCalendar } from '../config/schedules'
+import { cupSchedule as cupCalendar } from '../config/schedules'
 import type { DataLoader, DataResult, RaceEventsLoader } from '../types/league'
 import {
   adaptRecentResults,
@@ -19,20 +19,18 @@ type IndyPublicPayload = {
   season?: { name?: string }
 }
 
-async function indyInHouse(signal: AbortSignal): Promise<IndyPublicPayload | null> {
+async function indyInHouse(signal: AbortSignal): Promise<IndyPublicPayload> {
   const local = loadLocalIndyPublic()
   if (local) return local
-  try {
-    const response = await fetch('/api/indycar', {
-      signal,
-      headers: { Accept: 'application/json' },
-    })
-    if (!response.ok) return null
-    return (await response.json()) as IndyPublicPayload
-  } catch (error) {
-    if (signal.aborted) throw error
-    return null
+
+  const response = await fetch('/api/indycar', {
+    signal,
+    headers: { Accept: 'application/json' },
+  })
+  if (!response.ok) {
+    throw new Error(`IndyCar data request failed (${response.status}).`)
   }
+  return (await response.json()) as IndyPublicPayload
 }
 
 type GtPublicPayload = {
@@ -77,9 +75,10 @@ export const cupRecentResults: DataLoader = async (signal) =>
   adaptRecentResults(await fetchJson(publicEndpoints.cup.recentResults, signal))
 export const indyStandings: DataLoader = async (signal) => {
   const local = await indyInHouse(signal)
-  if (Array.isArray(local?.standings) && local.standings.length)
-    return { rows: local.standings as never[], label: local.season?.name }
-  return adaptSimRacerStandings(await fetchJson(publicEndpoints.indycar.standings, signal))
+  return {
+    rows: Array.isArray(local.standings) ? (local.standings as never[]) : [],
+    label: local.season?.name,
+  }
 }
 export const cupSchedule: DataLoader = async (signal) =>
   adaptSimRacerSchedule(await fetchJson(publicEndpoints.cup.standings, signal), cupCalendar, true)
@@ -87,25 +86,19 @@ export const cupDetailedResults: DataLoader = async (signal) =>
   adaptSimRacerLatestResults(await fetchJson(publicEndpoints.cup.standings, signal))
 export const indySchedule: DataLoader = async (signal) => {
   const local = await indyInHouse(signal)
-  if (Array.isArray(local?.schedule) && local.schedule.length)
-    return { rows: local.schedule as never[], label: local.season?.name }
-  return adaptSimRacerSchedule(
-    await fetchJson(publicEndpoints.indycar.standings, signal),
-    indyCalendar,
-  )
+  return {
+    rows: Array.isArray(local.schedule) ? (local.schedule as never[]) : [],
+    label: local.season?.name,
+  }
 }
-export const indyDetailedResults: DataLoader = async (signal) =>
-  adaptSimRacerLatestResults(await fetchJson(publicEndpoints.indycar.standings, signal))
 export const cupRaceEvents: RaceEventsLoader = async (signal) =>
   adaptSimRacerEvents(await fetchJson(publicEndpoints.cup.standings, signal), cupCalendar, true)
 export const indyRaceEvents: RaceEventsLoader = async (signal) => {
   const local = await indyInHouse(signal)
-  if (Array.isArray(local?.events) && local.events.length)
-    return { events: local.events as never[], season: local.season?.name }
-  return adaptSimRacerEvents(
-    await fetchJson(publicEndpoints.indycar.standings, signal),
-    indyCalendar,
-  )
+  return {
+    events: Array.isArray(local.events) ? (local.events as never[]) : [],
+    season: local.season?.name,
+  }
 }
 export const gtRaceEvents: RaceEventsLoader = async (signal) => {
   const local = await gtInHouse(signal)

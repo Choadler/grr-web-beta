@@ -8,16 +8,16 @@ The live merch destination is `https://grassrootsracing.org/collections/all`. Th
 
 ## Live league data
 
-Cup and IndyCar pages expose SimRacerHub driver-stat links and custom standings/schedule/results loaders. GT pages expose custom class-filtered loaders. Stage 2 recovered the public request endpoints from those current page loaders. They are centralized in `src/config/integrations.ts`; Stage 3 accesses them through the typed adapters in `src/services/` rather than directly from page components.
+Cup pages expose SimRacerHub driver-stat links and custom standings/schedule/results loaders. IndyCar public pages use the in-house D1-backed API exclusively. GT pages expose custom class-filtered loaders. External Cup endpoints are centralized in `src/config/integrations.ts`; typed adapters in `src/services/` access them rather than page components.
 
 - Cup standings/schedule/results: SimRacerHub season `28581` via `get_standings.php`.
 - Cup recent results: `red-star-b0d9.cknoedler1013.workers.dev`, series `12921`.
-- IndyCar discovery/standings/results: SimRacerHub series `14491`.
+- IndyCar schedule, standings, and results: `/api/indycar`, backed by the `INDYCAR_DB` D1 binding.
 - The client enforces a 12-second request timeout, a 12 MB response-size limit sized for the existing SimRacerHub season payload, safe JSON parsing, and aborts obsolete requests.
 - The shared tables provide loading, empty, error, retry, search, sorting, CSV export, and PNG export behavior.
-- Cup and IndyCar schedules use the existing published static calendars and enrich completed events with winner/pole data from each SimRacerHub driver's `races` records.
-- Detailed results discover completed `RACE` sessions from those same records. Cup stage tabs discover intervening `SEGMENT` sessions exactly as the current embed does.
-- Race selectors default to the latest completed event while retaining every completed event reported by SimRacerHub.
+- Cup schedules use the existing published static calendar and enrich completed events with winner/pole data from each SimRacerHub driver's `races` records.
+- Cup detailed results discover completed `RACE` sessions from those same records, and stage tabs discover intervening `SEGMENT` sessions exactly as the current embed does.
+- Cup race selectors default to the latest completed event while retaining every completed event reported by SimRacerHub. IndyCar selectors use the events returned by the in-house API.
 - TODO(cors): confirm each endpoint permits the Cloudflare preview and production origins; proxy only where required.
 
 ## In-house IndyCar scoring
@@ -30,12 +30,12 @@ The first in-house scoring module is implemented for IndyCar. It stores seasons,
 - D1 binding name: `INDYCAR_DB`.
 - Schema migration: `migrations/0001_indycar_scoring.sql`.
 - The browser never receives a D1 credential or administrator secret. The `/admin*` Cloudflare Access application must continue to protect the management page and its API.
-- Public IndyCar pages prefer a populated active in-house season. Until one exists, or if the public in-house endpoint fails, they continue using the existing SimRacerHub integration.
+- Public IndyCar pages use the in-house endpoint exclusively. An empty response produces the normal empty state, and an unavailable endpoint produces the normal error state; neither condition falls back to SimRacerHub.
 - New successful in-house data is returned immediately on the next request; the public endpoint uses only a short browser/CDN cache window.
 
 The result importer accepts iRacing result JSON and recognizes common `session_results`, `sessionResults`, and `sessions` shapes. It retains the complete original JSON for auditing. Because iRacing export structures can vary, validate the first real IndyCar file in the preview table before publishing it. A file must be assigned to a scheduled event; publishing replaces a prior import for that event rather than creating duplicate scoring.
 
-Current SimRacerHub history is not automatically copied into D1. To preserve the existing season exactly, upload the source result JSON for each completed event (or implement a one-time documented migration from an authoritative export) before switching the in-house season to active.
+Any historical IndyCar data needed in D1 must be imported from authoritative race-result JSON. The public application does not query SimRacerHub for IndyCar history or fallback data.
 
 ## In-house GT League scoring
 
@@ -76,4 +76,4 @@ Public endpoint placeholders live in `.env.example`. Never put a private token o
 - Discord invite: `https://discord.gg/grassrootsracing`.
 - Discord widget is present on the current homepage but its malformed query string should be corrected or removed during Stage 2.
 - Twitch: `https://www.twitch.tv/grassrootsracing`.
-- SimRacerHub driver stats use `https://www.simracerhub.com/scoring/driver_stats.php?driver_id=...`.
+- Cup SimRacerHub driver stats use `https://www.simracerhub.com/scoring/driver_stats.php?driver_id=...`.
