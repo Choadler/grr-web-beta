@@ -55,6 +55,6 @@ export const navigation: NavGroup[] = [
     ].map(([label, href]) => ({ label, href })),
   },
   { label: 'Gallery', href: '/gallery' },
-  { label: 'Discord', href: externalLinks.discord },
   { label: 'Merch', href: externalLinks.merchandise },
+  { label: 'Discord', href: externalLinks.discord },
 ]
