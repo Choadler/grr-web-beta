@@ -77,24 +77,38 @@ function SeasonEditor({
   const isNew = !state.seasons.some((item) => item.id === season.id)
   return (
     <Section title="GT League season" eyebrow="Season control" {...control}>
-      {state.seasons.length > 0 && (
-        <label>
-          Season
-          <select
-            value={season.id}
-            onChange={(event) =>
-              setSeason(state.seasons.find((item) => item.id === event.target.value) ?? newSeason())
-            }
-          >
-            {state.seasons.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name} ({item.status})
-              </option>
-            ))}
-            <option value="">Create new season</option>
-          </select>
-        </label>
-      )}
+      <div className="admin-season-picker">
+        {state.seasons.length > 0 ? (
+          <label>
+            Existing season
+            <select
+              value={isNew ? '' : season.id}
+              onChange={(event) => {
+                const selected = state.seasons.find((item) => item.id === event.target.value)
+                if (selected) setSeason(selected)
+              }}
+            >
+              {isNew ? <option value="">New season — unsaved</option> : null}
+              {state.seasons.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name} ({item.status})
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : <p>No GT seasons have been created yet.</p>}
+        <button
+          className="button button--secondary"
+          type="button"
+          disabled={isNew}
+          onClick={() => {
+            setSeason(newSeason())
+            setCopyFrom('')
+          }}
+        >
+          {isNew ? 'Creating New Season' : '+ Create New Season'}
+        </button>
+      </div>
       <div className="admin-form-grid">
         <label>
           Season name
