@@ -25,6 +25,45 @@ export function driverKey(name: string) {
   return `name:${canonicalDriverName(name)}`
 }
 
+export function reconcileVerifiedDriverAliases(dataset: ComparisonDataset): ComparisonDataset {
+  const identityNames = new Map<string, Map<string, number>>()
+  dataset.races.forEach((race) =>
+    race.results.forEach((result) => {
+      if (!result.sourceDriverId || result.sourceDriverId.startsWith('name:')) return
+      const identity = `${race.series}:${result.sourceDriverId}`
+      const names = identityNames.get(identity) ?? new Map<string, number>()
+      names.set(result.driverName, (names.get(result.driverName) ?? 0) + 1)
+      identityNames.set(identity, names)
+    }),
+  )
+
+  const aliases = new Map<string, string>()
+  identityNames.forEach((names) => {
+    const entries = [...names.entries()]
+    if (entries.length < 2) return
+    const bases = new Set(entries.map(([name]) => canonicalDriverName(name).replace(/\d+$/, '').trim()))
+    if (bases.size !== 1) return
+    const preferred = entries.sort((a, b) =>
+      Number(/\d+$/.test(a[0])) - Number(/\d+$/.test(b[0])) || b[1] - a[1] || a[0].localeCompare(b[0]),
+    )[0][0]
+    entries.forEach(([name]) => aliases.set(canonicalDriverName(name), preferred))
+  })
+
+  if (!aliases.size) return dataset
+  return {
+    ...dataset,
+    races: dataset.races.map((race) => ({
+      ...race,
+      results: race.results.map((result) => {
+        const preferred = aliases.get(canonicalDriverName(result.driverName))
+        return preferred
+          ? { ...result, driverName: preferred, driverKey: driverKey(preferred) }
+          : result
+      }),
+    })),
+  }
+}
+
 export function comparisonDriverOptions(dataset: ComparisonDataset): DriverOption[] {
   const drivers = new Map<string, DriverOption & { names: Map<string, number> }>()
   dataset.races.forEach((race) =>

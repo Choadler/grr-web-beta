@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import type { ComparisonDataset, ComparisonRace, DriverOption } from '../types/driverComparison.ts'
 import { calculateDriverComparison, comparisonDriverOptions } from './driverComparisonStats.ts'
+import { reconcileVerifiedDriverAliases } from './driverComparisonStats.ts'
 import { canonicalGtTrackName } from './gtTrackNames.ts'
 
 const a: DriverOption = { key: 'name:driver a', name: 'Driver A', starts: 0 }
@@ -113,6 +114,23 @@ test('reconciles display-name aliases that share a stable driver key', () => {
   ]))
   assert.equal(options.length, 1)
   assert.deepEqual(options[0], { key: 'name:blake doyle', name: 'Blake Doyle', starts: 3 })
+})
+
+test('carries a customer-ID-verified alias across series', () => {
+  const blake = { key: 'name:blake doyle', name: 'Blake Doyle', starts: 0 }
+  const alias = { key: 'name:blake doyle2', name: 'Blake Doyle2', starts: 0 }
+  const gtOriginal = result(blake, 2)
+  const gtAlias = result(alias, 3)
+  gtOriginal.sourceDriverId = '667947'
+  gtAlias.sourceDriverId = '667947'
+  const reconciled = reconcileVerifiedDriverAliases(dataset([
+    race('gt-1', 'gt', [gtOriginal]),
+    race('gt-2', 'gt', [gtAlias]),
+    race('cup-1', 'cup', [result(alias, 4)]),
+  ]))
+  assert.deepEqual(comparisonDriverOptions(reconciled), [
+    { key: 'name:blake doyle', name: 'Blake Doyle', starts: 3 },
+  ])
 })
 
 test('standardizes verified GT track aliases without merging distinct layouts', () => {
