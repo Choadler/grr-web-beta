@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { SportingCodeAdmin } from '../components/admin/SportingCodeAdmin'
 import { defaultGtPoints, gtClasses, loadGtAdmin, mutateGtAdmin } from '../services/gtAdmin'
 import { parseGtResultJson } from '../services/gtImport'
 import { gtDriverNamesMatch } from '../config/gtRoster'
@@ -1482,6 +1483,7 @@ export function GtAdminPage() {
         </div>
         {notice && <p className="admin-notice admin-notice--success">{notice}</p>}
         {error && <p className="admin-notice admin-notice--error">{error}</p>}
+        <SportingCodeAdmin league="gt" />
         <SeasonEditor state={state} refresh={refresh} {...control('season')} />
         {active && (
           <>

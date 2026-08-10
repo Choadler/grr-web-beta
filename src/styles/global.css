@@ -2282,6 +2282,127 @@ button:focus-visible {
 .gallery-toolbar label {
   min-width: 180px;
 }
+
+.sporting-admin {
+  margin-bottom: 1rem;
+  padding: clamp(1rem, 2vw, 1.5rem);
+  border: 1px solid #3b5039;
+  border-top: 4px solid var(--green);
+  background: #0c120d;
+}
+
+.sporting-admin__toolbar,
+.sporting-admin__section-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin: 1rem 0;
+}
+
+.sporting-admin__preview {
+  max-height: 65vh;
+  margin: 1rem 0;
+  padding: 1.25rem;
+  overflow: auto;
+  border: 1px solid var(--green);
+  background: #101711;
+}
+
+.sporting-admin__sections {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.sporting-admin__section {
+  border: 1px solid #3b5039;
+  background: #101711;
+}
+
+.sporting-admin__section > summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  cursor: pointer;
+  color: #fff;
+}
+
+.sporting-admin__section > summary span {
+  color: #8de58d;
+  text-transform: uppercase;
+}
+
+.sporting-admin__section[open] {
+  padding: 0 1rem 1rem;
+}
+
+.sporting-admin__section[open] > summary {
+  margin: 0 -1rem 1rem;
+  border-bottom: 1px solid #3b5039;
+}
+
+.sporting-admin label {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.8rem 0;
+  color: #fff;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.sporting-admin input,
+.sporting-admin textarea {
+  width: 100%;
+  border: 1px solid #3b5039;
+  border-radius: 0;
+  padding: 0.75rem;
+  background: #0b100c;
+  color: #fff;
+  font: inherit;
+  text-transform: none;
+}
+
+.sporting-admin textarea {
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  line-height: 1.45;
+}
+
+.sporting-admin__section-actions button,
+.sporting-admin__history button {
+  border: 1px solid #3b5039;
+  padding: 0.55rem 0.75rem;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+
+.sporting-admin__history {
+  margin-top: 1.5rem;
+  border-top: 1px solid #3b5039;
+  padding-top: 1rem;
+}
+
+.sporting-admin__history > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid #3b5039;
+}
+
+@media (max-width: 640px) {
+  .sporting-admin__toolbar .button,
+  .sporting-admin__history button {
+    width: 100%;
+  }
+
+  .sporting-admin__history > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
 .gallery-filters {
   display: flex;
   gap: 0.75rem;

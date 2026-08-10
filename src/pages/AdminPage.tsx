@@ -906,17 +906,18 @@ export function AdminPage() {
             <p>Seasons, points, schedule, JSON imports, results, and standings.</p>
             <span className="admin-module__action">Open management →</span>
           </Link>
-          <div className="admin-module admin-module--disabled">
-            <span>Future</span>
-            <strong>Cup Series</strong>
-            <p>In-house scoring will follow the IndyCar pilot.</p>
-          </div>
+          <Link className="admin-module" to="/admin/cup">
+            <span>Cup Series</span>
+            <strong>Manage Cup Series</strong>
+            <p>Edit, preview, publish, and restore the Cup Series sporting code.</p>
+            <span className="admin-module__action">Open management →</span>
+          </Link>
           <Link className="admin-module" to="/admin/gt">
             <span>GT League</span>
             <strong>Manage GT League</strong>
             <p>
-              Multiclass assignments, teams, class scoring, schedule, race imports, results, and
-              standings.
+              Sporting code, multiclass assignments, teams, class scoring, schedule, race imports,
+              results, and standings.
             </p>
             <span className="admin-module__action">Open management →</span>
           </Link>

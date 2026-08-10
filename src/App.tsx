@@ -7,6 +7,7 @@ import { ChampionshipLeaders } from './components/league/ChampionshipLeaders'
 import { cupStandings, gtSchedule, gtStandings, indyStandings } from './services/dataSources'
 import { AdminPage, IndycarAdminPage } from './pages/AdminPage'
 import { GtAdminPage } from './pages/GtAdminPage'
+import { CupAdminPage } from './pages/CupAdminPage'
 import { GalleryPage } from './pages/GalleryPage'
 import { GalleryAdminPage } from './pages/GalleryAdminPage'
 import { HomeGallery } from './components/gallery/HomeGallery'
@@ -533,6 +534,7 @@ function SiteApp() {
           <Route path="gallery" element={<GalleryPage />} />
           <Route path="admin" element={<AdminPage />} />
           <Route path="admin/indycar" element={<IndycarAdminPage />} />
+          <Route path="admin/cup" element={<CupAdminPage />} />
           <Route path="admin/gt" element={<GtAdminPage />} />
           <Route path="admin/gallery" element={<GalleryAdminPage />} />
           <Route path="*" element={<Missing />} />
