@@ -4190,8 +4190,25 @@ button:focus-visible {
   font-weight: 800;
 }
 
-.gt-stats-table {
+.gt-stats-browser {
   margin-top: 2.5rem;
+}
+
+.gt-stats-browser__header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.gt-stats-browser__header h2 {
+  margin: 0.25rem 0 0;
+  text-transform: uppercase;
+}
+
+.gt-stats-browser__header .filter-group {
+  flex-wrap: wrap;
 }
 
 @media (max-width: 900px) {
@@ -4216,6 +4233,15 @@ button:focus-visible {
   .gt-career-profile__header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .gt-stats-browser__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .gt-stats-browser__header .filter-button {
+    flex: 1;
   }
 
   .gt-career-profile__header > strong {

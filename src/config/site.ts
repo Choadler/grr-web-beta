@@ -30,7 +30,6 @@ export const navigation: NavGroup[] = [
       ['GT Team Standings', '/pages/gt-league-team-standings'],
       ['GT Race Results', '/pages/gt-race-results'],
       ['GT Stats', '/pages/gt-stats'],
-      ['GT Records', '/pages/gt-records'],
       ['GT Archive', '/pages/gt-archive'],
     ].map(([label, href]) => ({ label, href })),
   },

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { currentSiteAssets, externalLinks, navigation } from './config/site'
 import { cupSchedule as cupCalendar, indycarSchedule as indyCalendar } from './config/schedules'
 import { LeagueCountdown } from './components/league/LeagueCountdown'
@@ -25,7 +25,6 @@ import {
   GtSchedulePage,
   GtStandingsPage,
   GtStatsPage,
-  GtRecordsPage,
   GtArchivePage,
   GtTeamStandingsPage,
   IndyLandingPage,
@@ -531,7 +530,7 @@ function SiteApp() {
           <Route path="pages/gt-team-standings" element={<GtTeamStandingsPage />} />
           <Route path="pages/gt-race-results" element={<GtResultsPage />} />
           <Route path="pages/gt-stats" element={<GtStatsPage />} />
-          <Route path="pages/gt-records" element={<GtRecordsPage />} />
+          <Route path="pages/gt-records" element={<Navigate to="/pages/gt-stats?view=records" replace />} />
           <Route path="pages/gt-archive" element={<GtArchivePage />} />
           <Route path="pages/indycar" element={<IndyLandingPage />} />
           <Route path="pages/indycar-sporting-code" element={<IndySportingCodePage />} />

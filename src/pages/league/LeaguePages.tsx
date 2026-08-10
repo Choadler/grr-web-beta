@@ -49,7 +49,6 @@ const gtNav: LeagueNavItem[] = [
   { label: 'GT Team Standings', href: '/pages/gt-league-team-standings' },
   { label: 'GT Race Results', href: '/pages/gt-race-results' },
   { label: 'GT Stats', href: '/pages/gt-stats' },
-  { label: 'GT Records', href: '/pages/gt-records' },
   { label: 'GT Archive', href: '/pages/gt-archive' },
 ]
 const indyNav: LeagueNavItem[] = [
@@ -637,15 +636,35 @@ function GtCareerSearch() {
   </section>
 }
 
-export const GtStatsPage = () => <PageShell league="gt" title="GT League Stats" eyebrow="All-time driver statistics" compact>
-  <GtCareerSearch />
-  <section className="gt-stats-table"><div className="section-heading"><p className="eyebrow">All-time leaderboard</p><h2>GT Career Statistics</h2></div><LiveDataTable title="GT League Career Statistics" loader={gtHistoricalStats} search tableClassName="data-table--gt-history" columns={[
-    { key: 'rank', label: 'Rank' }, { key: 'driver', label: 'Driver' }, { key: 'classes', label: 'Classes' }, { key: 'seasons', label: 'Seasons' }, { key: 'starts', label: 'Starts' }, { key: 'wins', label: 'Wins' }, { key: 'podiums', label: 'Podiums' }, { key: 'poles', label: 'Poles' }, { key: 'fastestLaps', label: 'Fastest Laps' }, { key: 'points', label: 'Points' },
-  ]} /></section>
-</PageShell>
-export const GtRecordsPage = () => <DataPage league="gt" title="GT League Records" eyebrow="Class records across every published season" loader={gtHistoricalRecords} tableClassName="data-table--gt-history" columns={[
-  { key: 'class', label: 'Class' }, { key: 'record', label: 'Record' }, { key: 'driver', label: 'Driver' }, { key: 'total', label: 'Total' },
-]} />
+export const GtStatsPage = () => {
+  const [view, setView] = useState<'stats' | 'records'>(() =>
+    new URLSearchParams(window.location.search).get('view') === 'records' ? 'records' : 'stats',
+  )
+  const selectView = (nextView: 'stats' | 'records') => {
+    setView(nextView)
+    const url = new URL(window.location.href)
+    if (nextView === 'records') url.searchParams.set('view', 'records')
+    else url.searchParams.delete('view')
+    window.history.replaceState({}, '', url)
+  }
+  return <PageShell league="gt" title="GT League Stats" eyebrow="Career statistics and class records" compact>
+    <GtCareerSearch />
+    <section className="gt-stats-browser" aria-labelledby="gt-stats-view-title">
+      <div className="gt-stats-browser__header">
+        <div><p className="eyebrow">GT League history</p><h2 id="gt-stats-view-title">{view === 'stats' ? 'GT Career Statistics' : 'GT Class Records'}</h2></div>
+        <div className="filter-group" role="group" aria-label="GT statistics view">
+          <button className={view === 'stats' ? 'filter-button is-active' : 'filter-button'} aria-pressed={view === 'stats'} type="button" onClick={() => selectView('stats')}>Driver Stats</button>
+          <button className={view === 'records' ? 'filter-button is-active' : 'filter-button'} aria-pressed={view === 'records'} type="button" onClick={() => selectView('records')}>League Records</button>
+        </div>
+      </div>
+      {view === 'stats' ? <LiveDataTable title="GT League Career Statistics" loader={gtHistoricalStats} search tableClassName="data-table--gt-history" columns={[
+        { key: 'rank', label: 'Rank' }, { key: 'driver', label: 'Driver' }, { key: 'classes', label: 'Classes' }, { key: 'seasons', label: 'Seasons' }, { key: 'starts', label: 'Starts' }, { key: 'wins', label: 'Wins' }, { key: 'podiums', label: 'Podiums' }, { key: 'poles', label: 'Poles' }, { key: 'fastestLaps', label: 'Fastest Laps' }, { key: 'points', label: 'Points' },
+      ]} /> : <LiveDataTable title="GT League Records" loader={gtHistoricalRecords} tableClassName="data-table--gt-history" columns={[
+        { key: 'class', label: 'Class' }, { key: 'record', label: 'Record' }, { key: 'driver', label: 'Driver' }, { key: 'total', label: 'Total' },
+      ]} />}
+    </section>
+  </PageShell>
+}
 export const GtArchivePage = () => <PageShell league="gt" title="GT League Archive" eyebrow="Historical seasons, standings, schedules, and race results" compact>
   <p className="gt-archive-intro">Explore every completed GT League season and its permanent competition records.</p>
   <GtArchiveSection />
