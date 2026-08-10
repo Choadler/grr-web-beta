@@ -147,7 +147,11 @@ const formatRaceInterval = (value: string, laps: number, leaderLaps: number, pos
   if (lapDifference > 0) return `${lapDifference} Lap${lapDifference === 1 ? '' : 's'}`
   const milliseconds = Number(value)
   if (!Number.isFinite(milliseconds) || milliseconds <= 0) return '-'
-  return `+${(milliseconds / 1000).toFixed(3)}`
+  const totalHundredths = Math.round(milliseconds / 10)
+  const minutes = Math.floor(totalHundredths / 6000)
+  const seconds = Math.floor((totalHundredths % 6000) / 100)
+  const hundredths = totalHundredths % 100
+  return `${minutes}.${String(seconds).padStart(2, '0')}.${String(hundredths).padStart(2, '0')}`
 }
 
 export function loadLocalIndyPublic(): IndyPublicData | null {
