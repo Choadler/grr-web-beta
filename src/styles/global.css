@@ -2368,6 +2368,89 @@ button:focus-visible {
   line-height: 1.45;
 }
 
+.sporting-admin__field-label {
+  display: block;
+  margin-top: 0.9rem;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+.sporting-rich-editor {
+  margin-top: 0.45rem;
+}
+
+.sporting-rich-editor__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.55rem;
+  border: 1px solid #3b5039;
+  border-bottom: 0;
+  background: #171f17;
+}
+
+.sporting-rich-editor__toolbar button {
+  min-height: 2.35rem;
+  border: 1px solid #526550;
+  padding: 0.45rem 0.65rem;
+  background: #0c120d;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.sporting-rich-editor__toolbar button:hover,
+.sporting-rich-editor__toolbar button:focus-visible {
+  border-color: var(--green);
+  background: #233022;
+}
+
+.sporting-rich-editor__toolbar > span {
+  width: 1px;
+  margin: 0 0.15rem;
+  background: #526550;
+}
+
+.sporting-rich-editor__bold {
+  font-weight: 900 !important;
+}
+
+.sporting-rich-editor__italic {
+  font-style: italic !important;
+}
+
+.sporting-rich-editor__content {
+  min-height: 16rem;
+  max-height: 34rem;
+  padding: 1rem;
+  overflow: auto;
+  border: 1px solid #3b5039;
+  background: #141a13;
+  color: #fff;
+  outline: none;
+}
+
+.sporting-rich-editor__content:focus {
+  border-color: var(--green);
+  box-shadow: inset 0 0 0 1px var(--green);
+}
+
+.sporting-rich-editor__content > :first-child {
+  margin-top: 0;
+}
+
+.sporting-rich-editor__content > :last-child {
+  margin-bottom: 0;
+}
+
+.sporting-rich-editor > small {
+  display: block;
+  margin-top: 0.5rem;
+  color: #b9c4b7;
+}
+
 .sporting-admin__section-actions button,
 .sporting-admin__history button {
   border: 1px solid #3b5039;
@@ -2401,6 +2484,14 @@ button:focus-visible {
   .sporting-admin__history > div {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .sporting-rich-editor__toolbar > span {
+    display: none;
+  }
+
+  .sporting-rich-editor__toolbar button {
+    flex: 1 1 auto;
   }
 }
 .gallery-filters {
