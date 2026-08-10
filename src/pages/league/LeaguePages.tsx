@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { DataTable, EmptyTableRow } from '../../components/league/DataTable'
 import { CupSportingCode } from '../../components/league/CupSportingCode'
@@ -20,6 +20,8 @@ import {
   gtRaceEvents,
   gtHistoricalRecords,
   gtHistoricalStats,
+  gtCareer,
+  gtHistory,
   gtSchedule,
   gtStandings,
   gtTeamStandings,
@@ -29,6 +31,8 @@ import {
 } from '../../services/dataSources'
 import type { DataLoader } from '../../types/league'
 import type { TableRow } from '../../types/league'
+import type { GtCareerProfile } from '../../services/dataSources'
+import { shareGtCareerImage } from '../../utils/gtCareerExport'
 
 const cupNav: LeagueNavItem[] = [
   { label: 'Cup Sporting Code', href: '/pages/cup-series-sporting-code' },
@@ -82,15 +86,20 @@ const leagueConfig = {
 const cupOverviewStandings = [{ loader: cupStandings }]
 const indyOverviewStandings = [{ loader: indyStandings }]
 
-type GtSeasonSummary = { id: string; name: string; status: string }
+type GtSeasonSummary = {
+  id: string
+  name: string
+  status: string
+  champions?: { classKey: string; classLabel: string; driver: string }[]
+}
 
 function useGtSeasons() {
-  const [seasons, setSeasons] = useState<{ id: string; name: string; status: string }[]>([])
+  const [seasons, setSeasons] = useState<GtSeasonSummary[]>([])
   useEffect(() => {
     const controller = new AbortController()
     fetch('/api/gt?list=seasons', { signal: controller.signal, headers: { Accept: 'application/json' } })
       .then((response) => response.ok ? response.json() : Promise.reject(new Error('Season list unavailable')))
-      .then((payload: { seasons?: { id: string; name: string; status: string }[] }) => setSeasons(payload.seasons ?? []))
+      .then((payload: { seasons?: GtSeasonSummary[] }) => setSeasons(payload.seasons ?? []))
       .catch(() => undefined)
     return () => controller.abort()
   }, [])
@@ -203,6 +212,11 @@ function GtArchiveSection() {
     <div className="gt-archive-grid">
       {seasons.map((season: GtSeasonSummary) => <article className="gt-archive-card" key={season.id}>
         <div className="gt-archive-card__heading"><span>Archived season</span><h3>{season.name}</h3></div>
+        <div className="gt-archive-champions" aria-label={`${season.name} champions`}>
+          {season.champions?.map((champion) => <div key={champion.classKey}>
+            <span>{champion.classLabel} Champion</span><strong>{champion.driver}</strong>
+          </div>)}
+        </div>
         <div className="gt-archive-links">
           <Link to={`/pages/gt-standings?season=${encodeURIComponent(season.id)}`}>Standings <span aria-hidden="true">→</span></Link>
           <Link to={`/pages/gt-schedule?season=${encodeURIComponent(season.id)}`}>Schedule <span aria-hidden="true">→</span></Link>
@@ -560,9 +574,75 @@ export const GtResultsPage = () => (
   </PageShell>
 )
 
-export const GtStatsPage = () => <DataPage league="gt" title="GT League Stats" eyebrow="All-time driver statistics" loader={gtHistoricalStats} search tableClassName="data-table--gt-history" columns={[
-  { key: 'rank', label: 'Rank' }, { key: 'driver', label: 'Driver' }, { key: 'classes', label: 'Classes' }, { key: 'seasons', label: 'Seasons' }, { key: 'starts', label: 'Starts' }, { key: 'wins', label: 'Wins' }, { key: 'podiums', label: 'Podiums' }, { key: 'poles', label: 'Poles' }, { key: 'fastestLaps', label: 'Fastest Laps' }, { key: 'points', label: 'Points' },
-]} />
+function GtCareerSearch() {
+  const initialDriver = new URLSearchParams(window.location.search).get('driver') ?? ''
+  const [drivers, setDrivers] = useState<Record<string, string | number>[]>([])
+  const [query, setQuery] = useState('')
+  const [selectedKey, setSelectedKey] = useState(initialDriver)
+  const [profile, setProfile] = useState<GtCareerProfile | null>(null)
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(initialDriver ? 'loading' : 'ready')
+  const [shareStatus, setShareStatus] = useState('')
+  useEffect(() => {
+    const controller = new AbortController()
+    gtHistory(controller.signal).then((payload) => setDrivers(payload.stats)).catch(() => undefined)
+    return () => controller.abort()
+  }, [])
+  useEffect(() => {
+    if (!selectedKey) return
+    const controller = new AbortController()
+    gtCareer(selectedKey, controller.signal)
+      .then((value) => { setProfile(value); setStatus('ready') })
+      .catch(() => { if (!controller.signal.aborted) setStatus('error') })
+    return () => controller.abort()
+  }, [selectedKey])
+  const matches = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    if (!needle) return []
+    return drivers.filter((driver) => String(driver.driver).toLowerCase().includes(needle)).slice(0, 8)
+  }, [drivers, query])
+  const selectDriver = (driverKey: string) => {
+    setStatus('loading')
+    setProfile(null)
+    setSelectedKey(driverKey)
+    setQuery('')
+    setShareStatus('')
+    const url = new URL(window.location.href)
+    url.searchParams.set('driver', driverKey)
+    window.history.replaceState({}, '', url)
+  }
+  return <section className="gt-career-search" aria-labelledby="gt-career-title">
+    <div className="gt-career-search__heading"><p className="eyebrow">Driver lookup</p><h2 id="gt-career-title">GRR GT League Career Summary</h2><p>Search any driver with a recorded GT League start.</p></div>
+    <div className="gt-driver-lookup">
+      <label><span>Search drivers</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Enter a driver name..." /></label>
+      {matches.length > 0 && <div className="gt-driver-matches">{matches.map((driver) => <button type="button" key={driver.driverKey} onClick={() => selectDriver(String(driver.driverKey))}><strong>{driver.driver}</strong><span>{driver.starts} starts · {driver.wins} wins</span></button>)}</div>}
+    </div>
+    {status === 'loading' && <p className="data-note">Loading career summary...</p>}
+    {status === 'error' && <EmptyState title="That driver’s career summary is unavailable." />}
+    {profile && status === 'ready' && <article className="gt-career-profile">
+      <header className="gt-career-profile__header"><div><p className="eyebrow">GT League career</p><h3>{profile.driver}</h3><p>{profile.seasonsEntered} seasons · {profile.classes.map((item) => item.classLabel).join(' · ')}</p></div><strong>{profile.championships}<span>Championship{profile.championships === 1 ? '' : 's'}</span></strong></header>
+      <div className="gt-career-metrics">{[
+        ['Starts', profile.starts], ['Wins', profile.wins], ['Podiums', profile.podiums], ['Poles', profile.poles], ['Fastest Laps', profile.fastestLaps], ['Avg Finish', profile.averageFinish], ['Laps', profile.laps.toLocaleString()], ['Points', profile.points.toLocaleString()],
+      ].map(([label, value]) => <div key={label}><strong>{value}</strong><span>{label}</span></div>)}</div>
+      {(profile.cars.length > 0 || profile.teams.length > 0) && <div className="gt-career-affiliations">
+        {profile.cars.length > 0 && <p><span>Cars</span>{profile.cars.join(' · ')}</p>}
+        {profile.teams.length > 0 && <p><span>Teams</span>{profile.teams.join(' · ')}</p>}
+      </div>}
+      <div className="gt-career-details">
+        <section><h4>By Class</h4>{profile.classes.map((item) => <div className="gt-career-row" key={item.classKey}><strong>{item.classLabel}</strong><span>{item.starts} starts · {item.wins} wins · {item.podiums} podiums</span></div>)}</section>
+        <section><h4>Championship History</h4>{profile.seasons.map((item) => <div className="gt-career-row" key={item.key}><strong>{item.season} · {item.classLabel}</strong><span>P{item.championshipPosition} · {item.wins} wins · {item.points} pts</span></div>)}</section>
+        <section><h4>Top Circuits</h4>{profile.tracks.map((item) => <div className="gt-career-row" key={item.track}><strong>{item.track}</strong><span>{item.starts} starts · {item.wins} wins · {item.podiums} podiums</span></div>)}</section>
+      </div>
+      <div className="gt-career-actions"><button className="button" type="button" onClick={async () => { const result = await shareGtCareerImage(profile); setShareStatus(result === 'copied' ? 'Career image copied for Discord.' : 'Career image downloaded.') }}>Copy Discord Image</button><button className="button button--secondary" type="button" onClick={() => navigator.clipboard.writeText(window.location.href).then(() => setShareStatus('Career profile link copied.')).catch(() => setShareStatus('Could not copy the profile link.'))}>Copy Profile Link</button><span role="status">{shareStatus}</span></div>
+    </article>}
+  </section>
+}
+
+export const GtStatsPage = () => <PageShell league="gt" title="GT League Stats" eyebrow="All-time driver statistics" compact>
+  <GtCareerSearch />
+  <section className="gt-stats-table"><div className="section-heading"><p className="eyebrow">All-time leaderboard</p><h2>GT Career Statistics</h2></div><LiveDataTable title="GT League Career Statistics" loader={gtHistoricalStats} search tableClassName="data-table--gt-history" columns={[
+    { key: 'rank', label: 'Rank' }, { key: 'driver', label: 'Driver' }, { key: 'classes', label: 'Classes' }, { key: 'seasons', label: 'Seasons' }, { key: 'starts', label: 'Starts' }, { key: 'wins', label: 'Wins' }, { key: 'podiums', label: 'Podiums' }, { key: 'poles', label: 'Poles' }, { key: 'fastestLaps', label: 'Fastest Laps' }, { key: 'points', label: 'Points' },
+  ]} /></section>
+</PageShell>
 export const GtRecordsPage = () => <DataPage league="gt" title="GT League Records" eyebrow="Class records across every published season" loader={gtHistoricalRecords} tableClassName="data-table--gt-history" columns={[
   { key: 'class', label: 'Class' }, { key: 'record', label: 'Record' }, { key: 'driver', label: 'Driver' }, { key: 'total', label: 'Total' },
 ]} />

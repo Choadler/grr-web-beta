@@ -3881,7 +3881,7 @@ button:focus-visible {
 .gt-archive-card {
   display: grid;
   align-content: space-between;
-  min-height: 210px;
+  min-height: 330px;
   padding: 1.15rem;
   border: 1px solid #4f5b4b;
   border-top: 4px solid var(--green);
@@ -3900,6 +3900,34 @@ button:focus-visible {
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.gt-archive-champions {
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+}
+
+.gt-archive-champions > div {
+  display: grid;
+  gap: 0.12rem;
+  padding-left: 0.65rem;
+  border-left: 2px solid #4aa744;
+}
+
+.gt-archive-champions span {
+  color: #9eaa9b;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.gt-archive-champions strong {
+  overflow: hidden;
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gt-archive-links {
@@ -3937,9 +3965,242 @@ button:focus-visible {
   min-width: 760px;
 }
 
+.gt-career-search {
+  padding: clamp(1rem, 3vw, 1.6rem);
+  border: 1px solid #4f5b4b;
+  border-top: 4px solid var(--green);
+  background: #111711;
+}
+
+.gt-career-search__heading h2 {
+  margin: 0.25rem 0 0.45rem;
+  font-size: clamp(1.55rem, 4vw, 2.5rem);
+  text-transform: uppercase;
+}
+
+.gt-career-search__heading p:last-child {
+  margin: 0;
+  color: #b9c4b6;
+}
+
+.gt-driver-lookup {
+  position: relative;
+  max-width: 680px;
+  margin-top: 1.25rem;
+}
+
+.gt-driver-lookup label,
+.gt-driver-lookup label span {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.gt-driver-lookup label span {
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.gt-driver-lookup input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid #657061;
+  border-radius: 0;
+  background: #090d09;
+  color: #fff;
+}
+
+.gt-driver-matches {
+  position: absolute;
+  z-index: 5;
+  top: 100%;
+  right: 0;
+  left: 0;
+  display: grid;
+  border: 1px solid #657061;
+  background: #0d120d;
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.38);
+}
+
+.gt-driver-matches button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 48px;
+  padding: 0.6rem 0.75rem;
+  border: 0;
+  border-bottom: 1px solid #343e32;
+  background: transparent;
+  color: #fff;
+  text-align: left;
+}
+
+.gt-driver-matches button:hover,
+.gt-driver-matches button:focus-visible {
+  background: #202a1e;
+}
+
+.gt-driver-matches button span {
+  color: #9eaa9b;
+  font-size: 0.7rem;
+}
+
+.gt-career-profile {
+  margin-top: 1.5rem;
+  border: 1px solid #465043;
+  background: #0b100b;
+}
+
+.gt-career-profile__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: clamp(1rem, 3vw, 1.6rem);
+  border-bottom: 1px solid #3b4638;
+  background: linear-gradient(110deg, #172117, #0d120d);
+}
+
+.gt-career-profile__header h3 {
+  margin: 0.2rem 0;
+  font-size: clamp(1.8rem, 5vw, 3.2rem);
+  text-transform: uppercase;
+}
+
+.gt-career-profile__header p:last-child {
+  margin: 0;
+  color: #aab5a7;
+}
+
+.gt-career-profile__header > strong {
+  display: grid;
+  min-width: 130px;
+  color: var(--green);
+  font-size: 3rem;
+  line-height: 1;
+  text-align: right;
+}
+
+.gt-career-profile__header > strong span {
+  color: #d7ded4;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.gt-career-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: #344032;
+}
+
+.gt-career-metrics > div {
+  display: grid;
+  gap: 0.25rem;
+  padding: 1rem;
+  background: #121812;
+}
+
+.gt-career-metrics strong {
+  color: #fff;
+  font-size: 1.55rem;
+}
+
+.gt-career-metrics span,
+.gt-career-details h4 {
+  color: #9eaa9b;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.gt-career-details {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.gt-career-affiliations {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.9rem 1rem 0;
+}
+
+.gt-career-affiliations p {
+  margin: 0;
+  color: #c5cec2;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.gt-career-affiliations span {
+  display: inline-block;
+  min-width: 4rem;
+  margin-right: 0.65rem;
+  color: #78d96e;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.gt-career-details section {
+  min-width: 0;
+}
+
+.gt-career-details h4 {
+  margin: 0 0 0.7rem;
+}
+
+.gt-career-row {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid #30392e;
+}
+
+.gt-career-row strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gt-career-row span {
+  color: #9eaa9b;
+  font-size: 0.7rem;
+}
+
+.gt-career-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  padding: 0 1rem 1rem;
+}
+
+.gt-career-actions > span {
+  color: #a9dca0;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.gt-stats-table {
+  margin-top: 2.5rem;
+}
+
 @media (max-width: 900px) {
   .gt-archive-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gt-career-details {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -3950,5 +4211,24 @@ button:focus-visible {
 
   .gt-archive-card {
     min-height: 0;
+  }
+
+  .gt-career-profile__header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .gt-career-profile__header > strong {
+    text-align: left;
+  }
+
+  .gt-career-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gt-driver-matches button {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.2rem;
   }
 }

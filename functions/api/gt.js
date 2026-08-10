@@ -33,8 +33,30 @@ export async function onRequestGet({ env, request }) {
   const db = env.INDYCAR_DB
   const url = new URL(request.url)
   if (url.searchParams.get('list') === 'seasons') {
-    const seasons = await db.prepare("SELECT id,name,status FROM gt_seasons WHERE status<>'draft' ORDER BY created_at DESC").all()
-    return json({ seasons: seasons.results })
+    const [seasons, championRows] = await Promise.all([
+      db.prepare("SELECT id,name,status FROM gt_seasons WHERE status<>'draft' ORDER BY created_at DESC").all(),
+      db.prepare(
+        `WITH driver_points AS (
+          SELECT r.season_id,r.class_key,COALESCE(c.label,r.class_key) AS class_label,
+            MAX(r.driver_name) AS driver_name,SUM(r.total_points) AS points,
+            SUM(CASE WHEN r.class_position=1 THEN 1 ELSE 0 END) AS wins
+          FROM gt_results r
+          JOIN gt_seasons s ON s.id=r.season_id AND s.status<>'draft'
+          LEFT JOIN gt_season_classes c ON c.season_id=r.season_id AND c.class_key=r.class_key
+          GROUP BY r.season_id,r.class_key,
+            CASE WHEN r.customer_id IS NOT NULL THEN 'id:' || r.customer_id ELSE 'name:' || LOWER(r.driver_name) END
+        ), ranked AS (
+          SELECT *,ROW_NUMBER() OVER (PARTITION BY season_id,class_key ORDER BY points DESC,wins DESC,driver_name) AS rank
+          FROM driver_points
+        )
+        SELECT season_id AS seasonId,class_key AS classKey,class_label AS classLabel,driver_name AS driver
+        FROM ranked WHERE rank=1 ORDER BY season_id,class_key`,
+      ).all(),
+    ])
+    return json({ seasons: seasons.results.map((season) => ({
+      ...season,
+      champions: championRows.results.filter((row) => row.seasonId === season.id),
+    })) })
   }
   if (url.searchParams.get('list') === 'classes') {
     const requested = url.searchParams.get('season')
@@ -61,6 +83,7 @@ export async function onRequestGet({ env, request }) {
       const identity = row.customerId ? `id:${row.customerId}` : `name:${row.driver.toLowerCase()}`
       const update = (map, key, base) => {
         const item = map.get(key) ?? { ...base, starts: 0, wins: 0, podiums: 0, poles: 0, fastestLaps: 0, points: 0, seasons: new Set(), classes: new Set() }
+        item.driverKey = identity
         item.driver = row.driver
         item.starts += 1
         item.wins += Number(row.classPosition) === 1 ? 1 : 0
@@ -90,6 +113,81 @@ export async function onRequestGet({ env, request }) {
       }
     }
     return json({ stats, records })
+  }
+  if (url.searchParams.get('view') === 'career') {
+    const driverKey = url.searchParams.get('driver') ?? ''
+    if (!driverKey.startsWith('id:') && !driverKey.startsWith('name:')) return json({ error: 'A valid GT driver is required.' }, 400)
+    const historyData = await db.prepare(
+      `SELECT r.customer_id AS customerId,r.driver_name AS driver,r.class_key AS classKey,
+        COALESCE(c.label,r.class_key) AS classLabel,r.class_position AS classPosition,
+        r.total_points AS points,r.pole,r.fastest_lap AS fastestLap,r.laps_completed AS laps,
+        r.incidents,r.car_name AS car,r.team_name AS team,r.season_id AS seasonId,s.name AS season,
+        e.track,e.race_date AS raceDate
+       FROM gt_results r
+       JOIN gt_seasons s ON s.id=r.season_id AND s.status<>'draft'
+       JOIN gt_events e ON e.id=r.event_id
+       LEFT JOIN gt_season_classes c ON c.season_id=r.season_id AND c.class_key=r.class_key
+       ORDER BY e.race_date,e.round_number`,
+    ).all()
+    const identity = (row) => row.customerId ? `id:${row.customerId}` : `name:${row.driver.toLowerCase()}`
+    const selectedRows = historyData.results.filter((row) => identity(row) === driverKey)
+    if (!selectedRows.length) return json({ error: 'That GT driver was not found.' }, 404)
+    const summarize = (rows) => ({
+      starts: rows.length,
+      wins: rows.filter((row) => Number(row.classPosition) === 1).length,
+      podiums: rows.filter((row) => Number(row.classPosition) <= 3).length,
+      poles: rows.filter((row) => Number(row.pole)).length,
+      fastestLaps: rows.filter((row) => Number(row.fastestLap)).length,
+      points: rows.reduce((total, row) => total + (Number(row.points) || 0), 0),
+      laps: rows.reduce((total, row) => total + (Number(row.laps) || 0), 0),
+      incidents: rows.reduce((total, row) => total + (Number(row.incidents) || 0), 0),
+      averageFinish: Number((rows.reduce((total, row) => total + Number(row.classPosition), 0) / rows.length).toFixed(2)),
+      bestFinish: Math.min(...rows.map((row) => Number(row.classPosition))),
+    })
+    const seasonClassStandings = new Map()
+    for (const row of historyData.results) {
+      const key = `${row.seasonId}:${row.classKey}`
+      const drivers = seasonClassStandings.get(key) ?? new Map()
+      const id = identity(row)
+      const item = drivers.get(id) ?? { driverKey: id, points: 0, wins: 0 }
+      item.points += Number(row.points) || 0
+      item.wins += Number(row.classPosition) === 1 ? 1 : 0
+      drivers.set(id, item)
+      seasonClassStandings.set(key, drivers)
+    }
+    const rankFor = (seasonId, classKey) => [...seasonClassStandings.get(`${seasonId}:${classKey}`).values()]
+      .sort((a, b) => b.points - a.points || b.wins - a.wins || a.driverKey.localeCompare(b.driverKey))
+      .findIndex((item) => item.driverKey === driverKey) + 1
+    const group = (keyFor, details) => {
+      const groups = new Map()
+      for (const row of selectedRows) {
+        const key = keyFor(row)
+        const item = groups.get(key) ?? []
+        item.push(row)
+        groups.set(key, item)
+      }
+      return [...groups.entries()].map(([key, rows]) => ({ key, ...details(rows[0]), ...summarize(rows) }))
+    }
+    const classes = group((row) => row.classKey, (row) => ({ classKey: row.classKey, classLabel: row.classLabel }))
+    const seasons = group((row) => `${row.seasonId}:${row.classKey}`, (row) => ({
+      seasonId: row.seasonId, season: row.season, classKey: row.classKey, classLabel: row.classLabel,
+      championshipPosition: rankFor(row.seasonId, row.classKey),
+    })).sort((a, b) => b.season.localeCompare(a.season, undefined, { numeric: true }))
+    const tracks = group((row) => row.track, (row) => ({ track: row.track }))
+      .sort((a, b) => b.wins - a.wins || b.podiums - a.podiums || b.starts - a.starts || a.track.localeCompare(b.track))
+    const summary = summarize(selectedRows)
+    return json({
+      driverKey,
+      driver: selectedRows.at(-1).driver,
+      ...summary,
+      championships: seasons.filter((item) => item.championshipPosition === 1).length,
+      seasonsEntered: new Set(selectedRows.map((row) => row.seasonId)).size,
+      classes: classes.sort((a, b) => b.starts - a.starts),
+      seasons,
+      tracks: tracks.slice(0, 5),
+      cars: [...new Set(selectedRows.map((row) => row.car).filter(Boolean))],
+      teams: [...new Set(selectedRows.map((row) => row.team).filter(Boolean))],
+    })
   }
   const requestedSeason = url.searchParams.get('season')
   const season = requestedSeason

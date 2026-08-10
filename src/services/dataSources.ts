@@ -71,6 +71,48 @@ export type GtHistoryPayload = {
   records: Record<string, string | number>[]
 }
 
+export type GtCareerBreakdown = {
+  key: string
+  starts: number
+  wins: number
+  podiums: number
+  poles: number
+  fastestLaps: number
+  points: number
+  laps: number
+  incidents: number
+  averageFinish: number
+  bestFinish: number
+  classKey?: string
+  classLabel?: string
+  seasonId?: string
+  season?: string
+  championshipPosition?: number
+  track?: string
+}
+
+export type GtCareerProfile = {
+  driverKey: string
+  driver: string
+  starts: number
+  wins: number
+  podiums: number
+  poles: number
+  fastestLaps: number
+  points: number
+  laps: number
+  incidents: number
+  averageFinish: number
+  bestFinish: number
+  championships: number
+  seasonsEntered: number
+  classes: GtCareerBreakdown[]
+  seasons: GtCareerBreakdown[]
+  tracks: GtCareerBreakdown[]
+  cars: string[]
+  teams: string[]
+}
+
 const requireGtArray = (value: unknown, description: string): unknown[] => {
   if (Array.isArray(value)) return value
   throw new Error(`The in-house GT ${description} response is unavailable.`)
@@ -78,6 +120,10 @@ const requireGtArray = (value: unknown, description: string): unknown[] => {
 
 export async function gtHistory(signal: AbortSignal): Promise<GtHistoryPayload> {
   return (await fetchJson('/api/gt?view=history', signal)) as GtHistoryPayload
+}
+
+export async function gtCareer(driverKey: string, signal: AbortSignal): Promise<GtCareerProfile> {
+  return (await fetchJson(`/api/gt?view=career&driver=${encodeURIComponent(driverKey)}`, signal)) as GtCareerProfile
 }
 
 export const gtHistoricalStats: DataLoader = async (signal) => {
