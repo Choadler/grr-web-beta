@@ -1,3 +1,5 @@
+import { canonicalGtTrackName } from '../_shared/gtTrackNames.js'
+
 const json = (value, status = 200) =>
   Response.json(value, {
     status,
@@ -32,7 +34,7 @@ export async function onRequestGet({ env }) {
       .all(),
   ])
   return json({
-    gt: { seasons: gtSeasons.results, races: gtRaces.results, results: gtResults.results },
+    gt: { seasons: gtSeasons.results, races: gtRaces.results.map((race) => ({ ...race, track: canonicalGtTrackName(race.track) })), results: gtResults.results },
     indycar: {
       seasons: indySeasons.results,
       races: indyRaces.results,

@@ -26,20 +26,28 @@ export function driverKey(name: string) {
 }
 
 export function comparisonDriverOptions(dataset: ComparisonDataset): DriverOption[] {
-  const drivers = new Map<string, DriverOption>()
+  const drivers = new Map<string, DriverOption & { names: Map<string, number> }>()
   dataset.races.forEach((race) =>
     race.results.forEach((result) => {
       const item = drivers.get(result.driverKey) ?? {
         key: result.driverKey,
         name: result.driverName,
         starts: 0,
+        names: new Map<string, number>(),
       }
       item.starts += 1
-      if (result.driverName.length > item.name.length) item.name = result.driverName
+      item.names.set(result.driverName, (item.names.get(result.driverName) ?? 0) + 1)
       drivers.set(result.driverKey, item)
     }),
   )
-  return [...drivers.values()].sort((a, b) => a.name.localeCompare(b.name))
+  return [...drivers.values()]
+    .map(({ names, ...driver }) => ({
+      ...driver,
+      name: [...names.entries()].sort((a, b) =>
+        b[1] - a[1] || Number(/\d+$/.test(a[0])) - Number(/\d+$/.test(b[0])) || a[0].localeCompare(b[0]),
+      )[0]?.[0] ?? driver.name,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name))
 }
 
 function filteredRaces(dataset: ComparisonDataset, filters: ComparisonFilters) {

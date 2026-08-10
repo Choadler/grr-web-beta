@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import type { ComparisonDataset, ComparisonRace, DriverOption } from '../types/driverComparison.ts'
-import { calculateDriverComparison } from './driverComparisonStats.ts'
+import { calculateDriverComparison, comparisonDriverOptions } from './driverComparisonStats.ts'
+import { canonicalGtTrackName } from './gtTrackNames.ts'
 
 const a: DriverOption = { key: 'name:driver a', name: 'Driver A', starts: 0 }
 const b: DriverOption = { key: 'name:driver b', name: 'Driver B', starts: 0 }
@@ -100,4 +101,23 @@ test('returns a graceful empty comparison', () => {
   assert.equal(comparison.sharedRaces.length, 0)
   assert.equal(comparison.careerA.averageFinish, null)
   assert.deepEqual(comparison.recentForm, [])
+})
+
+test('reconciles display-name aliases that share a stable driver key', () => {
+  const blake = { key: 'name:blake doyle', name: 'Blake Doyle', starts: 0 }
+  const alias = { ...blake, name: 'Blake Doyle2' }
+  const options = comparisonDriverOptions(dataset([
+    race('r1', 'gt', [result(blake, 2)]),
+    race('r2', 'gt', [result(blake, 3)]),
+    race('r3', 'gt', [result(alias, 4)]),
+  ]))
+  assert.equal(options.length, 1)
+  assert.deepEqual(options[0], { key: 'name:blake doyle', name: 'Blake Doyle', starts: 3 })
+})
+
+test('standardizes verified GT track aliases without merging distinct layouts', () => {
+  assert.equal(canonicalGtTrackName('CTMP'), 'Canadian Tire Motorsports Park')
+  assert.equal(canonicalGtTrackName('SPA'), 'Circuit de Spa-Francorchamps')
+  assert.equal(canonicalGtTrackName('Watkins Glen'), 'Watkins Glen International')
+  assert.equal(canonicalGtTrackName('Nürburgring Combined'), 'Nürburgring Combined')
 })

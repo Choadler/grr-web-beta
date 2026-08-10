@@ -1,3 +1,5 @@
+import { canonicalGtTrackName } from '../../../_shared/gtTrackNames.js'
+
 const json = (value, status = 200) =>
   Response.json(value, { status, headers: { 'Cache-Control': 'no-store' } })
 const classes = ['gt3-am', 'gt3-pro', 'gtp']
@@ -320,7 +322,7 @@ export async function onRequestPost({ request, env }) {
           item.seasonId,
           item.round,
           item.date,
-          item.track,
+          canonicalGtTrackName(item.track),
           item.trackConfig || '',
           item.laps,
           item.format || 'standard',

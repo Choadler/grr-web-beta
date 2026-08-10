@@ -13,6 +13,7 @@ import type {
   GtSeasonClass,
   GtTeam,
 } from '../types/gtAdmin'
+import { canonicalGtTrackName } from './gtTrackNames'
 import { gtRoster, gtTeamRoster, normalizeGtDriverName } from '../config/gtRoster'
 import { adminFetch } from './adminSession'
 
@@ -287,7 +288,7 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
         })
     }
     if (action === 'saveEvent') {
-      const item = data.event as GtScheduledEvent
+      const item = { ...(data.event as GtScheduledEvent), track: canonicalGtTrackName((data.event as GtScheduledEvent).track) }
       const index = state.schedule.findIndex((event) => event.id === item.id)
       if (index >= 0) state.schedule[index] = item
       else state.schedule.push(item)

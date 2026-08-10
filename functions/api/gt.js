@@ -1,3 +1,5 @@
+import { canonicalGtTrackName } from '../_shared/gtTrackNames.js'
+
 const json = (value, status = 200) =>
   Response.json(value, {
     status,
@@ -5,6 +7,16 @@ const json = (value, status = 200) =>
   })
 const defaultClasses = ['gt3-am', 'gt3-pro', 'gtp']
 const defaultLabels = { 'gt3-am': 'GT3 AM', 'gt3-pro': 'GT3 Pro', gtp: 'GTP' }
+const preferredDriverName = (current, candidate) => {
+  if (!current) return candidate
+  const currentBase = current.replace(/\d+$/, '').trim().toLowerCase()
+  const candidateBase = candidate.replace(/\d+$/, '').trim().toLowerCase()
+  if (currentBase === candidateBase) {
+    if (/\d+$/.test(current) && !/\d+$/.test(candidate)) return candidate
+    if (!/\d+$/.test(current) && /\d+$/.test(candidate)) return current
+  }
+  return current
+}
 const intervalNumber = (value) => {
   const parsed = Number(String(value ?? '').replace(/^\+/, ''))
   return Number.isFinite(parsed) ? parsed : null
@@ -84,7 +96,7 @@ export async function onRequestGet({ env, request }) {
       const update = (map, key, base) => {
         const item = map.get(key) ?? { ...base, starts: 0, wins: 0, podiums: 0, poles: 0, fastestLaps: 0, points: 0, seasons: new Set(), classes: new Set() }
         item.driverKey = identity
-        item.driver = row.driver
+        item.driver = preferredDriverName(item.driver, row.driver)
         item.starts += 1
         item.wins += Number(row.classPosition) === 1 ? 1 : 0
         item.podiums += Number(row.classPosition) <= 3 ? 1 : 0
@@ -173,12 +185,12 @@ export async function onRequestGet({ env, request }) {
       seasonId: row.seasonId, season: row.season, classKey: row.classKey, classLabel: row.classLabel,
       championshipPosition: rankFor(row.seasonId, row.classKey),
     })).sort((a, b) => b.season.localeCompare(a.season, undefined, { numeric: true }))
-    const tracks = group((row) => row.track, (row) => ({ track: row.track }))
+    const tracks = group((row) => canonicalGtTrackName(row.track), (row) => ({ track: canonicalGtTrackName(row.track) }))
       .sort((a, b) => b.wins - a.wins || b.podiums - a.podiums || b.starts - a.starts || a.track.localeCompare(b.track))
     const summary = summarize(selectedRows)
     return json({
       driverKey,
-      driver: selectedRows.at(-1).driver,
+      driver: selectedRows.reduce((name, row) => preferredDriverName(name, row.driver), ''),
       ...summary,
       championships: seasons.filter((item) => item.championshipPosition === 1).length,
       seasonsEntered: new Set(selectedRows.map((row) => row.seasonId)).size,
@@ -269,7 +281,7 @@ export async function onRequestGet({ env, request }) {
     return {
       round: event.round,
       date: event.date,
-      track: event.track,
+      track: canonicalGtTrackName(event.track),
       am: winner('gt3-am'),
       pro: winner('gt3-pro'),
       gtp: winner('gtp'),
@@ -282,7 +294,7 @@ export async function onRequestGet({ env, request }) {
     .filter((event) => event.status === 'completed')
     .map((event) => ({
       id: event.subsessionId ?? event.round,
-      label: `${event.track} — ${event.date}`,
+      label: `${canonicalGtTrackName(event.track)} — ${event.date}`,
       sessions: [
         {
           id: (event.subsessionId ?? event.round) * 10,
@@ -318,11 +330,6 @@ export async function onRequestGet({ env, request }) {
           (row) => row.event_id === event.id && row.class_key === classKey,
         )
         const leader = classRows.find((row) => row.class_position === 1)
-        const fastestTime = Math.min(
-          ...classRows
-            .filter((row) => Number(row.best_lap_time) > 0)
-            .map((row) => Number(row.best_lap_time)),
-        )
         return {
           id: (event.subsessionId ?? event.round) * 10 + index + 1,
           label: labels[classKey],
@@ -341,8 +348,7 @@ export async function onRequestGet({ env, request }) {
             incidents: row.incidents,
             status: row.status,
             pole: row.pole,
-            fastestLap:
-              Number(row.best_lap_time) > 0 && Number(row.best_lap_time) === fastestTime ? 1 : 0,
+            fastestLap: row.fastest_lap ? 1 : 0,
           })),
         }
         }),

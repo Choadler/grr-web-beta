@@ -132,19 +132,42 @@ function d1Series(payload: unknown, series: 'gt' | 'indycar'): ComparisonDataset
     }
   })
   const rows = list(source.results).map(record)
+  const customerNames = new Map<string, Map<string, number>>()
+  rows.forEach((row) => {
+    const customerId = text(row.customerId)
+    if (!customerId) return
+    const name = displayName(row.driver)
+    const names = customerNames.get(customerId) ?? new Map<string, number>()
+    names.set(name, (names.get(name) ?? 0) + 1)
+    customerNames.set(customerId, names)
+  })
+  const preferredCustomerNames = new Map<string, string>()
+  customerNames.forEach((names, customerId) => {
+    const entries = [...names.entries()]
+    const bases = new Set(entries.map(([name]) => canonicalDriverName(name).replace(/\d+$/, '').trim()))
+    if (bases.size !== 1) return
+    preferredCustomerNames.set(
+      customerId,
+      entries.sort((a, b) =>
+        Number(/\d+$/.test(a[0])) - Number(/\d+$/.test(b[0])) || b[1] - a[1] || a[0].localeCompare(b[0]),
+      )[0][0],
+    )
+  })
   const races: ComparisonRace[] = list(source.races).map((item) => {
     const race = record(item)
     const season = seasons.find((entry) => entry.id === text(race.seasonId))
     const results = rows
       .filter((row) => text(row.eventId) === text(race.id))
       .map((row): ComparisonResult => {
-        const name = displayName(row.driver)
+        const customerId = text(row.customerId)
+        const name = preferredCustomerNames.get(customerId) ?? displayName(row.driver)
+        const sourceDriverId = customerId || `name:${canonicalDriverName(name)}`
         const classFinish = series === 'gt' ? number(row.classPosition) : undefined
         const overallFinish = series === 'gt' ? number(row.overallPosition) : undefined
         return {
           driverKey: driverKey(name),
           driverName: name,
-          sourceDriverId: text(row.customerId) || `name:${canonicalDriverName(name)}`,
+          sourceDriverId,
           finish: classFinish ?? number(row.finish),
           classFinish,
           overallFinish,
