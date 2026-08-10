@@ -581,7 +581,16 @@ function TeamsEditor({
       summary={`${teams.length} team${teams.length === 1 ? '' : 's'}`}
       {...control}
     >
-      <div className="admin-team-tabs">
+      <div className="admin-team-workspace">
+        <aside className="admin-team-sidebar" aria-label="GT teams">
+          <div className="admin-team-sidebar__heading">
+            <div>
+              <p className="eyebrow">Season roster</p>
+              <h3>Your teams</h3>
+            </div>
+            <span>{teams.length}</span>
+          </div>
+          <div className="admin-team-tabs">
         <button
           type="button"
           className={!teams.some((item) => item.id === team.id) ? 'is-active' : ''}
@@ -599,12 +608,24 @@ function TeamsEditor({
             <strong>{item.name}</strong>
             <span>
               {gtClasses.find((entry) => entry.key === item.classKey)?.label} ·{' '}
-              {item.memberNames.length} drivers
+              {item.memberNames.length} driver{item.memberNames.length === 1 ? '' : 's'}
             </span>
           </button>
         ))}
-      </div>
-      <div className="admin-form-grid">
+          </div>
+          {!teams.length && <p className="admin-team-empty">No teams created yet.</p>}
+        </aside>
+        <div className="admin-team-editor">
+          <div className="admin-team-editor__heading">
+            <div>
+              <p className="eyebrow">
+                {teams.some((item) => item.id === team.id) ? 'Edit team' : 'New team'}
+              </p>
+              <h3>{team.name || 'Team details'}</h3>
+            </div>
+            <span>1. Details</span>
+          </div>
+      <div className="admin-form-grid admin-team-details">
         <label>
           Team name
           <input
@@ -632,27 +653,33 @@ function TeamsEditor({
             onChange={(event) => setTeam({ ...team, car: event.target.value })}
           />
         </label>
-        <label>
-          Find drivers
-          <input
-            type="search"
-            value={search}
-            placeholder="Search roster"
-            onChange={(event) => setSearch(event.target.value)}
-          />
-        </label>
       </div>
-      <p>
+      <div className="admin-team-editor__heading admin-team-editor__heading--drivers">
+        <div>
+          <span>2. Drivers</span>
+          <p>
         Select the drivers on this team. Saving applies the team name, class, and car to their
         roster assignments and existing results.
-      </p>
-      <div className="admin-team-selection">
+          </p>
+        </div>
         <strong>{team.memberNames.length} selected</strong>
+      </div>
+      <label className="admin-team-search">
+        Find drivers
+        <input
+          type="search"
+          value={search}
+          placeholder="Search by driver, car, or class"
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      </label>
+      <div className="admin-team-selection">
         <div>
           {team.memberNames.map((name) => (
             <button
               type="button"
               key={name}
+              aria-label={`Remove ${name} from team`}
               onClick={() => {
                 const driver = drivers.find((item) => item.driver === name)
                 if (driver) toggle(driver)
@@ -662,6 +689,7 @@ function TeamsEditor({
             </button>
           ))}
         </div>
+        {!team.memberNames.length && <p>No drivers selected yet.</p>}
       </div>
       <div className="admin-team-toolbar">
         <label>
@@ -696,7 +724,10 @@ function TeamsEditor({
       </div>
       <div className="admin-team-picker">
         {visible.map((driver) => (
-          <label key={`${driver.customerId}:${driver.driver}`}>
+          <label
+            className={selected(driver) ? 'is-selected' : ''}
+            key={`${driver.customerId}:${driver.driver}`}
+          >
             <input type="checkbox" checked={selected(driver)} onChange={() => toggle(driver)} />
             <span>
               <strong>{driver.driver}</strong>
@@ -707,7 +738,13 @@ function TeamsEditor({
             </span>
           </label>
         ))}
+        {!visible.length && <p className="admin-team-empty">No matching drivers.</p>}
       </div>
+      <div className="admin-team-savebar">
+        <div>
+          <span>3. Save</span>
+          <small>Saving updates roster assignments and existing results.</small>
+        </div>
       <div className="admin-card__actions">
         <button
           className="button"
@@ -725,7 +762,7 @@ function TeamsEditor({
             await refresh('GT team saved and team standings updated.')
           }}
         >
-          Save team
+          {teams.some((item) => item.id === team.id) ? 'Save changes' : 'Create team'}
         </button>
         {teams.some((item) => item.id === team.id) && (
           <button type="button" onClick={() => setTeam(blank())}>
@@ -746,6 +783,9 @@ function TeamsEditor({
             Delete team
           </button>
         )}
+      </div>
+      </div>
+        </div>
       </div>
       <div className="admin-table-wrap admin-team-table">
         <table className="admin-table">

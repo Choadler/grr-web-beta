@@ -1084,16 +1084,87 @@ a {
 .admin-form-grid--bonuses {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
-.admin-team-tabs {
+.admin-team-workspace {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 1rem;
+  margin-top: 1.25rem;
+  align-items: start;
+}
+.admin-team-sidebar,
+.admin-team-editor {
+  border: 1px solid #354734;
+  background: #0e1510;
+}
+.admin-team-sidebar {
+  position: sticky;
+  top: 1rem;
+  padding: 0.85rem;
+}
+.admin-team-sidebar__heading,
+.admin-team-editor__heading,
+.admin-team-savebar {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.admin-team-sidebar__heading h3,
+.admin-team-editor__heading h3,
+.admin-team-editor__heading p {
+  margin: 0;
+}
+.admin-team-sidebar__heading > span {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid #4c6749;
+  color: var(--green-light);
+  font-weight: 800;
+}
+.admin-team-editor {
+  min-width: 0;
+  padding: 1.25rem;
+}
+.admin-team-editor__heading {
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid #2f402e;
+}
+.admin-team-editor__heading > span,
+.admin-team-editor__heading--drivers > div > span,
+.admin-team-savebar > div > span {
+  color: var(--green-light);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.admin-team-editor__heading--drivers {
+  margin-top: 1.5rem;
+}
+.admin-team-editor__heading--drivers p {
+  margin-top: 0.3rem;
+  color: #b9c4b7;
+}
+.admin-team-details {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.admin-team-search {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 1rem;
+}
+.admin-team-tabs {
+  display: grid;
   gap: 0.5rem;
-  overflow-x: auto;
-  padding: 1rem 0;
+  max-height: 32rem;
+  overflow-y: auto;
+  padding: 0.85rem 0 0;
 }
 .admin-team-tabs button {
   display: grid;
-  flex: 0 0 auto;
-  min-width: 150px;
+  width: 100%;
   gap: 0.2rem;
   border: 1px solid #40543e;
   background: #101711;
@@ -1109,6 +1180,10 @@ a {
 .admin-team-tabs span {
   color: #b9c4b7;
   font-size: 0.72rem;
+}
+.admin-team-empty,
+.admin-team-selection > p {
+  color: #aebbaa;
 }
 .admin-team-selection {
   display: grid;
@@ -1173,6 +1248,32 @@ a {
 }
 .admin-team-picker small {
   color: #b9c4b7;
+}
+.admin-team-savebar {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #2f402e;
+}
+.admin-team-savebar > div:first-child {
+  display: grid;
+  gap: 0.25rem;
+}
+.admin-team-savebar small {
+  color: #aebbaa;
+}
+.admin-team-savebar .admin-card__actions {
+  margin: 0;
+}
+.admin-team-savebar button:not(.button) {
+  border: 1px solid #536551;
+  background: #182119;
+  color: #e5ece3;
+  padding: 0.65rem 0.8rem;
+  cursor: pointer;
+}
+.admin-team-savebar button.admin-action--danger {
+  border-color: #8a4848;
+  color: #ffb8b8;
 }
 .admin-team-table {
   display: none;
@@ -1299,6 +1400,23 @@ a {
   .admin-form-grid--bonuses,
   .admin-team-picker {
     grid-template-columns: 1fr;
+  }
+  .admin-team-workspace {
+    grid-template-columns: 1fr;
+  }
+  .admin-team-sidebar {
+    position: static;
+  }
+  .admin-team-tabs {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    max-height: none;
+  }
+  .admin-team-details {
+    grid-template-columns: 1fr;
+  }
+  .admin-team-savebar {
+    align-items: stretch;
+    flex-direction: column;
   }
   .admin-page-heading,
   .admin-card__heading,
@@ -2529,6 +2647,10 @@ button:focus-visible {
   background: transparent;
   color: #fff;
   cursor: pointer;
+}
+.admin-team-picker label.is-selected {
+  border-color: var(--green);
+  background: #193018;
 }
 
 .sporting-admin__history {
