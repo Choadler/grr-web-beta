@@ -1517,12 +1517,27 @@ button:focus-visible {
   text-align: center;
 }
 .comparison-score {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 1rem;
+  padding-top: 3.25rem;
   border-top: 5px solid var(--green);
   text-align: center;
+}
+.comparison-score__league {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 0.55rem 0.8rem;
+  background: var(--green);
+  color: #071008;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
 }
 .comparison-score h2 {
   margin: 0.35rem 0;

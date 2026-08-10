@@ -8,6 +8,24 @@ const blob = (canvas: HTMLCanvasElement) =>
     ),
   )
 
+function drawFittedText(
+  context: CanvasRenderingContext2D,
+  value: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  maxSize: number,
+  minSize: number,
+) {
+  let size = maxSize
+  do {
+    context.font = `900 ${size}px Arial`
+    if (context.measureText(value).width <= maxWidth) break
+    size -= 1
+  } while (size > minSize)
+  context.fillText(value, x, y, maxWidth)
+}
+
 export async function shareDriverComparisonImage(
   comparison: DriverComparison,
   filterLabel: string,
@@ -29,24 +47,23 @@ export async function shareDriverComparisonImage(
   context.fillText(filterLabel.toUpperCase(), 70, 108)
   context.textAlign = 'center'
   context.fillStyle = '#fff'
-  context.font = '900 42px Arial'
-  context.fillText(comparison.driverA.name.toUpperCase(), 290, 225)
-  context.fillText(comparison.driverB.name.toUpperCase(), 910, 225)
+  drawFittedText(context, comparison.driverA.name.toUpperCase(), 260, 205, 380, 42, 25)
+  drawFittedText(context, comparison.driverB.name.toUpperCase(), 940, 205, 380, 42, 25)
   context.fillStyle = '#76df6c'
-  context.font = '900 92px Arial'
-  context.fillText(String(comparison.driverAWins), 475, 245)
+  context.font = '900 82px Arial'
+  context.fillText(String(comparison.driverAWins), 500, 285)
   context.fillStyle = '#fff'
   context.font = '900 44px Arial'
-  context.fillText('—', 600, 235)
+  context.fillText('—', 600, 275)
   context.fillStyle = '#76df6c'
-  context.font = '900 92px Arial'
-  context.fillText(String(comparison.driverBWins), 725, 245)
+  context.font = '900 82px Arial'
+  context.fillText(String(comparison.driverBWins), 700, 285)
   context.fillStyle = '#b8c3b7'
   context.font = '700 20px Arial'
   context.fillText(
     `${comparison.sharedRaces.length} RACES TOGETHER${comparison.ties ? ` • ${comparison.ties} TIED` : ''}`,
     600,
-    315,
+    335,
   )
   const stats = [
     [
@@ -60,7 +77,7 @@ export async function shareDriverComparisonImage(
     ['LAPS LED', comparison.sharedA.lapsLed, comparison.sharedB.lapsLed],
   ]
   stats.forEach(([label, left, right], index) => {
-    const y = 385 + index * 48
+    const y = 405 + index * 46
     context.fillStyle = index % 2 ? '#151d16' : '#111712'
     context.fillRect(70, y - 30, 1060, 42)
     context.font = '800 20px Arial'

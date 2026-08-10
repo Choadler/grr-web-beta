@@ -16,6 +16,12 @@ import type {
 import { shareDriverComparisonImage } from '../utils/driverComparisonExport'
 
 const seriesLabels = { all: 'All GRR', cup: 'Cup', gt: 'GT', indycar: 'IndyCar' } as const
+const comparisonLeagueLabels = {
+  all: 'All GRR comparison',
+  cup: 'Cup Series comparison',
+  gt: 'GT League comparison',
+  indycar: 'IndyCar comparison',
+} as const
 const fmt = (value: number | null) => (value === null ? '—' : value.toFixed(1).replace(/\.0$/, ''))
 const place = (value: number) => `P${value}`
 const raceWinnerName = (race: ComparisonDataset['races'][number]) =>
@@ -282,6 +288,7 @@ export function DriverComparisonPage() {
                   <h2>{driverB.name}</h2>
                 </div>
                 <p>{summary}</p>
+                <span className="comparison-score__league">{comparisonLeagueLabels[series]}</span>
               </section>
               <div className="comparison-actions">
                 <button
@@ -290,7 +297,7 @@ export function DriverComparisonPage() {
                   onClick={async () => {
                     const status = await shareDriverComparisonImage(
                       comparison,
-                      `${seriesLabels[series]} • ${season === 'all' ? 'All Seasons' : (seasons.find((item) => item.key === season)?.name ?? season)}`,
+                      `${comparisonLeagueLabels[series]} • ${season === 'all' ? 'All Seasons' : (seasons.find((item) => item.key === season)?.name ?? season)}`,
                     )
                     setShareStatus(
                       status === 'copied' ? 'Image copied for Discord.' : 'Image downloaded.',
