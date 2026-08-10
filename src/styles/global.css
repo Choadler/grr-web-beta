@@ -3861,41 +3861,94 @@ button:focus-visible {
   .admin-season-picker > .button { width: 100%; }
 }
 .gt-archive {
-  margin-top: 2rem;
+  margin-top: 1.5rem;
+}
+
+.gt-archive-intro {
+  max-width: 62ch;
+  margin: 0;
+  color: #c7d0c4;
+  font-size: 1rem;
+  line-height: 1.65;
 }
 
 .gt-archive-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
 }
 
 .gt-archive-card {
-  padding: 1rem;
-  border: 1px solid rgba(166, 255, 67, 0.22);
-  background: rgba(15, 20, 13, 0.92);
+  display: grid;
+  align-content: space-between;
+  min-height: 210px;
+  padding: 1.15rem;
+  border: 1px solid #4f5b4b;
+  border-top: 4px solid var(--green);
+  background: #151b14;
 }
 
 .gt-archive-card h3 {
-  margin: 0 0 0.75rem;
+  margin: 0.3rem 0 1.2rem;
+  font-size: clamp(1.2rem, 2vw, 1.55rem);
+  text-transform: uppercase;
+}
+
+.gt-archive-card__heading > span {
+  color: #a9dca0;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .gt-archive-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
+  display: grid;
+  gap: 0.35rem;
 }
 
 .gt-archive-links a {
-  padding: 0.45rem 0.6rem;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: var(--color-accent, #a6ff43);
-  font-size: 0.78rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 38px;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid #3d493a;
+  background: #10150f;
+  color: #dfffd8;
+  font-size: 0.75rem;
   font-weight: 800;
+  text-decoration: none;
   text-transform: uppercase;
+}
+
+.gt-archive-links a:hover,
+.gt-archive-links a:focus-visible {
+  border-color: #86bf7d;
+  background: #202a1e;
+}
+
+.gt-archive-links a span {
+  color: var(--green);
+  font-size: 1rem;
 }
 
 .data-table--gt-history {
   min-width: 760px;
+}
+
+@media (max-width: 900px) {
+  .gt-archive-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .gt-archive-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gt-archive-card {
+    min-height: 0;
+  }
 }

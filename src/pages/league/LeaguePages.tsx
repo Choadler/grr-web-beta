@@ -46,6 +46,7 @@ const gtNav: LeagueNavItem[] = [
   { label: 'GT Race Results', href: '/pages/gt-race-results' },
   { label: 'GT Stats', href: '/pages/gt-stats' },
   { label: 'GT Records', href: '/pages/gt-records' },
+  { label: 'GT Archive', href: '/pages/gt-archive' },
 ]
 const indyNav: LeagueNavItem[] = [
   { label: 'IndyCar Sporting Code', href: '/pages/indycar-sporting-code' },
@@ -196,16 +197,16 @@ function LinkGrid({ links }: { links: LeagueNavItem[] }) {
 
 function GtArchiveSection() {
   const seasons = useGtSeasons().filter((season) => season.status !== 'active')
-  if (!seasons.length) return null
+  if (!seasons.length) return <EmptyState title="No archived GT seasons are available yet." />
   return <section className="gt-archive" aria-labelledby="gt-archive-title">
-    <div className="section-heading"><p className="eyebrow">Past seasons</p><h2 id="gt-archive-title">GT Archive</h2></div>
+    <div className="section-heading"><p className="eyebrow">Season history</p><h2 id="gt-archive-title">Past GT Seasons</h2></div>
     <div className="gt-archive-grid">
       {seasons.map((season: GtSeasonSummary) => <article className="gt-archive-card" key={season.id}>
-        <h3>{season.name}</h3>
+        <div className="gt-archive-card__heading"><span>Archived season</span><h3>{season.name}</h3></div>
         <div className="gt-archive-links">
-          <Link to={`/pages/gt-standings?season=${encodeURIComponent(season.id)}`}>Standings</Link>
-          <Link to={`/pages/gt-schedule?season=${encodeURIComponent(season.id)}`}>Schedule</Link>
-          <Link to={`/pages/gt-race-results?season=${encodeURIComponent(season.id)}`}>Results</Link>
+          <Link to={`/pages/gt-standings?season=${encodeURIComponent(season.id)}`}>Standings <span aria-hidden="true">→</span></Link>
+          <Link to={`/pages/gt-schedule?season=${encodeURIComponent(season.id)}`}>Schedule <span aria-hidden="true">→</span></Link>
+          <Link to={`/pages/gt-race-results?season=${encodeURIComponent(season.id)}`}>Race Results <span aria-hidden="true">→</span></Link>
         </div>
       </article>)}
     </div>
@@ -239,7 +240,6 @@ export function GtLandingPage() {
         resultsHref="/pages/gt-race-results"
         multiClass
       />
-      <GtArchiveSection />
       <DiscordCallout />
     </PageShell>
   )
@@ -566,6 +566,10 @@ export const GtStatsPage = () => <DataPage league="gt" title="GT League Stats" e
 export const GtRecordsPage = () => <DataPage league="gt" title="GT League Records" eyebrow="Class records across every published season" loader={gtHistoricalRecords} tableClassName="data-table--gt-history" columns={[
   { key: 'class', label: 'Class' }, { key: 'record', label: 'Record' }, { key: 'driver', label: 'Driver' }, { key: 'total', label: 'Total' },
 ]} />
+export const GtArchivePage = () => <PageShell league="gt" title="GT League Archive" eyebrow="Historical seasons, standings, schedules, and race results" compact>
+  <p className="gt-archive-intro">Explore every completed GT League season and its permanent competition records.</p>
+  <GtArchiveSection />
+</PageShell>
 
 export const IndyStandingsPage = () => (
   <DataPage
