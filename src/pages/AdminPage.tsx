@@ -540,8 +540,23 @@ function ResultsImporter({
   const [rawJson, setRawJson] = useState<unknown>(null)
   const [filename, setFilename] = useState('')
   const [eventId, setEventId] = useState('')
+  const [viewId, setViewId] = useState('')
   const [error, setError] = useState('')
   const events = state.schedule.filter((item) => item.seasonId === seasonId)
+  const publishedSeasons = state.seasons
+    .map((season) => ({
+      season,
+      events: state.schedule
+        .filter(
+          (item) =>
+            item.seasonId === season.id &&
+            item.status === 'completed' &&
+            Boolean(state.results[item.id]?.length),
+        )
+        .sort((a, b) => a.round - b.round),
+    }))
+    .filter((group) => group.events.length)
+  const publishedCount = publishedSeasons.reduce((total, group) => total + group.events.length, 0)
   const lastImport = state.imports.filter((item) => item.seasonId === seasonId).at(-1)
   const lastImportedEvent = events.find((item) => item.id === lastImport?.eventId)
   const read = async (file?: File) => {
@@ -575,7 +590,12 @@ function ResultsImporter({
     await refresh('Race results published and standings recalculated.')
   }
   return (
-    <AdminSection eyebrow="Race control" title="Import Race" {...section}>
+    <AdminSection
+      eyebrow="Race control"
+      title="Import Race"
+      summary={`${publishedCount} published`}
+      {...section}
+    >
       <p>
         The original JSON is retained for auditing. Nothing is published until you review the
         preview and assign it to a scheduled event.
@@ -671,6 +691,51 @@ function ResultsImporter({
           </div>
         </div>
       )}
+      <h3>Published races</h3>
+      {publishedSeasons.length ? (
+        publishedSeasons.map(({ season, events: publishedEvents }) => (
+          <div key={season.id}>
+            <h4>{season.name}</h4>
+            {publishedEvents.map((item) => (
+              <p key={item.id}>
+                <strong>
+                  Round {item.round}: {item.track}
+                </strong>{' '}
+                <button type="button" onClick={() => setViewId(item.id)}>
+                  Edit Race
+                </button>{' '}
+                <button
+                  className="admin-action--danger"
+                  type="button"
+                  onClick={async () => {
+                    if (
+                      !confirm(
+                        'Delete the published results for this race? The scheduled event will remain.',
+                      )
+                    )
+                      return
+                    await mutateIndyAdmin({ action: 'deleteResults', eventId: item.id })
+                    if (viewId === item.id) setViewId('')
+                    await refresh('Race results deleted. The event is scheduled again.')
+                  }}
+                >
+                  Delete Results
+                </button>
+              </p>
+            ))}
+          </div>
+        ))
+      ) : (
+        <p>No published races yet.</p>
+      )}
+      {viewId && state.results[viewId]?.length ? (
+        <RaceEditor
+          event={state.schedule.find((item) => item.id === viewId)!}
+          rows={state.results[viewId]}
+          refresh={refresh}
+          close={() => setViewId('')}
+        />
+      ) : null}
     </AdminSection>
   )
 }
