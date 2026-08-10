@@ -2103,13 +2103,13 @@ button:focus-visible {
 
 /* Community gallery */
 .gallery-hero {
-  padding-block: clamp(3rem, 7vw, 6rem);
+  padding-block: clamp(1.5rem, 3vw, 2.25rem);
   border-bottom: 1px solid #3e503b;
   background: linear-gradient(110deg, #050a05, #152414 72%, #20351e);
 }
 .gallery-hero h1 {
   margin: 0;
-  font-size: clamp(3rem, 8vw, 7rem);
+  font-size: clamp(2.75rem, 5vw, 4.25rem);
   line-height: 0.9;
   text-transform: uppercase;
 }
@@ -2282,6 +2282,20 @@ button:focus-visible {
 .gallery-toolbar label {
   min-width: 180px;
 }
+.gallery-filters {
+  display: flex;
+  gap: 0.75rem;
+  align-items: end;
+}
+.gallery-filters label {
+  display: grid;
+  gap: 0.35rem;
+  color: #a5ed9e;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 .gallery-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2324,6 +2338,40 @@ button:focus-visible {
 .gallery-grid figcaption strong {
   color: #9ce992;
   text-transform: uppercase;
+}
+.gallery-pagination {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+.gallery-pagination div {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.gallery-pagination button {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #5d6e59;
+  color: #fff;
+  background: #111711;
+  font-weight: 800;
+  cursor: pointer;
+}
+.gallery-pagination button:hover,
+.gallery-pagination button:focus-visible,
+.gallery-pagination button.is-current {
+  border-color: var(--green);
+  color: #071006;
+  background: #8ee985;
+}
+.gallery-pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 .gallery-admin__filters {
   display: flex;
@@ -2829,6 +2877,34 @@ button:focus-visible {
   border-color: #72dc68;
   color: #72dc68;
 }
+.photo-lightbox__arrow {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  display: grid;
+  width: 3.25rem;
+  height: 4.5rem;
+  place-items: center;
+  padding: 0;
+  transform: translateY(-50%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  color: #fff;
+  background: rgba(0, 0, 0, 0.78);
+  font-size: 3rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.photo-lightbox__arrow--previous {
+  left: 0.65rem;
+}
+.photo-lightbox__arrow--next {
+  right: 0.65rem;
+}
+.photo-lightbox__arrow:hover,
+.photo-lightbox__arrow:focus-visible {
+  border-color: #72dc68;
+  color: #72dc68;
+}
 
 @media (max-width: 900px) {
   .gallery-layout {
@@ -2858,5 +2934,20 @@ button:focus-visible {
   .gallery-toolbar {
     align-items: stretch;
     flex-direction: column;
+  }
+  .gallery-filters {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .gallery-pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .gallery-pagination > button {
+    width: 100%;
+  }
+  .photo-lightbox__arrow {
+    width: 2.75rem;
+    height: 3.75rem;
   }
 }

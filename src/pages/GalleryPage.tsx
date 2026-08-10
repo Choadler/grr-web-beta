@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadGallery, submitGalleryPhoto } from '../services/gallery'
 import type { GalleryLeague, GalleryPhoto } from '../types/gallery'
 import { PageMeta } from '../components/league/PageMeta'
@@ -11,6 +11,8 @@ const labels: Record<GalleryLeague, string> = {
   indycar: 'IndyCar',
 }
 
+const photosPerPage = 8
+
 type UploadItem = {
   id: string
   file: File
@@ -22,6 +24,8 @@ type UploadItem = {
 export function GalleryPage() {
   const [photos, setPhotos] = useState<GalleryPhoto[]>([])
   const [filter, setFilter] = useState<'all' | GalleryLeague>('all')
+  const [authorFilter, setAuthorFilter] = useState('all')
+  const [page, setPage] = useState(1)
   const [photographer, setPhotographer] = useState('')
   const [league, setLeague] = useState<GalleryLeague>('cup')
   const [uploads, setUploads] = useState<UploadItem[]>([])
@@ -42,7 +46,7 @@ export function GalleryPage() {
 
   useEffect(() => {
     let active = true
-    loadGallery(filter === 'all' ? undefined : filter)
+    loadGallery(filter === 'all' ? undefined : filter, 100)
       .then((items) => {
         if (!active) return
         setPhotos(items)
@@ -57,6 +61,31 @@ export function GalleryPage() {
       active = false
     }
   }, [filter])
+
+  const authors = useMemo(
+    () =>
+      [...new Set(photos.map((photo) => photo.photographer))].sort((left, right) =>
+        left.localeCompare(right, undefined, { sensitivity: 'base' }),
+      ),
+    [photos],
+  )
+  const filteredPhotos = useMemo(
+    () =>
+      authorFilter === 'all'
+        ? photos
+        : photos.filter((photo) => photo.photographer === authorFilter),
+    [authorFilter, photos],
+  )
+  const pageCount = Math.max(1, Math.ceil(filteredPhotos.length / photosPerPage))
+  const visiblePhotos = filteredPhotos.slice((page - 1) * photosPerPage, page * photosPerPage)
+  const selectedIndex = selected
+    ? filteredPhotos.findIndex((photo) => photo.id === selected.id)
+    : -1
+  const selectAdjacentPhoto = (direction: -1 | 1) => {
+    if (selectedIndex < 0 || filteredPhotos.length < 2) return
+    const nextIndex = (selectedIndex + direction + filteredPhotos.length) % filteredPhotos.length
+    setSelected(filteredPhotos[nextIndex])
+  }
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -248,50 +277,114 @@ export function GalleryPage() {
         <div className="gallery-collection">
           <div className="gallery-toolbar">
             <h2>Community Photos</h2>
-            <label>
-              <span className="sr-only">Filter gallery by league</span>
-              <select
-                value={filter}
-                onChange={(event) => setFilter(event.target.value as typeof filter)}
-              >
-                <option value="all">All leagues</option>
-                {Object.entries(labels).map(([key, label]) => (
-                  <option key={key} value={key}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          {photos.length ? (
-            <div className="gallery-grid">
-              {photos.map((item) => (
-                <figure key={item.id}>
-                  <button
-                    className="gallery-photo-button"
-                    type="button"
-                    onClick={() => setSelected(item)}
-                    aria-label={`Enlarge photo by ${item.photographer}`}
-                  >
-                    <img
-                      src={item.thumbnailUrl || item.imageUrl}
-                      alt={`${labels[item.league]} race submitted by ${item.photographer}`}
-                      loading="lazy"
-                    />
-                  </button>
-                  <figcaption>
-                    <strong>{labels[item.league]}</strong>
-                    <span>Photo by {item.photographer}</span>
-                  </figcaption>
-                </figure>
-              ))}
+            <div className="gallery-filters">
+              <label>
+                <span>League</span>
+                <select
+                  value={filter}
+                  onChange={(event) => {
+                    setFilter(event.target.value as typeof filter)
+                    setAuthorFilter('all')
+                    setPage(1)
+                    setSelected(null)
+                  }}
+                >
+                  <option value="all">All leagues</option>
+                  {Object.entries(labels).map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Photographer</span>
+                <select
+                  value={authorFilter}
+                  onChange={(event) => {
+                    setAuthorFilter(event.target.value)
+                    setPage(1)
+                    setSelected(null)
+                  }}
+                >
+                  <option value="all">All photographers</option>
+                  {authors.map((author) => (
+                    <option key={author} value={author}>
+                      {author}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
+          </div>
+          {filteredPhotos.length ? (
+            <>
+              <div className="gallery-grid">
+                {visiblePhotos.map((item) => (
+                  <figure key={item.id}>
+                    <button
+                      className="gallery-photo-button"
+                      type="button"
+                      onClick={() => setSelected(item)}
+                      aria-label={`Enlarge photo by ${item.photographer}`}
+                    >
+                      <img
+                        src={item.thumbnailUrl || item.imageUrl}
+                        alt={`${labels[item.league]} race submitted by ${item.photographer}`}
+                        loading="lazy"
+                      />
+                    </button>
+                    <figcaption>
+                      <strong>{labels[item.league]}</strong>
+                      <span>Photo by {item.photographer}</span>
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+              {pageCount > 1 && (
+                <nav className="gallery-pagination" aria-label="Gallery pages">
+                  <button type="button" disabled={page === 1} onClick={() => setPage(page - 1)}>
+                    Previous
+                  </button>
+                  <div>
+                    {Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => (
+                      <button
+                        type="button"
+                        key={number}
+                        className={number === page ? 'is-current' : undefined}
+                        aria-current={number === page ? 'page' : undefined}
+                        aria-label={`Page ${number}`}
+                        onClick={() => setPage(number)}
+                      >
+                        {number}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    disabled={page === pageCount}
+                    onClick={() => setPage(page + 1)}
+                  >
+                    Next
+                  </button>
+                </nav>
+              )}
+            </>
           ) : !error ? (
-            <p className="gallery-empty">No approved photos have been added yet.</p>
+            <p className="gallery-empty">
+              {photos.length
+                ? 'No approved photos match these filters.'
+                : 'No approved photos have been added yet.'}
+            </p>
           ) : null}
         </div>
       </div>
-      <PhotoLightbox photo={selected} onClose={() => setSelected(null)} />
+      <PhotoLightbox
+        photo={selected}
+        onClose={() => setSelected(null)}
+        onPrevious={filteredPhotos.length > 1 ? () => selectAdjacentPhoto(-1) : undefined}
+        onNext={filteredPhotos.length > 1 ? () => selectAdjacentPhoto(1) : undefined}
+      />
     </section>
   )
 }
