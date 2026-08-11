@@ -198,12 +198,12 @@ export function loadLocalIndyPublic(): IndyPublicData | null {
   const standings = [...totals.values()].sort((a, b) => b.points - a.points || b.wins - a.wins).map((row, index) => ({ rank: index + 1, ...row }))
   const schedule = eventsForSeason.map((event) => {
     const results = scored.filter((row) => row.event.id === event.id)
-    return { round: event.round, date: event.date, track: event.track, laps: event.laps, winner: results.find((row) => row.position === 1)?.driver ?? '—', pole: results.find((row) => row.start === 1)?.driver ?? '—' }
+    return { eventId: event.id, round: event.round, date: event.date, track: event.track, laps: event.laps, winner: results.find((row) => row.position === 1)?.driver ?? '—', pole: results.find((row) => row.start === 1)?.driver ?? '—' }
   })
   const events = eventsForSeason.filter((event) => event.status === 'completed').map((event) => {
     const eventRows = scored.filter((row) => row.event.id === event.id).sort((a, b) => a.position - b.position)
     const leaderLaps = eventRows.find((row) => row.position === 1)?.laps ?? Math.max(0, ...eventRows.map((row) => row.laps))
-    return { id: event.subsessionId ?? event.round, label: `${event.track} — ${event.date}`, sessions: [{ id: event.subsessionId ?? event.round, label: 'Overall Race Finish', rows: eventRows.map((row) => ({ position: row.position, driver: row.driver, start: row.start, interval: formatRaceInterval(row.interval, row.laps, leaderLaps, row.position), laps: row.laps, led: row.lapsLed, racePoints: row.racePoints, bonus: row.bonus, penalty: row.penalty, total: row.total, incidents: row.incidents, status: row.status, fastestLap: row.fastestLap ? 1 : 0 })) }] }
+    return { id: event.subsessionId ?? event.round, sourceEventId: event.id, label: `${event.track} — ${event.date}`, sessions: [{ id: event.subsessionId ?? event.round, label: 'Overall Race Finish', rows: eventRows.map((row) => ({ position: row.position, driver: row.driver, start: row.start, interval: formatRaceInterval(row.interval, row.laps, leaderLaps, row.position), laps: row.laps, led: row.lapsLed, racePoints: row.racePoints, bonus: row.bonus, penalty: row.penalty, total: row.total, incidents: row.incidents, status: row.status, fastestLap: row.fastestLap ? 1 : 0 })) }] }
   })
   return { season, schedule, standings, events, source: 'in-house' }
 }

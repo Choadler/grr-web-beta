@@ -476,6 +476,7 @@ export function loadLocalGtPublic(): GtPublicData | null {
     const winner = (key: GtClassKey) =>
       results.find((row) => row.classKey === key && row.classPosition === 1)?.driver ?? '—'
     return {
+      eventId: event.id,
       round: event.round,
       date: event.date,
       track: event.track,
@@ -491,6 +492,7 @@ export function loadLocalGtPublic(): GtPublicData | null {
     .filter((event) => event.status === 'completed')
     .map((event) => ({
       id: event.subsessionId ?? event.round,
+      sourceEventId: event.id,
       label: `${event.track} — ${event.date}`,
       sessions: [
         {

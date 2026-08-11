@@ -480,11 +480,11 @@ export function DriverComparisonPage() {
                             <tr key={item.race.key}>
                               <td>{item.race.date}</td>
                               <td>{seriesLabels[item.race.series]}</td>
-                              <td>{item.race.track}</td>
-                              <td className={item.winner === 'a' ? 'is-winner' : ''}>
+                              <td><Link className="comparison-race-link" to={item.race.resultsUrl}>{item.race.track}</Link></td>
+                              <td className={item.winner === 'a' ? 'is-winner' : item.winner === 'b' ? 'is-loser' : ''}>
                                 {place(item.finishA)}
                               </td>
-                              <td className={item.winner === 'b' ? 'is-winner' : ''}>
+                              <td className={item.winner === 'b' ? 'is-winner' : item.winner === 'a' ? 'is-loser' : ''}>
                                 {place(item.finishB)}
                               </td>
                               <td>
@@ -564,14 +564,14 @@ export function DriverComparisonPage() {
                       {comparison.sharedRaces.map((item) => (
                         <details key={item.race.key}>
                           <summary>
-                            <strong>{item.race.track}</strong>
+                            <strong><Link className="comparison-race-link" to={item.race.resultsUrl}>{item.race.track}</Link></strong>
                             <span>
                               {seriesLabels[item.race.series]} • {item.race.date}
                             </span>
-                            <span className={item.winner === 'a' ? 'is-winner' : ''}>
+                            <span className={item.winner === 'a' ? 'is-winner' : item.winner === 'b' ? 'is-loser' : ''}>
                               {driverA.name} <b>{place(item.finishA)}</b>
                             </span>
-                            <span className={item.winner === 'b' ? 'is-winner' : ''}>
+                            <span className={item.winner === 'b' ? 'is-winner' : item.winner === 'a' ? 'is-loser' : ''}>
                               {driverB.name} <b>{place(item.finishB)}</b>
                             </span>
                             <small>

@@ -1729,6 +1729,22 @@ button:focus-visible {
   color: var(--green-light);
   font-weight: 900;
 }
+.comparison-race-table .is-loser,
+.comparison-race-cards .is-loser {
+  color: #ff6b6b;
+  font-weight: 900;
+}
+.comparison-race-link,
+.data-table__race-link {
+  color: var(--green-light);
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.comparison-race-link:hover,
+.data-table__race-link:hover {
+  color: #fff;
+}
 .comparison-race-detail {
   display: grid;
   position: absolute;

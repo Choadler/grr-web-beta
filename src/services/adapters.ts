@@ -240,6 +240,7 @@ export function adaptSimRacerSchedule(
       laps: event.laps ?? '',
       winner: winner || '—',
       pole: pole || '—',
+      resultsUrl: raceId ? `/pages/cup-latest-race-results?event=${encodeURIComponent(raceId)}` : '',
     }
   })
   return { rows, label: text(record(record(payload).lss).season_name) }
@@ -384,6 +385,7 @@ export function adaptSimRacerEvents(
     ]
     return {
       id: raceId,
+      sourceEventId: String(raceId),
       label: scheduled
         ? `${scheduled.track} — ${scheduled.date}`
         : `Round ${index + 1} — Race ${raceId}`,

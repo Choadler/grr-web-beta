@@ -313,6 +313,7 @@ type DataPageProps = {
   rowClassName?: (row: TableRow) => string
   note?: string
   tableClassName?: string
+  rowLink?: (row: TableRow) => string | undefined
 }
 function DataPage({
   league,
@@ -327,6 +328,7 @@ function DataPage({
   rowClassName,
   note,
   tableClassName,
+  rowLink,
 }: DataPageProps) {
   const [activeFilter, setActiveFilter] = useState(0)
   const activeLoader = loaders?.[activeFilter] ?? loader
@@ -360,6 +362,7 @@ function DataPage({
           search={search}
           rowClassName={rowClassName}
           tableClassName={tableClassName}
+          rowLink={rowLink}
         />
       ) : (
         <DataTable
@@ -423,6 +426,7 @@ export const CupSchedulePage = () => (
     title="GRR Cup Series 2026 Calendar"
     eyebrow="Race schedule, winners, and pole sitters"
     loader={cupSchedule}
+    rowLink={(row) => typeof row.resultsUrl === 'string' ? row.resultsUrl : undefined}
     columns={[
       { key: 'round', label: 'Rd' },
       { key: 'date', label: 'Date' },
@@ -478,6 +482,7 @@ export const GtSchedulePage = () => {
     league="gt"
     title="GT League Schedule"
     loader={gtSchedule}
+    rowLink={(row) => typeof row.resultsUrl === 'string' ? row.resultsUrl : undefined}
     rowClassName={(row) =>
       row.state === 'next' ? 'schedule-row--next' : row.state === 'done' ? 'schedule-row--done' : ''
     }
@@ -696,6 +701,7 @@ export const IndySchedulePage = () => (
     title="GRR IndyCar Schedule"
     eyebrow="Race schedule, distances, winners, and pole sitters"
     loader={indySchedule}
+    rowLink={(row) => typeof row.resultsUrl === 'string' ? row.resultsUrl : undefined}
     columns={[
       { key: 'round', label: 'Rd' },
       { key: 'date', label: 'Date' },

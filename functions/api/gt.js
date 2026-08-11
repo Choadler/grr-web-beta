@@ -279,6 +279,7 @@ export async function onRequestGet({ env, request }) {
     const winner = (key) =>
       eventRows.find((row) => row.class_key === key && row.class_position === 1)?.driver_name || '—'
     return {
+      eventId: event.id,
       round: event.round,
       date: event.date,
       track: canonicalGtTrackName(event.track),
@@ -294,6 +295,7 @@ export async function onRequestGet({ env, request }) {
     .filter((event) => event.status === 'completed')
     .map((event) => ({
       id: event.subsessionId ?? event.round,
+      sourceEventId: event.id,
       label: `${canonicalGtTrackName(event.track)} — ${event.date}`,
       sessions: [
         {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import type { DataLoader, TableRow } from '../../types/league'
 import { copyPng, downloadCsv, type PngExportOptions } from '../../utils/tableExport'
 import { DataTable, EmptyTableRow } from './DataTable'
@@ -21,6 +22,7 @@ export function LiveDataTable({
   toolbarActions,
   tableClassName,
   pngOptions,
+  rowLink,
 }: {
   title: string
   columns: LiveColumn[]
@@ -30,6 +32,7 @@ export function LiveDataTable({
   toolbarActions?: ReactNode
   tableClassName?: string
   pngOptions?: PngExportOptions
+  rowLink?: (row: TableRow) => string | undefined
 }) {
   const [rows, setRows] = useState<TableRow[]>([])
   const [query, setQuery] = useState('')
@@ -180,7 +183,11 @@ export function LiveDataTable({
           >
             {columns.map((column) => (
               <td className={column.cellClassName?.(row[column.key] ?? '', row)} key={column.key}>
-                {column.link && row[column.key] ? (
+                {rowLink?.(row) && column.key === 'track' ? (
+                  <Link className="data-table__race-link" to={rowLink(row)!}>
+                    {row[column.key]}
+                  </Link>
+                ) : column.link && row[column.key] ? (
                   <a href={String(row[column.key])} target="_blank" rel="noreferrer">
                     View<span className="sr-only"> (opens in a new tab)</span>
                   </a>

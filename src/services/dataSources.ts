@@ -160,8 +160,23 @@ export const cupDetailedResults: DataLoader = async (signal) =>
   adaptSimRacerLatestResults(await fetchJson(publicEndpoints.cup.standings, signal))
 export const indySchedule: DataLoader = async (signal) => {
   const local = await indyInHouse(signal)
+  const completedEventIds = new Set(
+    (Array.isArray(local.events) ? local.events : []).map((value) =>
+      String((value as Record<string, unknown>).sourceEventId ?? ''),
+    ),
+  )
   return {
-    rows: Array.isArray(local.schedule) ? (local.schedule as never[]) : [],
+    rows: Array.isArray(local.schedule)
+      ? local.schedule.map((value) => {
+          const row = value as Record<string, unknown>
+          return {
+            ...row,
+            resultsUrl: row.eventId && completedEventIds.has(String(row.eventId))
+              ? `/pages/indycar-results?event=${encodeURIComponent(String(row.eventId))}`
+              : '',
+          }
+        }) as never[]
+      : [],
     label: local.season?.name,
   }
 }
@@ -206,8 +221,15 @@ export const gtTeamStandings =
   }
 export const gtSchedule: DataLoader = async (signal) => {
   const local = await gtInHouse(signal)
+  const season = typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get('season')
   return {
-    rows: requireGtArray(local.schedule, 'schedule') as never[],
+    rows: requireGtArray(local.schedule, 'schedule').map((value) => {
+      const row = value as Record<string, unknown>
+      const params = new URLSearchParams()
+      if (season) params.set('season', season)
+      if (row.eventId) params.set('event', String(row.eventId))
+      return { ...row, resultsUrl: row.eventId && row.state === 'done' ? `/pages/gt-race-results?${params}` : '' }
+    }) as never[],
     label: local.season?.name,
   }
 }

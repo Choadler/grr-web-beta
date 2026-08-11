@@ -62,7 +62,17 @@ export function RaceResultsExplorer({
     loader(controller.signal)
       .then((result) => {
         setEvents(result.events)
-        setEventIndex(result.defaultEventIndex ?? Math.max(0, result.events.length - 1))
+        const requestedEvent = new URLSearchParams(window.location.search).get('event')
+        const requestedIndex = requestedEvent
+          ? result.events.findIndex((event) =>
+              event.sourceEventId === requestedEvent || String(event.id) === requestedEvent,
+            )
+          : -1
+        setEventIndex(
+          requestedIndex >= 0
+            ? requestedIndex
+            : (result.defaultEventIndex ?? Math.max(0, result.events.length - 1)),
+        )
         setError('')
       })
       .catch((reason: unknown) => {

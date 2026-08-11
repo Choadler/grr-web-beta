@@ -102,7 +102,7 @@ function cupDataset(payload: unknown): ComparisonDataset {
       date: scheduled?.date ?? '',
       track: scheduled?.track ?? `Race ${index + 1}`,
       round: scheduled?.round ?? index + 1,
-      resultsUrl: resultUrl('cup'),
+      resultsUrl: `${resultUrl('cup')}?event=${encodeURIComponent(raceId)}`,
       results,
     }
   })
@@ -170,7 +170,7 @@ function d1Series(payload: unknown, series: 'gt' | 'indycar'): ComparisonDataset
       date,
       track: text(race.track),
       round: number(race.round),
-      resultsUrl: resultUrl(series),
+      resultsUrl: `${resultUrl(series)}?season=${encodeURIComponent(season?.id ?? text(race.seasonId))}&event=${encodeURIComponent(text(race.id))}`,
       results,
     }
   })
