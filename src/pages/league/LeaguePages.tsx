@@ -46,7 +46,6 @@ const gtNav: LeagueNavItem[] = [
   { label: 'GT Rules', href: '/pages/gt-rules' },
   { label: 'GT Schedule', href: '/pages/gt-schedule' },
   { label: 'GT Standings', href: '/pages/gt-standings' },
-  { label: 'GT Team Standings', href: '/pages/gt-league-team-standings' },
   { label: 'GT Race Results', href: '/pages/gt-race-results' },
   { label: 'GT Stats', href: '/pages/gt-stats' },
   { label: 'GT Archive', href: '/pages/gt-archive' },
@@ -494,47 +493,64 @@ export const GtSchedulePage = () => {
     ]}
   />
 }
+const gtDriverStandingsColumns: LiveColumn[] = [
+  { key: 'rank', label: 'Rank' },
+  { key: 'driver', label: 'Driver' },
+  { key: 'car', label: 'Car' },
+  { key: 'starts', label: 'Race Starts' },
+  { key: 'points', label: 'Points' },
+  { key: 'behindLeader', label: 'Behind Leader' },
+  { key: 'wins', label: 'Wins' },
+  { key: 'podiums', label: 'Podiums' },
+]
+const gtTeamStandingsColumns: LiveColumn[] = gtDriverStandingsColumns.map((column) =>
+  column.key === 'driver' ? { ...column, label: 'Team' } : column,
+)
+
 export const GtStandingsPage = () => {
   const classes = useGtSeasonClasses()
-  return <DataPage
-    league="gt"
-    title="GT League Standings"
-    filters={classes.map((item) => item.label)}
-    loaders={classes.map((item) => gtStandings(item.key))}
-    search
-    tableClassName="data-table--gt-standings"
-    columns={[
-      { key: 'rank', label: 'Rank' },
-      { key: 'driver', label: 'Driver' },
-      { key: 'car', label: 'Car' },
-      { key: 'starts', label: 'Race Starts' },
-      { key: 'points', label: 'Points' },
-      { key: 'behindLeader', label: 'Behind Leader' },
-      { key: 'wins', label: 'Wins' },
-      { key: 'podiums', label: 'Podiums' },
-    ]}
-  />
-}
-export const GtTeamStandingsPage = () => {
-  const classes = useGtSeasonClasses()
-  return <DataPage
-    league="gt"
-    title="GT League Team Standings"
-    filters={classes.map((item) => item.label)}
-    loaders={classes.map((item) => gtTeamStandings(item.key))}
-    search
-    tableClassName="data-table--gt-standings"
-    columns={[
-      { key: 'rank', label: 'Rank' },
-      { key: 'driver', label: 'Team' },
-      { key: 'car', label: 'Car' },
-      { key: 'starts', label: 'Race Starts' },
-      { key: 'points', label: 'Points' },
-      { key: 'behindLeader', label: 'Behind Leader' },
-      { key: 'wins', label: 'Wins' },
-      { key: 'podiums', label: 'Podiums' },
-    ]}
-  />
+  const [mode, setMode] = useState<'driver' | 'team'>('driver')
+  const [activeClass, setActiveClass] = useState(0)
+  const selectedClass = classes[activeClass] ?? classes[0]
+  const isTeam = mode === 'team'
+  const title = `GT League ${selectedClass?.label ?? ''} ${isTeam ? 'Team' : 'Driver'} Standings`
+
+  return <PageShell league="gt" title="GT League Standings" compact>
+    <div className="data-toolbar standings-view-controls">
+      <fieldset className="filter-group standings-mode-switch">
+        <legend>Standings type</legend>
+        {(['driver', 'team'] as const).map((item) => <button
+          className={item === mode ? 'filter-button is-active' : 'filter-button'}
+          type="button"
+          key={item}
+          onClick={() => setMode(item)}
+          aria-pressed={item === mode}
+        >
+          {item}
+        </button>)}
+      </fieldset>
+      <fieldset className="filter-group">
+        <legend>GT class</legend>
+        {classes.map((item, index) => <button
+          className={index === activeClass ? 'filter-button is-active' : 'filter-button'}
+          type="button"
+          key={item.key}
+          onClick={() => setActiveClass(index)}
+          aria-pressed={index === activeClass}
+        >
+          {item.label}
+        </button>)}
+      </fieldset>
+    </div>
+    {selectedClass && <LiveDataTable
+      key={`${mode}-${selectedClass.key}`}
+      title={title}
+      columns={isTeam ? gtTeamStandingsColumns : gtDriverStandingsColumns}
+      loader={isTeam ? gtTeamStandings(selectedClass.key) : gtStandings(selectedClass.key)}
+      search
+      tableClassName="data-table--gt-standings"
+    />}
+  </PageShell>
 }
 const gtResultColumns: LiveColumn[] = [
   { key: 'position', label: 'Class Pos' },

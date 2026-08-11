@@ -2398,6 +2398,16 @@ button:focus-visible {
   padding: 0;
   border: 0;
 }
+.standings-mode-switch {
+  gap: 0;
+}
+.standings-mode-switch .filter-button + .filter-button {
+  margin-left: -1px;
+}
+.standings-mode-switch .filter-button.is-active {
+  position: relative;
+  z-index: 1;
+}
 .filter-group legend {
   position: absolute;
   width: 1px;

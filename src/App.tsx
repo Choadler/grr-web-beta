@@ -26,7 +26,6 @@ import {
   GtStandingsPage,
   GtStatsPage,
   GtArchivePage,
-  GtTeamStandingsPage,
   IndyLandingPage,
   IndyResultsPage,
   IndySchedulePage,
@@ -185,14 +184,16 @@ const External = ({
   href,
   children,
   className,
+  highlightDiscord = true,
 }: {
   href: string
   children: React.ReactNode
   className?: string
+  highlightDiscord?: boolean
 }) => (
   <a
     href={href}
-    className={[className, href === externalLinks.discord ? 'discord-button' : '']
+    className={[className, highlightDiscord && href === externalLinks.discord ? 'discord-button' : '']
       .filter(Boolean)
       .join(' ')}
     target="_blank"
@@ -357,7 +358,7 @@ function Footer() {
           <p>Free-to-Enter iRacing Leagues by Sim Racers, For Sim Racers</p>
         </div>
         <nav aria-label="Footer">
-          <External href={externalLinks.discord}>Discord</External>
+          <External href={externalLinks.discord} highlightDiscord={false}>Discord</External>
           <External href={externalLinks.twitch}>Twitch</External>
           <External href={externalLinks.merchandise}>Merch</External>
           <Link to="/admin">Admin</Link>
@@ -526,8 +527,8 @@ function SiteApp() {
           <Route path="pages/gt-rules" element={<GtRulesPage />} />
           <Route path="pages/gt-schedule" element={<GtSchedulePage />} />
           <Route path="pages/gt-standings" element={<GtStandingsPage />} />
-          <Route path="pages/gt-league-team-standings" element={<GtTeamStandingsPage />} />
-          <Route path="pages/gt-team-standings" element={<GtTeamStandingsPage />} />
+          <Route path="pages/gt-league-team-standings" element={<Navigate to="/pages/gt-standings" replace />} />
+          <Route path="pages/gt-team-standings" element={<Navigate to="/pages/gt-standings" replace />} />
           <Route path="pages/gt-race-results" element={<GtResultsPage />} />
           <Route path="pages/gt-stats" element={<GtStatsPage />} />
           <Route path="pages/gt-records" element={<Navigate to="/pages/gt-stats?view=records" replace />} />
