@@ -65,6 +65,7 @@ export function RaceResultsExplorer({
   const [retry, setRetry] = useState(0)
   const [season, setSeason] = useState('')
   const [certificateStatus, setCertificateStatus] = useState('')
+  const [showCertificateClassPicker, setShowCertificateClassPicker] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -99,8 +100,21 @@ export function RaceResultsExplorer({
     [event?.label, session?.rows],
   )
   const winners = event && session ? certificateWinners(league, event, session) : []
+  const requiresCertificateClass = league === 'gt' && session?.label === 'Overall' && winners.length > 1
   if (error) return <ErrorState message={error} onRetry={() => setRetry((value) => value + 1)} />
   if (!event || !session) return <LoadingState label={`Loading ${title}…`} />
+
+  const downloadCertificate = (className?: string) => {
+    setShowCertificateClassPicker(false)
+    setCertificateStatus('Preparing certificate PDF...')
+    downloadRaceWinnerCertificates({ league, season, event, session, className })
+      .then(() => setCertificateStatus('Winner certificate PDF downloaded.'))
+      .catch((reason: unknown) =>
+        setCertificateStatus(
+          reason instanceof Error ? reason.message : 'The certificate could not be created.',
+        ),
+      )
+  }
 
   return (
     <>
@@ -112,6 +126,7 @@ export function RaceResultsExplorer({
             onChange={(change) => {
               setEventIndex(Number(change.target.value))
               setSessionIndex(0)
+              setShowCertificateClassPicker(false)
             }}
           >
             {events.map((item, index) => (
@@ -127,6 +142,7 @@ export function RaceResultsExplorer({
           onClick={() => {
             setEventIndex(events.length - 1)
             setSessionIndex(0)
+            setShowCertificateClassPicker(false)
           }}
         >
           Latest Race
@@ -136,20 +152,46 @@ export function RaceResultsExplorer({
             className="button button--compact button--secondary"
             type="button"
             onClick={() => {
-              setCertificateStatus('Preparing certificate PDF...')
-              downloadRaceWinnerCertificates({ league, season, event, session })
-                .then(() => setCertificateStatus('Winner certificate PDF downloaded.'))
-                .catch((reason: unknown) =>
-                  setCertificateStatus(
-                    reason instanceof Error ? reason.message : 'The certificate could not be created.',
-                  ),
-                )
+              if (requiresCertificateClass) {
+                setCertificateStatus('')
+                setShowCertificateClassPicker(true)
+                return
+              }
+              downloadCertificate()
             }}
           >
             Download Winner Cert{winners.length > 1 ? 's' : ''} PDF
           </button>
         )}
       </div>
+      {showCertificateClassPicker && (
+        <div className="certificate-class-prompt" role="dialog" aria-modal="true" aria-labelledby="certificate-class-title">
+          <div className="certificate-class-prompt__panel">
+            <p className="eyebrow">Race winner certificate</p>
+            <h2 id="certificate-class-title">Select a class</h2>
+            <p>Choose which class winner certificate you want to download.</p>
+            <div className="certificate-class-prompt__actions">
+              {winners.map((winner) => (
+                <button
+                  className="button button--compact"
+                  type="button"
+                  key={winner.className}
+                  onClick={() => downloadCertificate(winner.className)}
+                >
+                  {winner.className}
+                </button>
+              ))}
+              <button
+                className="button button--compact button--secondary"
+                type="button"
+                onClick={() => setShowCertificateClassPicker(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {certificateStatus && <p className="data-note" role="status">{certificateStatus}</p>}
       <p className="results-legend">
         <span className="fastest-lap-dot" aria-hidden="true" /> Fastest lap
@@ -173,7 +215,10 @@ export function RaceResultsExplorer({
                   className={sessionIndex === index ? 'filter-button is-active' : 'filter-button'}
                   type="button"
                   key={`${event.id}-${item.label}-${item.id}`}
-                  onClick={() => setSessionIndex(index)}
+                  onClick={() => {
+                    setSessionIndex(index)
+                    setShowCertificateClassPicker(false)
+                  }}
                 >
                   {item.label}
                 </button>

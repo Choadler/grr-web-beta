@@ -2934,6 +2934,35 @@ button:focus-visible {
 .gallery-turnstile > div:first-child {
   width: 100%;
 }
+
+.certificate-class-prompt {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(4, 8, 5, 0.78);
+}
+
+.certificate-class-prompt__panel {
+  width: min(100%, 32rem);
+  padding: 1.5rem;
+  border: 1px solid var(--green);
+  background: var(--charcoal);
+  box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.5);
+}
+
+.certificate-class-prompt__panel h2 {
+  margin: 0.25rem 0 0.5rem;
+}
+
+.certificate-class-prompt__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1.25rem;
+}
 .gallery-notice,
 .gallery-empty {
   padding: 1rem;

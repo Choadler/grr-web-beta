@@ -378,13 +378,17 @@ export async function downloadRaceWinnerCertificates({
   season,
   event,
   session,
+  className,
 }: {
   league: CertificateLeague
   season: string
   event: RaceEvent
   session: RaceSession
+  className?: string
 }) {
-  const winners = certificateWinners(league, event, session)
+  const winners = certificateWinners(league, event, session).filter(
+    (winner) => !className || winner.className === className,
+  )
   if (!winners.length) throw new Error('No race winner is available for this result.')
   const { track, date } = eventParts(event)
   const details: CertificateDetails = {
