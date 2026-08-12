@@ -10,6 +10,13 @@ export type DataResult = {
 export type DataLoader = (signal: AbortSignal) => Promise<DataResult>
 
 export type RaceSession = { id: number; label: string; rows: TableRow[] }
-export type RaceEvent = { id: number; sourceEventId?: string; label: string; sessions: RaceSession[] }
+export type RaceEvent = {
+  id: number
+  sourceEventId?: string
+  label: string
+  track?: string
+  date?: string
+  sessions: RaceSession[]
+}
 export type RaceEventsResult = { events: RaceEvent[]; season?: string; defaultEventIndex?: number }
 export type RaceEventsLoader = (signal: AbortSignal) => Promise<RaceEventsResult>

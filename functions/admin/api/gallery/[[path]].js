@@ -168,8 +168,9 @@ export async function onRequestPost({ request, env, params, waitUntil }) {
 
     return json({ photos: await listPhotos(env.INDYCAR_DB) })
   } catch (error) {
+    console.error(JSON.stringify({ message: 'Gallery admin update failed.', error: error instanceof Error ? error.message : String(error) }))
     return json(
-      { error: error instanceof Error ? error.message : 'The gallery update failed.' },
+      { error: 'The gallery update failed.' },
       400,
     )
   }

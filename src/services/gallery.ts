@@ -38,6 +38,7 @@ export async function submitGalleryPhoto(input: {
   batchId?: string
   batchIndex?: number
   batchSize?: number
+  turnstileToken: string
 }) {
   if (import.meta.env.DEV) {
     devPhotos.unshift({
@@ -61,8 +62,18 @@ export async function submitGalleryPhoto(input: {
   if (input.batchId) form.set('batchId', input.batchId)
   if (input.batchIndex !== undefined) form.set('batchIndex', String(input.batchIndex))
   if (input.batchSize !== undefined) form.set('batchSize', String(input.batchSize))
+  form.set('cf-turnstile-response', input.turnstileToken)
   form.set('website', '')
-  const response = await fetch('/api/gallery', { method: 'POST', body: form })
+  const response = await fetch('/api/gallery', {
+    method: 'POST',
+    headers: {
+      'X-Gallery-Batch-Id': input.batchId || '',
+      'X-Gallery-Batch-Index': String(input.batchIndex ?? ''),
+      'X-Gallery-Batch-Size': String(input.batchSize ?? ''),
+      'X-Turnstile-Token': input.turnstileToken,
+    },
+    body: form,
+  })
   return (await payload(response)).message ?? 'Photo submitted for administrator approval.'
 }
 

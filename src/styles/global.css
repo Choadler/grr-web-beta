@@ -2926,6 +2926,14 @@ button:focus-visible {
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
 }
+
+.gallery-turnstile {
+  min-height: 65px;
+}
+
+.gallery-turnstile > div:first-child {
+  width: 100%;
+}
 .gallery-notice,
 .gallery-empty {
   padding: 1rem;

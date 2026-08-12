@@ -498,6 +498,7 @@ export async function onRequestPost({ request, env }) {
     } else return json({ error: 'Unknown admin action.' }, 400)
     return json(await state(db))
   } catch (error) {
-    return json({ error: error instanceof Error ? error.message : 'The GT update failed.' }, 400)
+    console.error(JSON.stringify({ message: 'GT admin update failed.', error: error instanceof Error ? error.message : String(error) }))
+    return json({ error: 'The GT update failed.' }, 400)
   }
 }

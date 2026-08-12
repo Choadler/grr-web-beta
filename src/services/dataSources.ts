@@ -23,7 +23,10 @@ async function indyInHouse(signal: AbortSignal): Promise<IndyPublicPayload> {
   const local = loadLocalIndyPublic()
   if (local) return local
 
-  const response = await fetch('/api/indycar', {
+  const season = typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get('season')
+  const seasonQuery = season ? `?season=${encodeURIComponent(season)}` : ''
+
+  const response = await fetch(`/api/indycar${seasonQuery}`, {
     signal,
     headers: { Accept: 'application/json' },
   })

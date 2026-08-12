@@ -4,7 +4,7 @@
 2. Use `pnpm build` (or `npm run build`) as the build command and `dist` as the output directory.
 3. Use a current Node.js LTS runtime. No secrets are required for Stage 1.
 4. Add only public endpoint variables from `.env.example` in Pages Settings > Environment variables. Put secrets in a Worker, never in `VITE_` variables.
-5. Keep this feature branch for preview deployments and test its generated `*.pages.dev` URL before production promotion.
+5. Keep this feature branch for preview deployments and test its generated `*.pages.dev` URL before production promotion. Enable the Pages preview Access policy; repository middleware denies every `/admin*` request on non-canonical hostnames, including `pages.dev`.
 6. Add `beta.grassrootsracing.org` as a Pages custom domain after the preview is approved. Do not alter the current production DNS during beta testing.
 7. Test navigation, 320px mobile layout, keyboard menus, reduced motion, external merch/donation handoffs, console output, and asset loading.
 8. When approved, add `grassrootsracing.org` to the Pages project and follow Cloudflare’s displayed DNS migration. Schedule the cutover and retain the prior Fourthwall configuration until rollback is no longer needed.
@@ -53,10 +53,13 @@ Driver assignments are stored by iRacing Customer ID. The assigned class, team, 
 
 The gallery keeps moderation metadata in the existing `INDYCAR_DB` D1 database and stores image files in a private R2 bucket.
 
-1. Apply `migrations/0006_gallery.sql` to the `grr-scoring` database.
+1. Apply the gallery migrations through `migrations/0013_gallery_submission_batches.sql` to the `grr-scoring` database.
 2. In **Storage & databases > R2 Object Storage**, create a private bucket named `grr-gallery`.
 3. In the `grr-web-beta` Pages project, open **Settings > Bindings**, add an **R2 bucket binding**, set the variable name to exactly `GALLERY_BUCKET`, and select `grr-gallery`.
 4. Add the same binding to Preview if gallery uploads will be tested there, then redeploy.
-5. Confirm Cloudflare Access still protects `/admin*`; gallery moderation is available at `/admin/gallery`.
+5. Create a managed Turnstile widget for `www.grassrootsracing.org`. Set its public sitekey as `VITE_TURNSTILE_SITE_KEY` in both the build environment and local `.env.local` when needed.
+6. Store the widget secret as the server-side Pages secret `TURNSTILE_SECRET`. Never use a `VITE_` name for it. Optionally set `TURNSTILE_HOSTNAMES` to a comma-separated hostname allowlist; production defaults to `www.grassrootsracing.org`.
+7. Confirm Cloudflare Access still protects `/admin*`; gallery moderation is available at `/admin/gallery`.
+8. Add a Cloudflare rate-limiting rule for `POST /api/gallery`. Turnstile rejects automated submissions, while the rate limit bounds requests that reach multipart parsing.
 
-Do not expose the R2 bucket publicly. Approved files are served through `/api/gallery/photo/:id`, while pending and rejected files are available only through the Access-protected admin API. Public uploads accept JPEG, PNG, and WebP files up to 10 MB and validate their file signatures.
+Do not expose the R2 bucket publicly. Approved files are served through `/api/gallery/photo/:id`, while pending and rejected files are available only through the Access-protected admin API. Public uploads accept JPEG, PNG, and WebP originals up to 50 MB and validate their file signatures. One Turnstile challenge authorizes one sequential batch of at most ten photos for 15 minutes; D1 rejects skipped or replayed batch positions.

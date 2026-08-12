@@ -3,6 +3,11 @@ import type { RaceEvent, RaceEventsLoader } from '../../types/league'
 import { ErrorState, LoadingState } from './States'
 import { LiveDataTable, type LiveColumn } from './LiveDataTable'
 import type { PngExportOptions } from '../../utils/tableExport'
+import {
+  certificateWinners,
+  downloadRaceWinnerCertificates,
+  type CertificateLeague,
+} from '../../utils/raceWinnerCertificate'
 
 const raceColumns: LiveColumn[] = [
   { key: 'position', label: 'Pos' },
@@ -43,6 +48,7 @@ export function RaceResultsExplorer({
   secondaryColumns,
   overallColumns,
   overallPngOptions,
+  league,
 }: {
   title: string
   loader: RaceEventsLoader
@@ -50,18 +56,22 @@ export function RaceResultsExplorer({
   secondaryColumns?: LiveColumn[]
   overallColumns?: LiveColumn[]
   overallPngOptions?: PngExportOptions
+  league: CertificateLeague
 }) {
   const [events, setEvents] = useState<RaceEvent[]>([])
   const [eventIndex, setEventIndex] = useState(0)
   const [sessionIndex, setSessionIndex] = useState(0)
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
+  const [season, setSeason] = useState('')
+  const [certificateStatus, setCertificateStatus] = useState('')
 
   useEffect(() => {
     const controller = new AbortController()
     loader(controller.signal)
       .then((result) => {
         setEvents(result.events)
+        setSeason(result.season ?? '')
         const requestedEvent = new URLSearchParams(window.location.search).get('event')
         const requestedIndex = requestedEvent
           ? result.events.findIndex((event) =>
@@ -88,6 +98,7 @@ export function RaceResultsExplorer({
     () => async () => ({ rows: session?.rows ?? [], label: event?.label }),
     [event?.label, session?.rows],
   )
+  const winners = event && session ? certificateWinners(league, event, session) : []
   if (error) return <ErrorState message={error} onRetry={() => setRetry((value) => value + 1)} />
   if (!event || !session) return <LoadingState label={`Loading ${title}…`} />
 
@@ -120,7 +131,26 @@ export function RaceResultsExplorer({
         >
           Latest Race
         </button>
+        {winners.length > 0 && (
+          <button
+            className="button button--compact button--secondary"
+            type="button"
+            onClick={() => {
+              setCertificateStatus('Preparing certificate PDF...')
+              downloadRaceWinnerCertificates({ league, season, event, session })
+                .then(() => setCertificateStatus('Winner certificate PDF downloaded.'))
+                .catch((reason: unknown) =>
+                  setCertificateStatus(
+                    reason instanceof Error ? reason.message : 'The certificate could not be created.',
+                  ),
+                )
+            }}
+          >
+            Download Winner Cert{winners.length > 1 ? 's' : ''} PDF
+          </button>
+        )}
       </div>
+      {certificateStatus && <p className="data-note" role="status">{certificateStatus}</p>}
       <p className="results-legend">
         <span className="fastest-lap-dot" aria-hidden="true" /> Fastest lap
       </p>

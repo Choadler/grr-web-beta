@@ -454,6 +454,7 @@ const cupResultColumns: LiveColumn[] = [
 export const CupResultsPage = () => (
   <PageShell league="cup" title="GRR Cup Series Race Results" eyebrow="GRR Cup Series 2026" compact>
     <RaceResultsExplorer
+      league="cup"
       title="GRR Cup Series Race Results"
       loader={cupRaceEvents}
       columns={cupResultColumns}
@@ -584,6 +585,7 @@ const gtOverallResultColumns: LiveColumn[] = [
 export const GtResultsPage = () => (
   <PageShell league="gt" title="GT League Race Results" compact>
     <RaceResultsExplorer
+      league="gt"
       title="GT League Race Results"
       loader={gtRaceEvents}
       columns={gtResultColumns}
@@ -745,6 +747,7 @@ const indyResultColumns: LiveColumn[] = [
 export const IndyResultsPage = () => (
   <PageShell league="indycar" title="GRR IndyCar Race Results" eyebrow="Season 1" compact>
     <RaceResultsExplorer
+      league="indycar"
       title="GRR IndyCar Race Results"
       loader={indyRaceEvents}
       columns={indyResultColumns}

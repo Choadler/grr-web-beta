@@ -4,6 +4,7 @@ import type { GalleryLeague, GalleryPhoto } from '../types/gallery'
 import { PageMeta } from '../components/league/PageMeta'
 import { PhotoLightbox } from '../components/gallery/PhotoLightbox'
 import { prepareGalleryPhoto } from '../utils/galleryImage'
+import { TurnstileWidget } from '../components/gallery/TurnstileWidget'
 
 const labels: Record<GalleryLeague, string> = {
   cup: 'Cup Series',
@@ -34,6 +35,8 @@ export function GalleryPage() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [selected, setSelected] = useState<GalleryPhoto | null>(null)
+  const [turnstileToken, setTurnstileToken] = useState('')
+  const [challengeVersion, setChallengeVersion] = useState(0)
 
   useEffect(() => {
     uploadsRef.current = uploads
@@ -91,6 +94,10 @@ export function GalleryPage() {
     event.preventDefault()
     const waiting = uploads.filter((item) => item.status === 'ready' || item.status === 'error')
     if (!waiting.length) return
+    if (!turnstileToken) {
+      setError('Complete the security check before submitting photos.')
+      return
+    }
     setBusy(true)
     setStatus('')
     setError('')
@@ -113,6 +120,7 @@ export function GalleryPage() {
           batchId,
           batchIndex,
           batchSize: waiting.length,
+          turnstileToken,
         })
         submitted += 1
         setUploads((current) =>
@@ -136,6 +144,8 @@ export function GalleryPage() {
         `${submitted} photo${submitted === 1 ? '' : 's'} submitted and waiting for administrator approval.`,
       )
     }
+    setTurnstileToken('')
+    setChallengeVersion((current) => current + 1)
     setBusy(false)
   }
 
@@ -249,13 +259,15 @@ export function GalleryPage() {
               Website
               <input name="website" tabIndex={-1} autoComplete="off" />
             </label>
+            <TurnstileWidget key={challengeVersion} onToken={setTurnstileToken} />
             <button
               className="button"
               type="submit"
               disabled={
                 busy ||
                 !uploads.some((item) => item.status === 'ready' || item.status === 'error') ||
-                !photographer.trim()
+                !photographer.trim() ||
+                !turnstileToken
               }
             >
               {busy
