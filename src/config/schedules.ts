@@ -7,7 +7,7 @@ export const cupSchedule: ScheduledRace[] = [
     ['2026-03-09', 'Phoenix'], ['2026-03-16', 'Las Vegas'], ['2026-03-23', 'Darlington'],
     ['2026-03-30', 'Martinsville'], ['2026-04-13', 'Bristol'], ['2026-04-20', 'Kansas'],
     ['2026-04-27', 'Winston 500 (Talladega)'], ['2026-05-04', 'Texas'], ['2026-05-11', 'Watkins Glen'],
-    ['2026-05-25', 'Coke 600 (Charlotte)'], ['2026-06-01', 'Nashville'], ['2026-06-08', 'Michigan'],
+    ['2026-05-18', 'Coke 600 (Charlotte)'], ['2026-06-01', 'Nashville'], ['2026-06-08', 'Michigan'],
     ['2026-06-15', 'Pocono'], ['2026-06-22', 'San Diego (?)'], ['2026-06-29', 'Sonoma'],
     ['2026-07-06', 'Chicagoland'], ['2026-07-13', 'Atlanta'], ['2026-07-20', 'North Wilkesboro'],
     ['2026-07-27', 'Brickyard 400'], ['2026-08-10', 'Iowa'], ['2026-08-17', 'Richmond'],
