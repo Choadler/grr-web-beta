@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "test": "node --test src/services/driverComparisonStats.test.ts",
+    "test": "node --test src/services/*.test.ts",
     "typecheck": "tsc -b --pretty false",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

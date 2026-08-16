@@ -1,6 +1,7 @@
 import type { DataResult, RaceEvent, RaceEventsResult, TableRow } from '../types/league'
 import type { ScheduledRace } from '../config/schedules'
 import { easternRaceTime, normalizeScheduleDate } from '../utils/raceTime'
+import { scheduledRacePairs } from './cupResultMapping'
 
 type UnknownRecord = Record<string, unknown>
 const isRecord = (value: unknown): value is UnknownRecord =>
@@ -222,9 +223,11 @@ export function adaptSimRacerSchedule(
       }),
     )
   }
-  const raceIds = includeExhibition ? [exhibitionId, ...ids] : ids
-  const rows = schedule.map((event, index) => {
-    const raceId = raceIds[index]
+  const pairs = scheduledRacePairs(ids, schedule)
+  const rows = schedule.map((event) => {
+    const raceId = event.round === 0
+      ? (includeExhibition ? exhibitionId : 0)
+      : (pairs.find((pair) => pair.scheduled === event)?.raceId ?? 0)
     let winner = ''
     let pole = ''
     drivers.forEach((driver) => {
@@ -346,9 +349,8 @@ export function adaptSimRacerEvents(
 ): RaceEventsResult {
   const drivers = simRacerDrivers(payload)
   const ids = mainRaceIds(drivers)
-  const events: RaceEvent[] = ids.map((raceId, index) => {
-    const scheduled = schedule[index + (schedule[0]?.round === 0 ? 1 : 0)]
-    const previousId = ids[index - 1] ?? 0
+  const events: RaceEvent[] = scheduledRacePairs(ids, schedule).map(({ raceId, scheduled }) => {
+    const previousId = ids.filter((id) => id < raceId).at(-1) ?? 0
     const stageIds = new Set<number>()
     if (includeStages)
       drivers.forEach((driver) =>
@@ -386,9 +388,9 @@ export function adaptSimRacerEvents(
     return {
       id: raceId,
       sourceEventId: String(raceId),
-      label: scheduled
-        ? `${scheduled.track} — ${scheduled.date}`
-        : `Round ${index + 1} — Race ${raceId}`,
+      label: `${scheduled.track} — ${scheduled.date}`,
+      track: scheduled.track,
+      date: scheduled.date,
       sessions,
     }
   })
