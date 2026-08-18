@@ -126,16 +126,34 @@ const historyStats = (stats: DriverStats, cup: boolean) => [
 ] as Array<[string, string | number]>
 
 function DriverHistoryView({ history, cup }: { history: ReturnType<typeof calculateDriverHistory>; cup: boolean }) {
+  const [activeStat, setActiveStat] = useState('starts')
+  const statFilters = [
+    { key: 'starts', label: 'Starts', value: history.stats.starts, matches: () => true },
+    { key: 'wins', label: 'Wins', value: history.stats.wins, matches: (item: typeof history.races[number]) => item.result.finish === 1 },
+    { key: 'podiums', label: 'Podiums', value: history.stats.podiums, matches: (item: typeof history.races[number]) => item.result.finish <= 3 },
+    { key: 'top5', label: 'Top 5s', value: history.stats.top5, matches: (item: typeof history.races[number]) => item.result.finish <= 5 },
+    { key: 'top10', label: 'Top 10s', value: history.stats.top10, matches: (item: typeof history.races[number]) => item.result.finish <= 10 },
+    { key: 'poles', label: 'Poles', value: history.stats.poles, matches: (item: typeof history.races[number]) => Boolean(item.result.pole || item.result.start === 1) },
+    { key: 'fastest', label: 'Fastest Laps', value: history.stats.fastestLaps, matches: (item: typeof history.races[number]) => Boolean(item.result.fastestLap) },
+    ...(cup ? [{ key: 'stageWins', label: 'Stage Wins', value: history.stats.stageWins, matches: (item: typeof history.races[number]) => (item.result.stageWins ?? 0) > 0 }] : []),
+    { key: 'averageFinish', label: 'Avg Finish', value: fmt(history.stats.averageFinish), matches: () => true },
+    { key: 'bestFinish', label: 'Best Finish', value: history.stats.bestFinish ? place(history.stats.bestFinish) : '—', matches: (item: typeof history.races[number]) => item.result.finish === history.stats.bestFinish },
+    { key: 'averageStart', label: 'Avg Start', value: fmt(history.stats.averageStart), matches: () => true },
+    { key: 'lapsLed', label: 'Laps Led', value: history.stats.lapsLed, matches: (item: typeof history.races[number]) => (item.result.lapsLed ?? 0) > 0 },
+  ]
+  const selected = statFilters.find((item) => item.key === activeStat) ?? statFilters[0]
+  const filteredHistory = { ...history, races: history.races.filter(selected.matches) }
   return <>
     <section className="comparison-panel driver-history-profile">
       <div className="comparison-panel__heading"><div><p className="eyebrow">Driver record</p><h2>{history.driver.name}</h2></div><strong>{history.stats.starts} starts</strong></div>
-      <div className="driver-history-stat-grid">{historyStats(history.stats, cup).map(([label, value]) => <div key={label}><strong>{value}</strong><span>{label}</span></div>)}</div>
+      <p className="driver-history-stat-help">Click a stat to see the races behind it.</p>
+      <div className="driver-history-stat-grid">{statFilters.map((item) => <button type="button" className={selected.key === item.key ? 'is-active' : ''} aria-pressed={selected.key === item.key} key={item.key} onClick={() => { setActiveStat(item.key); requestAnimationFrame(() => document.getElementById('driver-race-history')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })) }}><strong>{item.value}</strong><span>{item.label}</span><small>View races</small></button>)}</div>
     </section>
-    <DriverRaceHistory histories={[history]} />
+    <DriverRaceHistory histories={[filteredHistory]} heading={selected.key === 'starts' ? 'All Races' : `${selected.label} Races`} onClear={selected.key === 'starts' ? undefined : () => setActiveStat('starts')} />
   </>
 }
 
-function DriverRaceHistory({ histories }: { histories: Array<ReturnType<typeof calculateDriverHistory>> }) {
+function DriverRaceHistory({ histories, heading = 'Race History', onClear }: { histories: Array<ReturnType<typeof calculateDriverHistory>>; heading?: string; onClear?: () => void }) {
   const raceMap = new Map<string, { race: ComparisonDataset['races'][number]; results: Map<string, ComparisonDataset['races'][number]['results'][number]> }>()
   histories.forEach((history) => history.races.forEach(({ race, result }) => {
     const item = raceMap.get(race.key) ?? { race, results: new Map() }
@@ -143,8 +161,8 @@ function DriverRaceHistory({ histories }: { histories: Array<ReturnType<typeof c
     raceMap.set(race.key, item)
   }))
   const rows = [...raceMap.values()].sort((a, b) => b.race.date.localeCompare(a.race.date) || (b.race.round ?? 0) - (a.race.round ?? 0))
-  return <section className="comparison-panel">
-    <div className="comparison-panel__heading"><div><p className="eyebrow">Complete record</p><h2>Race History</h2></div><strong>{rows.length}</strong></div>
+  return <section className="comparison-panel" id="driver-race-history">
+    <div className="comparison-panel__heading"><div><p className="eyebrow">Complete record</p><h2>{heading}</h2></div><div className="driver-history-result-count"><strong>{rows.length}</strong>{onClear && <button type="button" onClick={onClear}>Show all races</button>}</div></div>
     <div className="comparison-race-table driver-history-table"><table><thead><tr><th>Date</th><th>Series</th><th>Season / Track</th>{histories.map((history) => <th key={history.driver.key}>{history.driver.name}</th>)}<th /></tr></thead><tbody>{rows.map(({ race, results }) => <tr key={race.key}><td>{race.date}</td><td><span className="comparison-series-tag">{seriesLabels[race.series]}</span></td><td><small>{race.seasonName} · Round {race.round ?? '—'}</small><Link className="comparison-race-link" to={race.resultsUrl}>{race.track}</Link></td>{histories.map((history) => { const result = results.get(history.driver.key); return <td key={history.driver.key}>{result ? <><strong>{place(result.finish)}</strong><small>Start {result.start ? place(result.start) : '—'} · {result.points ?? '—'} pts</small></> : <span className="driver-history-dns">Did not start</span>}</td> })}<td><details><summary>Details</summary><div className="comparison-race-detail">{histories.map((history) => { const result = results.get(history.driver.key); return result ? <div key={history.driver.key}><strong>{history.driver.name}</strong><span>Finish {place(result.finish)} · Start {result.start ? place(result.start) : '—'}</span><span>Points {result.points ?? '—'} · Laps led {result.lapsLed ?? 0}</span>{race.series === 'cup' && <span>Stage points {result.stagePoints ?? 0} · Stage wins {result.stageWins ?? 0}</span>}<span>{result.pole ? 'Pole · ' : ''}{result.fastestLap ? 'Fastest lap · ' : ''}{result.status || 'Status unavailable'}</span></div> : null })}<Link to={race.resultsUrl}>View Full Race Results</Link></div></details></td></tr>)}</tbody></table></div>
   </section>
 }
