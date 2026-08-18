@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { ErrorState, LoadingState } from '../components/league/States'
 import { PageMeta } from '../components/league/PageMeta'
 import {
+  calculateDriverHistory,
   calculateDriverComparison,
   comparisonDriverOptions,
 } from '../services/driverComparisonStats'
@@ -34,12 +35,14 @@ function DriverSearch({
   value,
   options,
   disabledKey,
+  disabledKeys = [],
   onChange,
 }: {
   label: string
   value?: DriverOption
   options: DriverOption[]
   disabledKey?: string
+  disabledKeys?: string[]
   onChange: (driver?: DriverOption) => void
 }) {
   const [query, setQuery] = useState(value?.name ?? '')
@@ -59,14 +62,14 @@ function DriverSearch({
             options.find(
               (driver) =>
                 driver.name.toLocaleLowerCase() === next.toLocaleLowerCase() &&
-                driver.key !== disabledKey,
+                driver.key !== disabledKey && !disabledKeys.includes(driver.key),
             ),
           )
         }}
       />
       <datalist id={listId}>
         {options
-          .filter((driver) => driver.key !== disabledKey)
+          .filter((driver) => driver.key !== disabledKey && !disabledKeys.includes(driver.key))
           .map((driver) => (
             <option value={driver.name} key={driver.key}>
               {driver.starts} starts
@@ -114,8 +117,52 @@ function StatRows({ left, right, cup }: { left: DriverStats; right: DriverStats;
   )
 }
 
+const historyStats = (stats: DriverStats, cup: boolean) => [
+  ['Starts', stats.starts], ['Wins', stats.wins], ['Podiums', stats.podiums], ['Top 5s', stats.top5],
+  ['Top 10s', stats.top10], ['Poles', stats.poles], ['Fastest Laps', stats.fastestLaps],
+  ...(cup ? [['Stage Wins', stats.stageWins]] : []), ['Avg Finish', fmt(stats.averageFinish)],
+  ['Best Finish', stats.bestFinish ? place(stats.bestFinish) : '—'], ['Avg Start', fmt(stats.averageStart)],
+  ['Laps Led', stats.lapsLed],
+] as Array<[string, string | number]>
+
+function DriverHistoryView({ history, cup }: { history: ReturnType<typeof calculateDriverHistory>; cup: boolean }) {
+  return <>
+    <section className="comparison-panel driver-history-profile">
+      <div className="comparison-panel__heading"><div><p className="eyebrow">Driver record</p><h2>{history.driver.name}</h2></div><strong>{history.stats.starts} starts</strong></div>
+      <div className="driver-history-stat-grid">{historyStats(history.stats, cup).map(([label, value]) => <div key={label}><strong>{value}</strong><span>{label}</span></div>)}</div>
+    </section>
+    <DriverRaceHistory histories={[history]} />
+  </>
+}
+
+function DriverRaceHistory({ histories }: { histories: Array<ReturnType<typeof calculateDriverHistory>> }) {
+  const raceMap = new Map<string, { race: ComparisonDataset['races'][number]; results: Map<string, ComparisonDataset['races'][number]['results'][number]> }>()
+  histories.forEach((history) => history.races.forEach(({ race, result }) => {
+    const item = raceMap.get(race.key) ?? { race, results: new Map() }
+    item.results.set(history.driver.key, result)
+    raceMap.set(race.key, item)
+  }))
+  const rows = [...raceMap.values()].sort((a, b) => b.race.date.localeCompare(a.race.date) || (b.race.round ?? 0) - (a.race.round ?? 0))
+  return <section className="comparison-panel">
+    <div className="comparison-panel__heading"><div><p className="eyebrow">Complete record</p><h2>Race History</h2></div><strong>{rows.length}</strong></div>
+    <div className="comparison-race-table driver-history-table"><table><thead><tr><th>Date</th><th>Series</th><th>Season / Track</th>{histories.map((history) => <th key={history.driver.key}>{history.driver.name}</th>)}<th /></tr></thead><tbody>{rows.map(({ race, results }) => <tr key={race.key}><td>{race.date}</td><td><span className="comparison-series-tag">{seriesLabels[race.series]}</span></td><td><small>{race.seasonName} · Round {race.round ?? '—'}</small><Link className="comparison-race-link" to={race.resultsUrl}>{race.track}</Link></td>{histories.map((history) => { const result = results.get(history.driver.key); return <td key={history.driver.key}>{result ? <><strong>{place(result.finish)}</strong><small>Start {result.start ? place(result.start) : '—'} · {result.points ?? '—'} pts</small></> : <span className="driver-history-dns">Did not start</span>}</td> })}<td><details><summary>Details</summary><div className="comparison-race-detail">{histories.map((history) => { const result = results.get(history.driver.key); return result ? <div key={history.driver.key}><strong>{history.driver.name}</strong><span>Finish {place(result.finish)} · Start {result.start ? place(result.start) : '—'}</span><span>Points {result.points ?? '—'} · Laps led {result.lapsLed ?? 0}</span>{race.series === 'cup' && <span>Stage points {result.stagePoints ?? 0} · Stage wins {result.stageWins ?? 0}</span>}<span>{result.pole ? 'Pole · ' : ''}{result.fastestLap ? 'Fastest lap · ' : ''}{result.status || 'Status unavailable'}</span></div> : null })}<Link to={race.resultsUrl}>View Full Race Results</Link></div></details></td></tr>)}</tbody></table></div>
+  </section>
+}
+
+function MultiDriverComparison({ dataset, drivers, series, season }: { dataset: ComparisonDataset; drivers: DriverOption[]; series: 'all' | ComparisonSeries; season: string }) {
+  const histories = drivers.map((driver) => calculateDriverHistory(dataset, driver, { series, season }))
+  const pairs = drivers.flatMap((left, index) => drivers.slice(index + 1).map((right) => calculateDriverComparison(dataset, left, right, { series, season })))
+  const cup = series === 'cup' || histories.some((history) => history.stats.stageWins > 0)
+  return <>
+    <section className="comparison-panel multi-comparison-overview"><p className="eyebrow">Career / filtered statistics</p><h2>{drivers.length}-Driver Comparison</h2><div className="multi-driver-grid">{histories.map((history) => <article key={history.driver.key}><h3>{history.driver.name}</h3>{historyStats(history.stats, cup).map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}</article>)}</div></section>
+    <section className="comparison-panel"><p className="eyebrow">Every pairing</p><h2>Head-to-Head Matchups</h2><div className="multi-pair-grid">{pairs.map((pair) => <article key={`${pair.driverA.key}-${pair.driverB.key}`}><div><strong>{pair.driverA.name}</strong><b>{pair.driverAWins}</b></div><span>{pair.sharedRaces.length} together{pair.ties ? ` · ${pair.ties} ties` : ''}</span><div><b>{pair.driverBWins}</b><strong>{pair.driverB.name}</strong></div><dl className="multi-pair-stats"><div><dt>Avg finish</dt><dd>{fmt(pair.sharedA.averageFinish)} / {fmt(pair.sharedB.averageFinish)}</dd></div><div><dt>Top 5s</dt><dd>{pair.sharedA.top5} / {pair.sharedB.top5}</dd></div><div><dt>Poles</dt><dd>{pair.sharedA.poles} / {pair.sharedB.poles}</dd></div><div><dt>Fastest laps</dt><dd>{pair.sharedA.fastestLaps} / {pair.sharedB.fastestLaps}</dd></div><div><dt>Laps led</dt><dd>{pair.sharedA.lapsLed} / {pair.sharedB.lapsLed}</dd></div></dl></article>)}</div></section>
+    <DriverRaceHistory histories={histories} />
+  </>
+}
+
 export function DriverComparisonPage() {
   const [params, setParams] = useSearchParams()
+  const [driverSlots, setDriverSlots] = useState(() => Math.max(1, ...[1, 2, 3, 4].filter((index) => params.has(`driver${index}`))))
   const [data, setData] = useState<ComparisonDataset | null>(null)
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
@@ -134,9 +181,12 @@ export function DriverComparisonPage() {
     return () => controller.abort()
   }, [retry])
   const options = useMemo(() => (data ? comparisonDriverOptions(data) : []), [data])
-  const driverA = options.find((driver) => driver.key === params.get('driver1'))
-  const requestedDriverB = options.find((driver) => driver.key === params.get('driver2'))
-  const driverB = requestedDriverB?.key === driverA?.key ? undefined : requestedDriverB
+  const selectedDrivers = [1, 2, 3, 4].flatMap((index) => {
+    const driver = options.find((item) => item.key === params.get(`driver${index}`))
+    return driver && ![1, 2, 3, 4].slice(0, index - 1).some((prior) => params.get(`driver${prior}`) === driver.key) ? [driver] : []
+  })
+  const driverA = selectedDrivers[0]
+  const driverB = selectedDrivers[1]
   const series = (
     ['cup', 'gt', 'indycar'].includes(params.get('series') ?? '') ? params.get('series') : 'all'
   ) as 'all' | ComparisonSeries
@@ -204,35 +254,21 @@ export function DriverComparisonPage() {
   return (
     <main className="comparison-page">
       <PageMeta
-        title="Driver Comparison"
-        description="Compare Grassroots Racing drivers head to head across Cup, GT, and IndyCar."
+        title="Driver History"
+        description="Explore a Grassroots Racing driver's complete history or compare up to four drivers across Cup, GT, and IndyCar."
       />
       <header className="comparison-hero">
         <div className="container">
           <p className="eyebrow">Grassroots Racing statistics</p>
-          <h1>Driver Comparison</h1>
-          <p>Compare any two GRR drivers across every race they competed in together.</p>
+          <h1>Driver History</h1>
+          <p>Explore any GRR driver’s complete record, or compare up to four drivers.</p>
         </div>
       </header>
       <div className="container comparison-content">
-        <section className="comparison-controls" aria-label="Driver comparison controls">
-          <DriverSearch
-            key={`a-${driverA?.key ?? 'empty'}`}
-            label="Driver 1"
-            value={driverA}
-            options={options}
-            disabledKey={driverB?.key}
-            onChange={(driver) => update({ driver1: driver?.key })}
-          />
-          <span className="comparison-vs">VS.</span>
-          <DriverSearch
-            key={`b-${driverB?.key ?? 'empty'}`}
-            label="Driver 2"
-            value={driverB}
-            options={options}
-            disabledKey={driverA?.key}
-            onChange={(driver) => update({ driver2: driver?.key })}
-          />
+        <section className="comparison-controls driver-history-controls" aria-label="Driver history controls">
+          <div className="driver-history-searches">{Array.from({ length: driverSlots }, (_, offset) => { const index = offset + 1; const value = options.find((driver) => driver.key === params.get(`driver${index}`)); return <div className="driver-history-search-row" key={index}><DriverSearch key={`${index}-${value?.key ?? 'empty'}`} label={index === 1 ? 'Find a driver' : `Driver ${index}`} value={value} options={options} disabledKeys={selectedDrivers.filter((driver) => driver.key !== value?.key).map((driver) => driver.key)} onChange={(driver) => update({ [`driver${index}`]: driver?.key })} />{index > 1 && <button className="driver-history-remove" type="button" aria-label={`Remove driver ${index}`} onClick={() => { const values: Record<string, string | undefined> = {}; for (let move = index; move < driverSlots; move += 1) values[`driver${move}`] = params.get(`driver${move + 1}`) ?? undefined; values[`driver${driverSlots}`] = undefined; update(values); setDriverSlots((count) => Math.max(1, count - 1)) }}>Remove</button>}</div> })}</div>
+          {driverSlots < 4 && <button className="button button--secondary driver-history-add" type="button" onClick={() => setDriverSlots((count) => Math.min(4, count + 1))}>+ Add Driver</button>}
+          {selectedDrivers.length > 1 && <span className="driver-history-mode">Comparing {selectedDrivers.length} drivers</span>}
         </section>
         <div className="comparison-filterbar">
           <div className="filter-group" role="group" aria-label="Series filter">
@@ -260,15 +296,16 @@ export function DriverComparisonPage() {
             </select>
           </label>
         </div>
-        {!driverA || !driverB ? (
+        {selectedDrivers.length > 0 && selectedDrivers.length !== 2 && <div className="comparison-actions driver-history-actions"><button className="button button--secondary" type="button" onClick={() => navigator.clipboard.writeText(window.location.href).then(() => setShareStatus('Driver History link copied.'))}>Copy Link</button><span role="status">{shareStatus}</span></div>}
+        {!selectedDrivers.length ? (
           <section className="comparison-empty">
-            <h2>{driverA || driverB ? 'Select an opponent' : 'Select two GRR drivers'}</h2>
-            <p>
-              {driverA || driverB
-                ? 'Choose a second driver to begin the comparison.'
-                : 'Search for two drivers to compare their GRR racing history.'}
-            </p>
+            <h2>Search the GRR record book</h2>
+            <p>Select one driver for their complete history. Add more drivers whenever you want to compare.</p>
           </section>
+        ) : selectedDrivers.length === 1 ? (
+          <DriverHistoryView history={calculateDriverHistory(data, selectedDrivers[0], { series, season })} cup={series === 'cup' || calculateDriverHistory(data, selectedDrivers[0], { series, season }).stats.stageWins > 0} />
+        ) : selectedDrivers.length > 2 ? (
+          <MultiDriverComparison dataset={data} drivers={selectedDrivers} series={series} season={season} />
         ) : (
           comparison && (
             <>

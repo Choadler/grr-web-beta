@@ -117,6 +117,20 @@ function stats(results: ComparisonResult[], finishOverride?: number[]): DriverSt
   }
 }
 
+export function calculateDriverHistory(
+  dataset: ComparisonDataset,
+  driver: DriverOption,
+  filters: ComparisonFilters,
+) {
+  const races = filteredRaces(dataset, filters)
+    .flatMap((race) => {
+      const result = race.results.find((item) => item.driverKey === driver.key)
+      return result ? [{ race, result }] : []
+    })
+    .sort((a, b) => b.race.date.localeCompare(a.race.date) || (b.race.round ?? 0) - (a.race.round ?? 0))
+  return { driver, stats: stats(races.map((item) => item.result)), races }
+}
+
 function sharedRace(
   race: ComparisonRace,
   a: ComparisonResult,

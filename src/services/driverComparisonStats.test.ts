@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import type { ComparisonDataset, ComparisonRace, DriverOption } from '../types/driverComparison.ts'
-import { calculateDriverComparison, comparisonDriverOptions } from './driverComparisonStats.ts'
+import { calculateDriverComparison, calculateDriverHistory, comparisonDriverOptions } from './driverComparisonStats.ts'
 import { reconcileVerifiedDriverAliases } from './driverComparisonStats.ts'
 import { canonicalGtTrackName } from './gtTrackNames.ts'
 
@@ -102,6 +102,19 @@ test('returns a graceful empty comparison', () => {
   assert.equal(comparison.sharedRaces.length, 0)
   assert.equal(comparison.careerA.averageFinish, null)
   assert.deepEqual(comparison.recentForm, [])
+})
+
+test('builds a single-driver history with filters and newest races first', () => {
+  const data = dataset([
+    race('r1', 'cup', [result(a, 1, { points: 45, stageWins: 1 })], { date: '2025-01-01' }),
+    race('r2', 'cup', [result(a, 4, { points: 32 })], { date: '2026-01-01' }),
+    race('r3', 'gt', [result(a, 2)], { date: '2026-02-01' }),
+  ])
+  const history = calculateDriverHistory(data, a, { series: 'cup', season: 'all' })
+  assert.equal(history.stats.starts, 2)
+  assert.equal(history.stats.wins, 1)
+  assert.equal(history.stats.stageWins, 1)
+  assert.deepEqual(history.races.map((item) => item.race.key), ['r2', 'r1'])
 })
 
 test('reconciles display-name aliases that share a stable driver key', () => {

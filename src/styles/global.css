@@ -1772,6 +1772,35 @@ button:focus-visible {
   font-size: 1.4rem;
   font-weight: 900;
 }
+.driver-history-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1px; margin-top: 1rem; background: #30422f; border: 1px solid #30422f; }
+.driver-history-stat-grid > div { display: grid; gap: 0.2rem; padding: 1rem; background: #121a13; }
+.driver-history-stat-grid strong { color: #fff; font-size: 1.55rem; }
+.driver-history-stat-grid span { color: #aebbaa; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; }
+.multi-driver-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; }
+.multi-driver-grid article { border-top: 4px solid var(--green); background: #121a13; padding: 1rem; }
+.multi-driver-grid h3 { min-height: 2.5em; margin: 0 0 0.75rem; text-transform: uppercase; }
+.multi-driver-grid article > div { display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.42rem 0; border-top: 1px solid #2c3c2b; }
+.multi-driver-grid article span { color: #aebbaa; font-size: 0.75rem; text-transform: uppercase; }
+.multi-pair-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0.65rem; }
+.multi-pair-grid article { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 0.65rem; border: 1px solid #40543e; background: #121a13; padding: 1rem; }
+.multi-pair-grid article div { display: grid; gap: 0.25rem; }
+.multi-pair-grid article div:last-child { text-align: right; }
+.multi-pair-grid article b { color: var(--green-light); font-size: 2rem; }
+.multi-pair-grid article > span { color: #aebbaa; font-size: 0.72rem; text-align: center; text-transform: uppercase; }
+.multi-pair-stats { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(5, 1fr); gap: 1px; margin: 0.75rem 0 0; background: #30422f; }
+.multi-pair-stats > div { display: grid !important; gap: 0.2rem; padding: 0.55rem; background: #0d140e; text-align: center !important; }
+.multi-pair-stats dt { color: #aebbaa; font-size: 0.65rem; text-transform: uppercase; }
+.multi-pair-stats dd { margin: 0; font-weight: 800; }
+.driver-history-table table { min-width: 1050px; }
+.driver-history-table td:nth-child(3) { min-width: 220px; }
+.driver-history-table td small,
+.driver-history-table td strong,
+.driver-history-table td .comparison-race-link { display: block; }
+.driver-history-table td small { color: #aebbaa; margin-top: 0.2rem; }
+.driver-history-table details summary { color: var(--green-light); cursor: pointer; font-weight: 800; }
+.driver-history-table .comparison-race-detail > div { display: grid; gap: 0.2rem; padding-bottom: 0.5rem; border-bottom: 1px solid #30422f; }
+.comparison-series-tag { display: inline-block; padding: 0.25rem 0.4rem; border: 1px solid #496148; color: #c8e8c4; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
+.driver-history-dns { color: #788477; font-size: 0.75rem; text-transform: uppercase; }
 @media (max-width: 768px) {
   .comparison-hero {
     padding: 2.25rem 0 1.75rem;
@@ -1779,6 +1808,10 @@ button:focus-visible {
   .comparison-controls {
     grid-template-columns: 1fr;
   }
+  .driver-history-controls { display: flex; }
+  .driver-history-searches { grid-template-columns: 1fr; }
+  .driver-history-add { width: 100%; }
+  .multi-pair-stats { grid-template-columns: repeat(2, 1fr); }
   .comparison-vs {
     padding: 0;
     text-align: center;
@@ -1815,6 +1848,7 @@ button:focus-visible {
   .comparison-race-table {
     display: none;
   }
+  .driver-history-table { display: block; }
   .comparison-race-cards {
     display: grid;
     gap: 0.65rem;
@@ -2934,6 +2968,13 @@ button:focus-visible {
 .gallery-turnstile > div:first-child {
   width: 100%;
 }
+.driver-history-controls { display: flex; align-items: end; flex-wrap: wrap; }
+.driver-history-searches { display: grid; flex: 1 1 700px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; }
+.driver-history-search-row { position: relative; }
+.driver-history-remove { position: absolute; top: 0; right: 0; border: 0; background: transparent; color: #b9c4b7; font-size: 0.7rem; font-weight: 800; text-decoration: underline; text-transform: uppercase; cursor: pointer; }
+.driver-history-remove:hover { color: #fff; }
+.driver-history-add { min-height: 46px; }
+.driver-history-mode { flex-basis: 100%; color: #aebbaa; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; }
 
 .cup-playoffs {
   margin: 0 0 2rem;
