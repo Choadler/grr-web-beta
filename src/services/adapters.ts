@@ -2,6 +2,7 @@ import type { DataResult, RaceEvent, RaceEventsResult, TableRow } from '../types
 import type { ScheduledRace } from '../config/schedules'
 import { easternRaceTime, normalizeScheduleDate } from '../utils/raceTime'
 import { scheduledRacePairs } from './cupResultMapping'
+import { addCupChaseStatus } from './cupChase'
 
 type UnknownRecord = Record<string, unknown>
 const isRecord = (value: unknown): value is UnknownRecord =>
@@ -77,16 +78,7 @@ export function adaptSimRacerStandings(payload: unknown): DataResult {
     })
     .filter((row) => row.driver)
     .sort((a, b) => a.rank - b.rank)
-  const sixteenth = rows.find((row) => row.rank === 16)?.points ?? 0
-  const seventeenth = rows.find((row) => row.rank === 17)?.points ?? sixteenth
-  const rowsWithCutoff = rows.map((row) => {
-    const difference = row.points - (row.rank <= 16 ? seventeenth : sixteenth)
-    return {
-      ...row,
-      cutoff: `${difference >= 0 ? '+' : ''}${difference}`,
-      chase: row.rank <= 16 ? 'IN' : '—',
-    }
-  })
+  const rowsWithCutoff = addCupChaseStatus(rows)
   const season = record(root.lss)
   return {
     ...requireRows(rowsWithCutoff, 'SimRacerHub standings'),

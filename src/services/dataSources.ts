@@ -11,6 +11,7 @@ import {
 import { fetchJson } from './http'
 import { loadLocalGtPublic } from './gtAdmin'
 import { loadLocalIndyPublic } from './indycarAdmin'
+import { addCupChaseStatus } from './cupChase'
 
 type IndyPublicPayload = {
   schedule?: unknown[]
@@ -163,7 +164,10 @@ export const gtHistoricalRecords: DataLoader = async (signal) => {
 
 export const cupStandings: DataLoader = async (signal) => {
   const local = await cupInHouse(signal)
-  return local ? { rows: (local.standings ?? []) as never[], label: local.season?.name } : adaptSimRacerStandings(await fetchJson(publicEndpoints.cup.standings, signal))
+  if (!local) return adaptSimRacerStandings(await fetchJson(publicEndpoints.cup.standings, signal))
+  const historical = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('season')
+  const rows = (local.standings ?? []) as never[]
+  return { rows: historical ? rows : addCupChaseStatus(rows), label: local.season?.name }
 }
 export const cupRecentResults: DataLoader = async (signal) =>
   adaptRecentResults(await fetchJson(publicEndpoints.cup.recentResults, signal))

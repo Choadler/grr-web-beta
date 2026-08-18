@@ -424,7 +424,7 @@ export const CupStandingsPage = () => {
     search
     loader={cupStandings}
     contentBeforeTable={seasonId ? <CupPlayoffHistory seasonId={seasonId} /> : undefined}
-    note={historical ? undefined : 'Positions 1–16 are currently in the Chase. The green line marks the cutoff.'}
+    note={historical ? undefined : 'Positions 1–16 are currently in the Chase. CLINCHED uses current SRH points and starts; the green line marks the cutoff.'}
     rowClassName={(row) =>
       historical ? '' : Number(row.rank) === 17
         ? 'standings-row--cutline'
@@ -445,6 +445,11 @@ export const CupStandingsPage = () => {
             : Number(value) <= -100
               ? 'cutoff-value cutoff-value--danger'
               : 'cutoff-value cutoff-value--close',
+      },
+      {
+        key: 'chase',
+        label: 'Chase',
+        cellClassName: (value) => value === 'CLINCHED' ? 'chase-status chase-status--clinched' : 'chase-status',
       },
       { key: 'starts', label: 'Starts' },
       { key: 'wins', label: 'W' },

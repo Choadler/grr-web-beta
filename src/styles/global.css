@@ -2635,6 +2635,12 @@ button:focus-visible {
 .cutoff-value--danger {
   color: #ff737d;
 }
+.chase-status {
+  font-weight: 900;
+}
+.chase-status--clinched {
+  color: #75df68;
+}
 .results-row--gold {
   background: linear-gradient(90deg, rgba(255, 215, 0, 0.28), rgba(255, 193, 7, 0.1));
   box-shadow: inset 4px 0 #ffd700;
