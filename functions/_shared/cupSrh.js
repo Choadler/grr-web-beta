@@ -14,6 +14,27 @@ const displayDriverName = (value) => {
   return `${rest.join(',').trim()} ${last.trim()}`.trim()
 }
 
+export function parseCupRaceIntervals(html) {
+  const intervals = new Map()
+  const pattern = /\{[^{}]*\brpid:(\d+)[^{}]*\bintv:(-?\d+(?:\.\d+)?)/g
+  for (const match of String(html).matchAll(pattern)) {
+    const participantId = Number(match[1])
+    const interval = Number(match[2])
+    if (Number.isFinite(participantId) && Number.isFinite(interval)) intervals.set(participantId, interval)
+  }
+  return intervals
+}
+
+export function applyCupRaceIntervals(event, intervals) {
+  return {
+    ...event,
+    results: event.results.map((row) => ({
+      ...row,
+      finishInterval: intervals.get(row.srhRaceParticipantId) ?? null,
+    })),
+  }
+}
+
 export function discoverCupSeasons(html) {
   const rows = []
   const pattern = /<a[^>]+href=["'][^"']*season_schedule\.php\?season_id=(\d+)[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi

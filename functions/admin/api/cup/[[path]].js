@@ -1,4 +1,4 @@
-import { CUP_SRH_SERIES_ID, discoverCupSeasons, normalizeCupSeason, validateCupSeason } from '../../../_shared/cupSrh.js'
+import { CUP_SRH_SERIES_ID, applyCupRaceIntervals, discoverCupSeasons, normalizeCupSeason, parseCupRaceIntervals, validateCupSeason } from '../../../_shared/cupSrh.js'
 
 const json = (value, status = 200) => Response.json(value, { status, headers: { 'Cache-Control': 'no-store' } })
 const srhFetch = async (url) => {
@@ -21,8 +21,26 @@ async function discover(db) {
 
 async function syncSeason(db, srhSeasonId) {
   const source = await (await srhFetch(`https://www.simracerhub.com/scoring/get_standings.php?season_id=${srhSeasonId}`)).json()
-  const data = normalizeCupSeason(source)
-  const issues = validateCupSeason(data)
+  const normalized = normalizeCupSeason(source)
+  const intervalIssues = []
+  const events = []
+  for (let index = 0; index < normalized.events.length; index += 6) {
+    const batch = normalized.events.slice(index, index + 6)
+    events.push(...await Promise.all(batch.map(async (event) => {
+      if (!event.results.length) return event
+      try {
+        const html = await (await srhFetch(`https://www.simracerhub.com/scoring/season_race.php?schedule_id=${event.srhScheduleId}`)).text()
+        const intervals = parseCupRaceIntervals(html)
+        if (!intervals.size) intervalIssues.push(`Race ${event.srhScheduleId} returned no intervals`)
+        return applyCupRaceIntervals(event, intervals)
+      } catch (error) {
+        intervalIssues.push(`Race ${event.srhScheduleId} intervals failed: ${error instanceof Error ? error.message : 'unknown error'}`)
+        return applyCupRaceIntervals(event, new Map())
+      }
+    })))
+  }
+  const data = { ...normalized, events }
+  const issues = [...validateCupSeason(data), ...intervalIssues]
   const statements = []
   statements.push(db.prepare(`INSERT INTO cup_seasons(id,srh_series_id,srh_season_id,name,status,source_url,last_synced_at,sync_status,sync_error)
     VALUES(?,?,?,?,?,?,CURRENT_TIMESTAMP,'syncing',NULL) ON CONFLICT(srh_season_id) DO UPDATE SET name=excluded.name,source_url=excluded.source_url,sync_status='syncing',sync_error=NULL,updated_at=CURRENT_TIMESTAMP`)
@@ -38,9 +56,9 @@ async function syncSeason(db, srhSeasonId) {
       VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(srh_schedule_id) DO UPDATE SET round_number=excluded.round_number,race_date=excluded.race_date,track=excluded.track,track_config=excluded.track_config,event_name=COALESCE(cup_events.event_name,excluded.event_name),scheduled_laps=excluded.scheduled_laps,points_count=excluded.points_count`)
       .bind(event.id, data.season.id, event.srhScheduleId, event.round, event.raceDate, event.track, event.trackConfig, event.eventName, event.scheduledLaps, event.pointsCount, `https://simracerhub.com/season_race.php?schedule_id=${event.srhScheduleId}`))
     for (const session of event.sessions) statements.push(db.prepare(`INSERT INTO cup_sessions(srh_race_id,event_id,session_type,session_number,sort_order) VALUES(?,?,?,?,?) ON CONFLICT(srh_race_id) DO UPDATE SET session_type=excluded.session_type,session_number=excluded.session_number,sort_order=excluded.sort_order`).bind(session.srhRaceId, event.id, session.sessionType, session.sessionNumber, session.sortOrder))
-    for (const row of event.results) statements.push(db.prepare(`INSERT INTO cup_results(srh_race_participant_id,season_id,event_id,srh_race_id,srh_driver_id,finish_position,start_position,laps_completed,laps_led,incidents,status,fastest_lap_time,race_points,stage_points,bonus_points,penalty_points,total_points,average_position,passes,quality_passes)
-      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(srh_race_participant_id) DO UPDATE SET finish_position=excluded.finish_position,start_position=excluded.start_position,laps_completed=excluded.laps_completed,laps_led=excluded.laps_led,incidents=excluded.incidents,status=excluded.status,fastest_lap_time=excluded.fastest_lap_time,race_points=excluded.race_points,stage_points=excluded.stage_points,bonus_points=excluded.bonus_points,penalty_points=excluded.penalty_points,total_points=excluded.total_points,average_position=excluded.average_position,passes=excluded.passes,quality_passes=excluded.quality_passes`)
-      .bind(row.srhRaceParticipantId, data.season.id, event.id, row.srhRaceId, row.srhDriverId, row.finishPosition, row.startPosition, row.lapsCompleted, row.lapsLed, row.incidents, row.status, row.fastestLapTime, row.racePoints, row.stagePoints, row.bonusPoints, row.penaltyPoints, row.totalPoints, row.averagePosition, row.passes, row.qualityPasses))
+    for (const row of event.results) statements.push(db.prepare(`INSERT INTO cup_results(srh_race_participant_id,season_id,event_id,srh_race_id,srh_driver_id,finish_position,start_position,finish_interval,laps_completed,laps_led,incidents,status,fastest_lap_time,race_points,stage_points,bonus_points,penalty_points,total_points,average_position,passes,quality_passes)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(srh_race_participant_id) DO UPDATE SET finish_position=excluded.finish_position,start_position=excluded.start_position,finish_interval=excluded.finish_interval,laps_completed=excluded.laps_completed,laps_led=excluded.laps_led,incidents=excluded.incidents,status=excluded.status,fastest_lap_time=excluded.fastest_lap_time,race_points=excluded.race_points,stage_points=excluded.stage_points,bonus_points=excluded.bonus_points,penalty_points=excluded.penalty_points,total_points=excluded.total_points,average_position=excluded.average_position,passes=excluded.passes,quality_passes=excluded.quality_passes`)
+      .bind(row.srhRaceParticipantId, data.season.id, event.id, row.srhRaceId, row.srhDriverId, row.finishPosition, row.startPosition, row.finishInterval, row.lapsCompleted, row.lapsLed, row.incidents, row.status, row.fastestLapTime, row.racePoints, row.stagePoints, row.bonusPoints, row.penaltyPoints, row.totalPoints, row.averagePosition, row.passes, row.qualityPasses))
   }
   for (let index = 0; index < statements.length; index += 500) await db.batch(statements.slice(index, index + 500))
   await db.prepare(`UPDATE cup_seasons SET last_synced_at=CURRENT_TIMESTAMP,sync_status=?,sync_error=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(issues.length ? 'warning' : 'synced', issues.length ? issues.join('; ') : null, data.season.id).run()

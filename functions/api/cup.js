@@ -1,6 +1,15 @@
 const json = (value, status = 200) => Response.json(value, { status, headers: { 'Cache-Control': 'public, max-age=30, stale-while-revalidate=300' } })
 const identity = (row) => `id:${row.srhDriverId}`
 
+export const formatCupInterval = (row, leader) => {
+  if (Number(row.finish_position) === 1) return '—'
+  const lapsDown = Math.max(0, Number(leader?.laps_completed) - Number(row.laps_completed))
+  if (lapsDown) return `${lapsDown} Lap${lapsDown === 1 ? '' : 's'}`
+  const interval = Number(row.finish_interval)
+  if (!Number.isFinite(interval) || interval <= 0) return '—'
+  return `+${interval.toFixed(3)}`
+}
+
 async function selectedSeason(db, requested) {
   return requested
     ? db.prepare("SELECT id,name,status FROM cup_seasons WHERE id=? AND status<>'draft'").bind(requested).first()
@@ -74,11 +83,12 @@ export async function onRequestGet({ env, request }) {
     const sessions = sessionIds.map((raceId) => {
       const raceRows = eventRows.filter((row) => row.srh_race_id === raceId)
       const race = raceRows[0]?.session_type === 'RACE'
+      const leader = raceRows.find((row) => row.finish_position === 1)
       const fastestRow = raceRows.filter((row) => Number(row.fastest_lap_time) > 0).sort((a, b) => a.fastest_lap_time - b.fastest_lap_time || a.finish_position - b.finish_position)[0]
       if (!race) stage += 1
       return { id: raceId, label: race ? 'Overall Race Finish' : `Stage ${stage}`, rows: raceRows.map((row) => {
         const stagePoints = race ? (stageTotals.get(row.srh_driver_id) ?? 0) : (row.stage_points ?? 0)
-        return { position: row.finish_position, driver: row.display_name, start: row.start_position, interval: '—', laps: row.laps_completed, led: row.laps_led, racePoints: row.race_points, stagePoints, bonus: row.bonus_points, penalty: row.penalty_points, total: (row.total_points ?? 0) + (race ? stagePoints : 0), incidents: row.incidents, status: row.status ?? '—', averagePosition: row.average_position, passes: row.passes, quality: row.quality_passes, fastestLap: fastestRow?.srh_race_participant_id === row.srh_race_participant_id ? 1 : 0 }
+        return { position: row.finish_position, driver: row.display_name, start: row.start_position, interval: formatCupInterval(row, leader), laps: row.laps_completed, led: row.laps_led, racePoints: row.race_points, stagePoints, bonus: row.bonus_points, penalty: row.penalty_points, total: (row.total_points ?? 0) + (race ? stagePoints : 0), incidents: row.incidents, status: row.status ?? '—', averagePosition: row.average_position, passes: row.passes, quality: row.quality_passes, fastestLap: fastestRow?.srh_race_participant_id === row.srh_race_participant_id ? 1 : 0 }
       }) }
     })
     return { id: event.scheduleId, sourceEventId: event.id, label: `${event.track} — ${event.date ?? 'TBD'}`, track: event.track, date: event.date, sessions }

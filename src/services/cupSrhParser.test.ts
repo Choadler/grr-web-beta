@@ -1,10 +1,30 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { discoverCupSeasons, normalizeCupSeason, validateCupSeason } from '../../functions/_shared/cupSrh.js'
+import { applyCupRaceIntervals, discoverCupSeasons, normalizeCupSeason, parseCupRaceIntervals, validateCupSeason } from '../../functions/_shared/cupSrh.js'
+import { formatCupInterval } from '../../functions/api/cup.js'
 
 test('discovers Cup seasons without guessing IDs', () => {
   const rows = discoverCupSeasons('<a href="season_schedule.php?season_id=26393">Season 1</a><a href="season_schedule.php?season_id=26393">Season 1</a> seasons=[{id:27909,sname:"Winter Season"}]')
   assert.deepEqual(rows.map((row: { srhSeasonId: number }) => row.srhSeasonId), [26393, 27909])
+})
+
+test('extracts SRH race intervals by participant ID and attaches them to normalized rows', () => {
+  const intervals = parseCupRaceIntervals('drivers=[{id:7,rpid:101,fp:1,intv:0,laps:200},{id:8,rpid:102,fp:2,intv:0.8328,laps:200},{id:9,rpid:103,fp:3,intv:9999.0001,laps:199}]')
+  const event = { results: [
+    { srhRaceParticipantId: 101 },
+    { srhRaceParticipantId: 102 },
+    { srhRaceParticipantId: 103 },
+  ] }
+
+  assert.deepEqual(applyCupRaceIntervals(event, intervals).results.map((row: { finishInterval: number | null }) => row.finishInterval), [0, 0.8328, 9999.0001])
+})
+
+test('formats SRH seconds for same-lap cars and lap counts for lapped cars', () => {
+  const leader = { finish_position: 1, laps_completed: 200, finish_interval: 0 }
+  assert.equal(formatCupInterval(leader, leader), '—')
+  assert.equal(formatCupInterval({ finish_position: 2, laps_completed: 200, finish_interval: 0.8328 }, leader), '+0.833')
+  assert.equal(formatCupInterval({ finish_position: 12, laps_completed: 199, finish_interval: 9999.0001 }, leader), '1 Lap')
+  assert.equal(formatCupInterval({ finish_position: 16, laps_completed: 197, finish_interval: 29997.0001 }, leader), '3 Laps')
 })
 
 test('normalizes race and stage sessions with stable SRH IDs', () => {
