@@ -19,6 +19,21 @@ export async function onRequestGet({ env, request }) {
       FROM cup_seasons s WHERE s.status<>'draft' ORDER BY s.srh_season_id DESC`).all()
     return json({ seasons: seasons.results })
   }
+  if (url.searchParams.get('view') === 'playoffs') {
+    const season = await selectedSeason(db, url.searchParams.get('season'))
+    if (!season) return json({ error: 'No public Cup season is available.' }, 404)
+    const playoff = await db.prepare(`SELECT ps.format_name AS formatName,ps.championship_round AS championshipRound,ps.source_note AS sourceNote,
+      d.srh_driver_id AS championDriverId,d.display_name AS champion
+      FROM cup_playoff_seasons ps JOIN cup_drivers d ON d.srh_driver_id=ps.champion_driver_id WHERE ps.season_id=?`).bind(season.id).first()
+    if (!playoff) return json({ season, playoffs: null })
+    const rounds = (await db.prepare(`SELECT round_key AS roundKey,label,start_round AS startRound,end_round AS endRound,tracks,advancing_count AS advancingCount
+      FROM cup_playoff_rounds WHERE season_id=? ORDER BY sort_order`).bind(season.id).all()).results.map((round) => ({ ...round, tracks: round.tracks.split('|') }))
+    const drivers = (await db.prepare(`SELECT pd.srh_driver_id AS driverId,d.display_name AS driver,pd.wins,pd.total_points AS totalPoints,
+      pd.round_of_12_wins AS roundOf12Wins,pd.round_of_12_points AS roundOf12Points,pd.round_of_8_wins AS roundOf8Wins,pd.round_of_8_points AS roundOf8Points,
+      pd.final_cutoff AS finalCutoff,pd.playoff_points AS playoffPoints,pd.outcome
+      FROM cup_playoff_drivers pd JOIN cup_drivers d ON d.srh_driver_id=pd.srh_driver_id WHERE pd.season_id=? ORDER BY pd.sort_order`).bind(season.id).all()).results
+    return json({ season, playoffs: { ...playoff, rounds, drivers } })
+  }
   if (url.searchParams.get('view') === 'history' || url.searchParams.get('view') === 'career') {
     const rows = (await db.prepare(`SELECT r.srh_driver_id AS srhDriverId,d.display_name AS driver,r.season_id AS seasonId,s.name AS season,e.id AS eventId,e.round_number AS round,e.race_date AS date,e.track,
       r.finish_position AS finish,r.start_position AS start,r.laps_completed AS laps,r.laps_led AS lapsLed,r.incidents,r.total_points AS points,r.fastest_lap_time AS fastestLapTime,r.status

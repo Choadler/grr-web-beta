@@ -210,9 +210,12 @@ export const cupRaceEvents: RaceEventsLoader = async (signal) => {
 }
 
 export type CupHistoryPayload = { stats: Record<string, string | number | null>[] }
+export type CupPlayoffDriver = { driverId: number; driver: string; wins: number; totalPoints: number; roundOf12Wins: number; roundOf12Points: number; roundOf8Wins: number; roundOf8Points: number; finalCutoff: string; playoffPoints: number; outcome: 'champion' | 'championship-four' | 'round-of-8' | 'round-of-12' }
+export type CupPlayoffPayload = { season: { id: string; name: string }; playoffs: null | { formatName: string; champion: string; championshipRound: number; sourceNote: string; rounds: Array<{ roundKey: string; label: string; startRound: number; endRound: number; tracks: string[]; advancingCount: number }>; drivers: CupPlayoffDriver[] } }
 export type CupCareerProfile = Record<string, unknown> & { driverKey: string; driver: string; seasonsEntered: number; championships: number; seasons: Array<Record<string, string | number | null>>; races: Array<Record<string, string | number | null>> }
 export const cupHistory = (signal: AbortSignal) => fetchJson('/api/cup?view=history', signal) as Promise<CupHistoryPayload>
 export const cupCareer = (driverKey: string, signal: AbortSignal) => fetchJson(`/api/cup?view=career&driver=${encodeURIComponent(driverKey)}`, signal) as Promise<CupCareerProfile>
+export const cupPlayoffs = (seasonId: string, signal: AbortSignal) => fetchJson(`/api/cup?view=playoffs&season=${encodeURIComponent(seasonId)}`, signal) as Promise<CupPlayoffPayload>
 export const cupHistoricalStats: DataLoader = async (signal) => ({ rows: (await cupHistory(signal)).stats as never[] })
 export const indyRaceEvents: RaceEventsLoader = async (signal) => {
   const local = await indyInHouse(signal)

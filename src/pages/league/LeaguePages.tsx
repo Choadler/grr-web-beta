@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { DataTable, EmptyTableRow } from '../../components/league/DataTable'
 import { CupSportingCode } from '../../components/league/CupSportingCode'
@@ -18,6 +18,7 @@ import {
   cupCareer,
   cupHistoricalStats,
   cupHistory,
+  cupPlayoffs,
   cupSchedule,
   cupStandings,
   gtRaceEvents,
@@ -35,6 +36,7 @@ import {
 import type { DataLoader } from '../../types/league'
 import type { TableRow } from '../../types/league'
 import type { GtCareerProfile } from '../../services/dataSources'
+import type { CupPlayoffPayload } from '../../services/dataSources'
 import { shareGtCareerImage } from '../../utils/gtCareerExport'
 
 const cupNav: LeagueNavItem[] = [
@@ -325,6 +327,7 @@ type DataPageProps = {
   note?: string
   tableClassName?: string
   rowLink?: (row: TableRow) => string | undefined
+  contentBeforeTable?: ReactNode
 }
 function DataPage({
   league,
@@ -340,6 +343,7 @@ function DataPage({
   note,
   tableClassName,
   rowLink,
+  contentBeforeTable,
 }: DataPageProps) {
   const [activeFilter, setActiveFilter] = useState(0)
   const activeLoader = loaders?.[activeFilter] ?? loader
@@ -364,6 +368,7 @@ function DataPage({
         </div>
       )}
       {note && <p className="standings-legend">{note}</p>}
+      {contentBeforeTable}
       {activeLoader ? (
         <LiveDataTable
           key={activeFilter}
@@ -391,14 +396,34 @@ function DataPage({
   )
 }
 
+function CupPlayoffHistory({ seasonId }: { seasonId: string }) {
+  const [payload, setPayload] = useState<CupPlayoffPayload | null>(null)
+  useEffect(() => {
+    const controller = new AbortController()
+    cupPlayoffs(seasonId, controller.signal).then(setPayload).catch(() => setPayload(null))
+    return () => controller.abort()
+  }, [seasonId])
+  const playoffs = payload?.playoffs
+  if (!playoffs) return null
+  const outcomeLabel = { champion: 'Champion', 'championship-four': 'Championship 4', 'round-of-8': 'Eliminated — Round of 8', 'round-of-12': 'Eliminated — Round of 12' }
+  return <section className="cup-playoffs" aria-labelledby="cup-playoffs-title">
+    <div className="cup-playoffs__heading"><div><span>Season 1 historical format</span><h2 id="cup-playoffs-title">{playoffs.formatName}</h2></div><div className="cup-playoffs__champion"><span>Champion</span><strong>{playoffs.champion}</strong></div></div>
+    <div className="cup-playoffs__rounds">{playoffs.rounds.map((round) => <article key={round.roundKey}><span>Rounds {round.startRound === round.endRound ? round.startRound : `${round.startRound}–${round.endRound}`}</span><h3>{round.label}</h3><p>{round.tracks.join(' · ')}</p></article>)}</div>
+    <div className="cup-playoffs__table-wrap"><table className="cup-playoffs__table"><caption>Season 1 playoff driver and cutoff snapshot</caption><thead><tr><th>Driver</th><th>Wins</th><th>Total Pts</th><th>R12 W</th><th>R12 Pts</th><th>R8 W</th><th>R8 Pts</th><th>Final Cutoff</th><th>Playoff Pts</th><th>Outcome</th></tr></thead><tbody>{playoffs.drivers.map((driver) => <tr key={driver.driverId} className={driver.outcome === 'champion' ? 'is-champion' : ''}><th scope="row">{driver.driver}</th><td>{driver.wins}</td><td>{driver.totalPoints}</td><td>{driver.roundOf12Wins}</td><td>{driver.roundOf12Points}</td><td>{driver.roundOf8Wins}</td><td>{driver.roundOf8Points}</td><td><strong>{driver.finalCutoff}</strong></td><td>{driver.playoffPoints}</td><td><span className={`cup-playoffs__outcome cup-playoffs__outcome--${driver.outcome}`}>{outcomeLabel[driver.outcome]}</span></td></tr>)}</tbody></table></div>
+    <p className="cup-playoffs__note">Final Cutoff records each driver’s supplied status at elimination or advancement. Race wins automatically advanced Austin Gaccione and Blake Doyle2 from the Round of 8.</p>
+  </section>
+}
+
 export const CupStandingsPage = () => {
-  const historical = new URLSearchParams(window.location.search).has('season')
+  const seasonId = new URLSearchParams(window.location.search).get('season')
+  const historical = Boolean(seasonId)
   return <DataPage
     league="cup"
     title="GRR Cup Series Standings"
     eyebrow="GRR Cup Series 2026"
     search
     loader={cupStandings}
+    contentBeforeTable={seasonId ? <CupPlayoffHistory seasonId={seasonId} /> : undefined}
     note={historical ? undefined : 'Positions 1–16 are currently in the Chase. The green line marks the cutoff.'}
     rowClassName={(row) =>
       historical ? '' : Number(row.rank) === 17

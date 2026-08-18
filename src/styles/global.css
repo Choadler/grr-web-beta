@@ -2935,6 +2935,78 @@ button:focus-visible {
   width: 100%;
 }
 
+.cup-playoffs {
+  margin: 0 0 2rem;
+  border: 1px solid rgba(127, 255, 116, 0.24);
+  border-top: 4px solid var(--green);
+  background: rgba(7, 13, 9, 0.92);
+}
+.cup-playoffs__heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+.cup-playoffs__heading span,
+.cup-playoffs__champion span,
+.cup-playoffs__rounds article > span {
+  color: #a5e49f;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+.cup-playoffs__heading h2 {
+  margin: 0.25rem 0 0;
+  font-size: clamp(1.75rem, 4vw, 3rem);
+  text-transform: uppercase;
+}
+.cup-playoffs__champion {
+  min-width: 14rem;
+  padding-left: 1.25rem;
+  border-left: 2px solid var(--green);
+}
+.cup-playoffs__champion strong {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 1.15rem;
+  text-transform: uppercase;
+}
+.cup-playoffs__rounds {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-block: 1px solid rgba(127, 255, 116, 0.2);
+}
+.cup-playoffs__rounds article {
+  padding: 1.1rem 1.5rem;
+}
+.cup-playoffs__rounds article + article { border-left: 1px solid rgba(127, 255, 116, 0.2); }
+.cup-playoffs__rounds h3 { margin: 0.2rem 0; text-transform: uppercase; }
+.cup-playoffs__rounds p { margin: 0; color: rgba(255,255,255,0.72); }
+.cup-playoffs__table-wrap { overflow-x: auto; }
+.cup-playoffs__table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.cup-playoffs__table caption { padding: 1rem 1.5rem 0.75rem; text-align: left; font-weight: 700; }
+.cup-playoffs__table th,
+.cup-playoffs__table td { padding: 0.7rem 0.8rem; border-top: 1px solid rgba(255,255,255,0.09); text-align: right; white-space: nowrap; }
+.cup-playoffs__table th:first-child { position: sticky; left: 0; z-index: 1; background: #0b120d; text-align: left; }
+.cup-playoffs__table thead th { color: #a5e49f; font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; }
+.cup-playoffs__table tr.is-champion { background: rgba(72, 200, 60, 0.12); }
+.cup-playoffs__outcome { display: inline-block; padding: 0.25rem 0.45rem; border: 1px solid rgba(255,255,255,0.2); font-size: 0.68rem; font-weight: 800; text-transform: uppercase; }
+.cup-playoffs__outcome--champion { border-color: var(--green); color: #a5e49f; }
+.cup-playoffs__note { margin: 0; padding: 1rem 1.5rem; border-top: 1px solid rgba(127, 255, 116, 0.2); color: rgba(255,255,255,0.72); font-size: 0.88rem; }
+@media (max-width: 760px) {
+  .cup-playoffs__heading { align-items: start; flex-direction: column; }
+  .cup-playoffs__champion { min-width: 0; }
+  .cup-playoffs__rounds { grid-template-columns: 1fr; }
+  .cup-playoffs__rounds article + article { border-left: 0; border-top: 1px solid rgba(127, 255, 116, 0.2); }
+}
+
 .certificate-class-prompt {
   position: fixed;
   inset: 0;
