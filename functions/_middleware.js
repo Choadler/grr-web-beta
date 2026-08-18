@@ -2,6 +2,7 @@ const publicHostname = 'www.grassrootsracing.org'
 const adminHostname = 'grassrootsracing.org'
 
 const isAdminPath = (pathname) => pathname === '/admin' || pathname.startsWith('/admin/')
+const isStaticAssetPath = (pathname) => pathname.startsWith('/assets/')
 
 export async function onRequest(context) {
   const url = new URL(context.request.url)
@@ -21,7 +22,7 @@ export async function onRequest(context) {
 
   // The www hostname is the canonical public origin. Keep administration on
   // the bare hostname, where Cloudflare Access protects the dashboard and API.
-  if (url.hostname === adminHostname && !adminPath) {
+  if (url.hostname === adminHostname && !adminPath && !isStaticAssetPath(url.pathname)) {
     url.hostname = publicHostname
     return Response.redirect(url.toString(), 308)
   }

@@ -15,6 +15,9 @@ import { externalLinks } from '../../config/site'
 import { cupSchedule as cupCalendar, indycarSchedule as indyCalendar } from '../../config/schedules'
 import {
   cupRaceEvents,
+  cupCareer,
+  cupHistoricalStats,
+  cupHistory,
   cupSchedule,
   cupStandings,
   gtRaceEvents,
@@ -39,6 +42,8 @@ const cupNav: LeagueNavItem[] = [
   { label: 'Cup Schedule', href: '/pages/cup-series-schedule' },
   { label: 'Cup Standings', href: '/pages/cupstandings' },
   { label: 'Cup Race Results', href: '/pages/cup-latest-race-results' },
+  { label: 'Cup Stats', href: '/pages/cup-stats' },
+  { label: 'Cup Archive', href: '/pages/cup-archive' },
   { label: 'Cup Broadcast', href: '/pages/broadcast' },
 ]
 const gtNav: LeagueNavItem[] = [
@@ -89,6 +94,13 @@ type GtSeasonSummary = {
   name: string
   status: string
   champions?: { classKey: string; classLabel: string; driver: string }[]
+}
+
+type CupSeasonSummary = { id: string; name: string; status: string; champion?: string; races?: number; drivers?: number }
+function useCupSeasons() {
+  const [seasons, setSeasons] = useState<CupSeasonSummary[]>([])
+  useEffect(() => { const controller = new AbortController(); fetch('/api/cup?list=seasons', { signal: controller.signal }).then((response) => response.ok ? response.json() : Promise.reject()).then((payload: { seasons?: CupSeasonSummary[] }) => setSeasons(payload.seasons ?? [])).catch(() => undefined); return () => controller.abort() }, [])
+  return seasons
 }
 
 function useGtSeasons() {
@@ -379,16 +391,17 @@ function DataPage({
   )
 }
 
-export const CupStandingsPage = () => (
-  <DataPage
+export const CupStandingsPage = () => {
+  const historical = new URLSearchParams(window.location.search).has('season')
+  return <DataPage
     league="cup"
     title="GRR Cup Series Standings"
     eyebrow="GRR Cup Series 2026"
     search
     loader={cupStandings}
-    note="Positions 1–16 are currently in the Chase. The green line marks the cutoff."
+    note={historical ? undefined : 'Positions 1–16 are currently in the Chase. The green line marks the cutoff.'}
     rowClassName={(row) =>
-      Number(row.rank) === 17
+      historical ? '' : Number(row.rank) === 17
         ? 'standings-row--cutline'
         : Number(row.rank) <= 16
           ? 'standings-row--chase'
@@ -418,7 +431,7 @@ export const CupStandingsPage = () => (
       { key: 'link', label: 'Link', link: true },
     ]}
   />
-)
+}
 export const CupSchedulePage = () => (
   <DataPage
     league="cup"
@@ -461,6 +474,53 @@ export const CupResultsPage = () => (
     />
   </PageShell>
 )
+
+function CupCareerSearch() {
+  const [drivers, setDrivers] = useState<Record<string, string | number | null>[]>([])
+  const initialDriver = new URLSearchParams(window.location.search).get('driver') ?? ''
+  const [query, setQuery] = useState('')
+  const [selected, setSelected] = useState(initialDriver)
+  const [profile, setProfile] = useState<Awaited<ReturnType<typeof cupCareer>> | null>(null)
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(initialDriver ? 'loading' : 'ready')
+  useEffect(() => { const controller = new AbortController(); cupHistory(controller.signal).then((payload) => setDrivers(payload.stats)).catch(() => undefined); return () => controller.abort() }, [])
+  useEffect(() => { if (!selected) return; const controller = new AbortController(); cupCareer(selected, controller.signal).then((value) => { setProfile(value); setStatus('ready') }).catch(() => { if (!controller.signal.aborted) setStatus('error') }); return () => controller.abort() }, [selected])
+  const matches = useMemo(() => {
+    const needle = query.trim().toLocaleLowerCase()
+    if (!needle) return []
+    return drivers.filter((driver) => String(driver.driver).toLocaleLowerCase().includes(needle)).slice(0, 8)
+  }, [drivers, query])
+  const selectDriver = (driverKey: string) => {
+    setStatus('loading')
+    setProfile(null)
+    setSelected(driverKey)
+    setQuery('')
+    const url = new URL(window.location.href)
+    url.searchParams.set('driver', driverKey)
+    window.history.replaceState({}, '', url)
+  }
+  const metric = (key: string) => String(profile?.[key] ?? '—')
+  return <section className="gt-career-search" aria-labelledby="cup-career-title"><div className="gt-career-search__heading"><p className="eyebrow">Driver lookup</p><h2 id="cup-career-title">GRR Cup Career Summary</h2><p>Search every driver with an imported Cup start.</p></div>
+    <div className="gt-driver-lookup">
+      <label><span>Search drivers</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Enter a driver name..." autoComplete="off" /></label>
+      {matches.length > 0 && <div className="gt-driver-matches">{matches.map((driver) => <button type="button" key={String(driver.driverKey)} onClick={() => selectDriver(String(driver.driverKey))}><strong>{driver.driver}</strong><span>{driver.starts} starts · {driver.wins} wins</span></button>)}</div>}
+    </div>
+    {status === 'loading' && <p className="data-note">Loading career summary...</p>}
+    {status === 'error' && <EmptyState title="That driver’s career summary is unavailable." />}
+    {profile && status === 'ready' && <article className="gt-career-profile"><header className="gt-career-profile__header"><div><p className="eyebrow">Cup Series career</p><h3>{profile.driver}</h3><p>{profile.seasonsEntered} seasons</p></div><strong>{profile.championships}<span>Championship{profile.championships === 1 ? '' : 's'}</span></strong></header>
+      <div className="gt-career-metrics">{[['starts','Starts'],['wins','Wins'],['poles','Poles'],['top5','Top 5s'],['top10','Top 10s'],['lapsLed','Laps Led'],['averageFinish','Avg Finish'],['bestFinish','Best Finish']].map(([key,label])=><div key={key}><strong>{metric(key)}</strong><span>{label}</span></div>)}</div>
+      <div className="gt-career-details"><section><h4>Season History</h4>{profile.seasons.map((season)=><div className="gt-career-row" key={String(season.seasonId)}><strong>{season.season}</strong><span>P{season.championshipPosition ?? '—'} · {season.starts} starts · {season.wins} wins · {season.points} pts</span></div>)}</section></div>
+    </article>}
+  </section>
+}
+
+export const CupStatsPage = () => <PageShell league="cup" title="Cup Series Stats" eyebrow="All-time driver statistics and lookup" compact><CupCareerSearch /><LiveDataTable title="Cup Series Career Statistics" loader={cupHistoricalStats} search tableClassName="data-table--gt-history" columns={[
+  { key:'driver',label:'Driver' },{ key:'seasons',label:'Seasons' },{ key:'starts',label:'Starts' },{ key:'wins',label:'Wins' },{ key:'poles',label:'Poles' },{ key:'top5',label:'Top 5' },{ key:'top10',label:'Top 10' },{ key:'lapsLed',label:'Laps Led' },{ key:'averageFinish',label:'Avg Finish' },
+]} /></PageShell>
+
+export const CupArchivePage = () => {
+  const seasons = useCupSeasons().filter((season) => season.status !== 'active')
+  return <PageShell league="cup" title="Cup Series Archive" eyebrow="Historical seasons, standings, schedules, and race results" compact><p className="gt-archive-intro">Explore imported GRR Cup seasons and permanent competition records.</p><section className="gt-archive"><div className="gt-archive-grid">{seasons.map((season)=><article className="gt-archive-card" key={season.id}><div className="gt-archive-card__heading"><span>{season.status} season</span><h3>{season.name}</h3></div><div className="gt-archive-champions"><div><span>Champion</span><strong>{season.champion ?? 'Not determined'}</strong></div><div><span>Record</span><strong>{season.races ?? 0} races · {season.drivers ?? 0} drivers</strong></div></div><div className="gt-archive-links"><Link to={`/pages/cupstandings?season=${season.id}`}>Standings <span>→</span></Link><Link to={`/pages/cup-series-schedule?season=${season.id}`}>Schedule <span>→</span></Link><Link to={`/pages/cup-latest-race-results?season=${season.id}`}>Race Results <span>→</span></Link></div></article>)}</div></section></PageShell>
+}
 export function CupBroadcastPage() {
   return (
     <PageShell league="cup" title="GRR Cup Broadcast">

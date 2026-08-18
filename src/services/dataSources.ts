@@ -44,6 +44,21 @@ type GtPublicPayload = {
   season?: { name?: string }
 }
 
+type CupPublicPayload = {
+  schedule?: unknown[]
+  standings?: unknown[]
+  events?: unknown[]
+  season?: { name?: string }
+}
+
+async function cupInHouse(signal: AbortSignal): Promise<CupPublicPayload | null> {
+  const season = typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get('season')
+  const response = await fetch(`/api/cup${season ? `?season=${encodeURIComponent(season)}` : ''}`, { signal, headers: { Accept: 'application/json' } })
+  if (response.status === 404 || response.status === 503) return null
+  if (!response.ok) throw new Error(`Cup data request failed (${response.status}).`)
+  return response.json() as Promise<CupPublicPayload>
+}
+
 const gtClassKey = { am: 'gt3-am', pro: 'gt3-pro', gtp: 'gtp', 'gt3-am': 'gt3-am', 'gt3-pro': 'gt3-pro' } as const
 
 function addBehindLeader(result: DataResult): DataResult {
@@ -146,8 +161,10 @@ export const gtHistoricalRecords: DataLoader = async (signal) => {
   }
 }
 
-export const cupStandings: DataLoader = async (signal) =>
-  adaptSimRacerStandings(await fetchJson(publicEndpoints.cup.standings, signal))
+export const cupStandings: DataLoader = async (signal) => {
+  const local = await cupInHouse(signal)
+  return local ? { rows: (local.standings ?? []) as never[], label: local.season?.name } : adaptSimRacerStandings(await fetchJson(publicEndpoints.cup.standings, signal))
+}
 export const cupRecentResults: DataLoader = async (signal) =>
   adaptRecentResults(await fetchJson(publicEndpoints.cup.recentResults, signal))
 export const indyStandings: DataLoader = async (signal) => {
@@ -157,8 +174,12 @@ export const indyStandings: DataLoader = async (signal) => {
     label: local.season?.name,
   }
 }
-export const cupSchedule: DataLoader = async (signal) =>
-  adaptSimRacerSchedule(await fetchJson(publicEndpoints.cup.standings, signal), cupCalendar, true)
+export const cupSchedule: DataLoader = async (signal) => {
+  const local = await cupInHouse(signal)
+  if (!local) return adaptSimRacerSchedule(await fetchJson(publicEndpoints.cup.standings, signal), cupCalendar, true)
+  const season = new URLSearchParams(window.location.search).get('season')
+  return { rows: (local.schedule ?? []).map((value) => { const row = value as Record<string, unknown>; return { ...row, resultsUrl: row.state === 'done' ? `/pages/cup-latest-race-results?${season ? `season=${encodeURIComponent(season)}&` : ''}event=${encodeURIComponent(String(row.id))}` : '' } }) as never[], label: local.season?.name }
+}
 export const cupDetailedResults: DataLoader = async (signal) =>
   adaptSimRacerLatestResults(await fetchJson(publicEndpoints.cup.standings, signal))
 export const indySchedule: DataLoader = async (signal) => {
@@ -183,8 +204,16 @@ export const indySchedule: DataLoader = async (signal) => {
     label: local.season?.name,
   }
 }
-export const cupRaceEvents: RaceEventsLoader = async (signal) =>
-  adaptSimRacerEvents(await fetchJson(publicEndpoints.cup.standings, signal), cupCalendar, true)
+export const cupRaceEvents: RaceEventsLoader = async (signal) => {
+  const local = await cupInHouse(signal)
+  return local ? { events: (local.events ?? []) as never[], season: local.season?.name, defaultEventIndex: Math.max(0, (local.events?.length ?? 1) - 1) } : adaptSimRacerEvents(await fetchJson(publicEndpoints.cup.standings, signal), cupCalendar, true)
+}
+
+export type CupHistoryPayload = { stats: Record<string, string | number | null>[] }
+export type CupCareerProfile = Record<string, unknown> & { driverKey: string; driver: string; seasonsEntered: number; championships: number; seasons: Array<Record<string, string | number | null>>; races: Array<Record<string, string | number | null>> }
+export const cupHistory = (signal: AbortSignal) => fetchJson('/api/cup?view=history', signal) as Promise<CupHistoryPayload>
+export const cupCareer = (driverKey: string, signal: AbortSignal) => fetchJson(`/api/cup?view=career&driver=${encodeURIComponent(driverKey)}`, signal) as Promise<CupCareerProfile>
+export const cupHistoricalStats: DataLoader = async (signal) => ({ rows: (await cupHistory(signal)).stats as never[] })
 export const indyRaceEvents: RaceEventsLoader = async (signal) => {
   const local = await indyInHouse(signal)
   return {

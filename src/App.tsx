@@ -26,6 +26,8 @@ import {
   GtStandingsPage,
   GtStatsPage,
   GtArchivePage,
+  CupStatsPage,
+  CupArchivePage,
   IndyLandingPage,
   IndyResultsPage,
   IndySchedulePage,
@@ -522,6 +524,8 @@ function SiteApp() {
           <Route path="pages/cupstandings" element={<CupStandingsPage />} />
           <Route path="pages/cup-series-schedule" element={<CupSchedulePage />} />
           <Route path="pages/cup-latest-race-results" element={<CupResultsPage />} />
+          <Route path="pages/cup-stats" element={<CupStatsPage />} />
+          <Route path="pages/cup-archive" element={<CupArchivePage />} />
           <Route path="pages/broadcast" element={<CupBroadcastPage />} />
           <Route path="pages/gt-league" element={<GtLandingPage />} />
           <Route path="pages/gt-rules" element={<GtRulesPage />} />
