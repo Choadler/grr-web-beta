@@ -1,5 +1,3 @@
-import { cupSchedule } from '../config/schedules'
-import { publicEndpoints } from '../config/integrations'
 import type {
   ComparisonDataset,
   ComparisonRace,
@@ -32,92 +30,27 @@ const resultUrl = (series: ComparisonSeries) =>
     indycar: '/pages/indycar-results',
   })[series]
 
-function cupDataset(payload: unknown): ComparisonDataset {
-  const root = record(payload)
-  const season = record(root.lss)
-  const seasonId = text(season.season_id)
-  const seasonName = text(season.season_name) || 'GRR Cup Series'
-  const seasonKey = `cup:${seasonId}`
-  const drivers = list(root.rps).map(record)
-  const mainIds = new Set<number>()
-  drivers.forEach((driver) =>
-    list(driver.races).forEach((item) => {
-      const race = record(item)
-      if (
-        text(race.session).toUpperCase() === 'RACE' &&
-        text(race.count_stats).toUpperCase() === 'Y'
-      )
-        mainIds.add(number(race.race_id))
-    }),
-  )
-  const ids = [...mainIds].filter(Boolean).sort((a, b) => a - b)
-  const races = ids.map((raceId, index): ComparisonRace => {
-    const scheduled = cupSchedule[index + (cupSchedule[0]?.round === 0 ? 1 : 0)]
-    const previousId = ids[index - 1] ?? 0
-    const stageIds = new Set<number>()
-    drivers.forEach((driver) =>
-      list(driver.races).forEach((item) => {
-        const race = record(item)
-        const id = number(race.race_id)
-        if (id > previousId && id < raceId && text(race.session).toUpperCase() === 'SEGMENT')
-          stageIds.add(id)
-      }),
-    )
-    const fastest = drivers
-      .map((driver) => record(record(driver.races)[String(raceId)]))
-      .map((race) => number(race.fastest_lap_time))
-      .filter((value) => value > 0)
-      .sort((a, b) => a - b)[0]
-    const results = drivers.flatMap((driver): ComparisonResult[] => {
-      const race = record(record(driver.races)[String(raceId)])
-      if (!Object.keys(race).length) return []
-      const name = displayName(driver.name)
-      const sourceDriverId = text(driver.drid ?? race.driver_id)
-      const stageWins = [...stageIds].filter(
-        (id) => number(record(record(driver.races)[String(id)]).finish_pos) === 1,
-      ).length
-      return [
-        {
-          driverKey: driverKey(name),
-          driverName: name,
-          sourceDriverId,
-          finish: number(race.finish_pos),
-          start: number(race.qualify_pos),
-          points: number(race.total_points),
-          stagePoints: number(race.stage_points),
-          stageWins,
-          lapsLed: number(race.laps_led),
-          pole: number(race.qualify_pos) === 1,
-          fastestLap: fastest > 0 && number(race.fastest_lap_time) === fastest,
-          status: text(race.status),
-        },
-      ]
-    })
-    return {
-      key: `cup:${raceId}`,
-      sourceEventId: String(raceId),
-      series: 'cup',
-      seasonKey,
-      seasonName,
-      date: scheduled?.date ?? '',
-      track: scheduled?.track ?? `Race ${index + 1}`,
-      round: scheduled?.round ?? index + 1,
-      resultsUrl: `${resultUrl('cup')}?event=${encodeURIComponent(raceId)}`,
-      results,
-    }
+function d1CupSeries(payload: unknown): ComparisonDataset {
+  const source = record(record(payload).cup)
+  const seasons: ComparisonSeason[] = list(source.seasons).map((item) => {
+    const season = record(item)
+    return { key: `cup:${text(season.id)}`, id: text(season.id), series: 'cup', name: text(season.name) }
   })
-  return {
-    seasons: [
-      {
-        key: seasonKey,
-        id: seasonId,
-        series: 'cup',
-        name: seasonName,
-        year: Number(races[0]?.date.slice(0, 4)) || undefined,
-      },
-    ],
-    races,
-  }
+  const rows = list(source.results).map(record)
+  const races: ComparisonRace[] = list(source.races).map((item) => {
+    const race = record(item)
+    const season = seasons.find((entry) => entry.id === text(race.seasonId))
+    const raceRows = rows.filter((row) => text(row.eventId) === text(race.id))
+    const fastest = raceRows.filter((row) => number(row.fastestLapTime) > 0).sort((a, b) => number(a.fastestLapTime) - number(b.fastestLapTime) || number(a.finish) - number(b.finish))[0]
+    const results = raceRows.map((row): ComparisonResult => {
+      const name = displayName(row.driver)
+      return { driverKey: driverKey(name), driverName: name, sourceDriverId: text(row.driverId), finish: number(row.finish), start: number(row.start), points: number(row.points), stagePoints: number(row.stagePoints), stageWins: number(row.stageWins), lapsLed: number(row.lapsLed), pole: number(row.start) === 1, fastestLap: fastest === row, status: text(row.status) }
+    })
+    const date = text(race.date)
+    if (season && !season.year) season.year = Number(date.slice(0, 4)) || undefined
+    return { key: `cup:${text(race.id)}`, sourceEventId: text(race.id), series: 'cup', seasonKey: season?.key ?? `cup:${text(race.seasonId)}`, seasonName: season?.name ?? 'Cup', date, track: text(race.track), round: number(race.round), resultsUrl: `${resultUrl('cup')}?season=${encodeURIComponent(season?.id ?? text(race.seasonId))}&event=${encodeURIComponent(text(race.id))}`, results }
+  })
+  return { seasons, races }
 }
 
 function d1Series(payload: unknown, series: 'gt' | 'indycar'): ComparisonDataset {
@@ -181,11 +114,8 @@ export async function loadDriverComparisonData(signal: AbortSignal): Promise<Com
   const historyUrl = import.meta.env.DEV
     ? 'https://www.grassrootsracing.org/api/driver-comparison'
     : '/api/driver-comparison'
-  const [cup, history] = await Promise.all([
-    fetchJson(publicEndpoints.cup.standings, signal),
-    fetchJson(historyUrl, signal),
-  ])
-  const cupData = cupDataset(cup)
+  const history = await fetchJson(historyUrl, signal)
+  const cupData = d1CupSeries(history)
   const gtData = d1Series(history, 'gt')
   const indyData = d1Series(history, 'indycar')
   return reconcileVerifiedDriverAliases({
