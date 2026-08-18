@@ -75,7 +75,10 @@ export function normalizeCupSeason(payload) {
   })).filter((driver) => driver.srhDriverId && driver.displayName)
   const driverNames = new Map(drivers.map((driver) => [driver.srhDriverId, driver.displayName]))
   const tracks = payload.tracks ?? {}
-  const events = values(payload.schedules).map((schedule, index) => {
+  const competitionSchedules = values(payload.schedules).filter((schedule) =>
+    String(schedule.config_id ?? '').trim() || Object.keys(schedule.race_id ?? {}).length,
+  )
+  const events = competitionSchedules.map((schedule, index) => {
     const track = tracks[String(schedule.config_id)] ?? {}
     const sessions = Object.entries(schedule.race_id ?? {}).map(([sessionNumber, raceId], sessionIndex) => ({
       srhRaceId: Number(raceId), sessionNumber: Number(sessionNumber), sortOrder: sessionIndex,

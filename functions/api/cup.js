@@ -65,7 +65,7 @@ export async function onRequestGet({ env, request }) {
   }
   const season = await selectedSeason(db, url.searchParams.get('season'))
   if (!season) return json({ error: 'No public Cup season is available.' }, 404)
-  const events = (await db.prepare('SELECT id,round_number AS round,race_date AS date,track,track_config AS trackConfig,event_name AS eventName,scheduled_laps AS laps,srh_schedule_id AS scheduleId FROM cup_events WHERE season_id=? ORDER BY round_number').bind(season.id).all()).results
+  const events = (await db.prepare("SELECT id,round_number AS round,race_date AS date,track,track_config AS trackConfig,event_name AS eventName,scheduled_laps AS laps,srh_schedule_id AS scheduleId FROM cup_events WHERE season_id=? AND TRIM(COALESCE(track,''))<>'' ORDER BY round_number").bind(season.id).all()).results
   const standings = (await db.prepare(`SELECT st.championship_position AS rank,d.display_name AS driver,st.points,st.starts,st.wins,st.stage_wins AS stageWins,st.poles,st.top5,st.top10,st.laps_led AS lapsLed,st.srh_driver_id AS driverId FROM cup_standings st JOIN cup_drivers d ON d.srh_driver_id=st.srh_driver_id WHERE st.season_id=? ORDER BY st.championship_position`).bind(season.id).all()).results
   const results = (await db.prepare(`SELECT r.*,d.display_name,cs.session_type,cs.sort_order FROM cup_results r JOIN cup_drivers d ON d.srh_driver_id=r.srh_driver_id JOIN cup_sessions cs ON cs.srh_race_id=r.srh_race_id WHERE r.season_id=? ORDER BY r.event_id,cs.sort_order,r.finish_position`).bind(season.id).all()).results
   const raceEvents = events.map((event) => {

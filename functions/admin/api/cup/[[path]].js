@@ -45,6 +45,7 @@ async function syncSeason(db, srhSeasonId) {
   statements.push(db.prepare(`INSERT INTO cup_seasons(id,srh_series_id,srh_season_id,name,status,source_url,last_synced_at,sync_status,sync_error)
     VALUES(?,?,?,?,?,?,CURRENT_TIMESTAMP,'syncing',NULL) ON CONFLICT(srh_season_id) DO UPDATE SET name=excluded.name,source_url=excluded.source_url,sync_status='syncing',sync_error=NULL,updated_at=CURRENT_TIMESTAMP`)
     .bind(data.season.id, CUP_SRH_SERIES_ID, data.season.srhSeasonId, data.season.name, 'archived', data.season.sourceUrl))
+  statements.push(db.prepare(`DELETE FROM cup_events WHERE season_id=? AND TRIM(COALESCE(track,''))='' AND LOWER(COALESCE(event_name,'')) LIKE '%chase%'`).bind(data.season.id))
   for (const driver of data.drivers) {
     statements.push(db.prepare(`INSERT INTO cup_drivers(srh_driver_id,display_name) VALUES(?,?) ON CONFLICT(srh_driver_id) DO UPDATE SET display_name=excluded.display_name,updated_at=CURRENT_TIMESTAMP`).bind(driver.srhDriverId, driver.displayName))
     statements.push(db.prepare(`INSERT INTO cup_standings(season_id,srh_driver_id,championship_position,points,starts,wins,stage_wins,poles,top5,top10,laps_led)

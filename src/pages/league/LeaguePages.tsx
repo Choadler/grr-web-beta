@@ -472,6 +472,7 @@ export const CupSchedulePage = () => (
     columns={[
       { key: 'round', label: 'Rd' },
       { key: 'date', label: 'Date' },
+      { key: 'eventName', label: 'Race Name' },
       { key: 'track', label: 'Track' },
       { key: 'type', label: 'Type' },
       { key: 'winner', label: 'Winner' },

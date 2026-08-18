@@ -230,6 +230,7 @@ export function adaptSimRacerSchedule(
     return {
       round: event.round,
       date: event.date,
+      eventName: event.track,
       track: event.track,
       type: event.type ?? '',
       laps: event.laps ?? '',

@@ -34,3 +34,20 @@ test('normalizes race and stage sessions with stable SRH IDs', () => {
   assert.equal(normalized.events[0].results.length, 2)
   assert.deepEqual(validateCupSeason(normalized), [])
 })
+
+test('excludes an SRH Chase control marker and keeps race rounds contiguous', () => {
+  const normalized = normalizeCupSeason({
+    lss: { series_id: '12921', season_id: '1', season_name: 'Test' },
+    tracks: { '14': { track_name: 'Darlington Raceway' }, '15': { track_name: 'Gateway' } },
+    schedules: [
+      { schedule_id: '28', race_date: 1, config_id: '14', event_name: 'GRR Southern 500' },
+      { schedule_id: '29', race_date: 1, config_id: '', chase: 'Y', event_name: 'GRR Chase For the Cup' },
+      { schedule_id: '30', race_date: 2, config_id: '15', event_name: 'GRR Cup Series @ Gateway' },
+    ],
+  })
+
+  assert.deepEqual(normalized.events.map((event) => [event.round, event.eventName]), [
+    [1, 'GRR Southern 500'],
+    [2, 'GRR Cup Series @ Gateway'],
+  ])
+})
