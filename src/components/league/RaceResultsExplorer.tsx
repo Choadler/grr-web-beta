@@ -3,6 +3,7 @@ import type { RaceEvent, RaceEventsLoader } from '../../types/league'
 import { ErrorState, LoadingState } from './States'
 import { LiveDataTable, type LiveColumn } from './LiveDataTable'
 import type { PngExportOptions } from '../../utils/tableExport'
+import { defaultRaceSessionIndex, isOverallSession } from '../../utils/raceSessionSelection'
 import {
   certificateWinners,
   downloadRaceWinnerCertificates,
@@ -79,11 +80,11 @@ export function RaceResultsExplorer({
               event.sourceEventId === requestedEvent || String(event.id) === requestedEvent,
             )
           : -1
-        setEventIndex(
-          requestedIndex >= 0
-            ? requestedIndex
-            : (result.defaultEventIndex ?? Math.max(0, result.events.length - 1)),
-        )
+        const nextEventIndex = requestedIndex >= 0
+          ? requestedIndex
+          : (result.defaultEventIndex ?? Math.max(0, result.events.length - 1))
+        setEventIndex(nextEventIndex)
+        setSessionIndex(defaultRaceSessionIndex(result.events[nextEventIndex]))
         setError('')
       })
       .catch((reason: unknown) => {
@@ -95,6 +96,7 @@ export function RaceResultsExplorer({
 
   const event = events[eventIndex]
   const session = event?.sessions[sessionIndex] ?? event?.sessions[0]
+  const overallSession = session ? isOverallSession(session.label) : false
   const tableLoader = useMemo(
     () => async () => ({ rows: session?.rows ?? [], label: event?.label }),
     [event?.label, session?.rows],
@@ -124,8 +126,9 @@ export function RaceResultsExplorer({
           <select
             value={eventIndex}
             onChange={(change) => {
-              setEventIndex(Number(change.target.value))
-              setSessionIndex(0)
+              const nextEventIndex = Number(change.target.value)
+              setEventIndex(nextEventIndex)
+              setSessionIndex(defaultRaceSessionIndex(events[nextEventIndex]))
               setShowCertificateClassPicker(false)
             }}
           >
@@ -140,8 +143,9 @@ export function RaceResultsExplorer({
           className="button button--compact"
           type="button"
           onClick={() => {
-            setEventIndex(events.length - 1)
-            setSessionIndex(0)
+            const nextEventIndex = events.length - 1
+            setEventIndex(nextEventIndex)
+            setSessionIndex(defaultRaceSessionIndex(events[nextEventIndex]))
             setShowCertificateClassPicker(false)
           }}
         >
@@ -200,11 +204,11 @@ export function RaceResultsExplorer({
         key={`${event.id}-${session.label}-${session.id}`}
         title={`${title} — ${event.label} — ${session.label}`}
         columns={
-          session.label === 'Overall' && overallColumns
+          overallSession && overallColumns
             ? overallColumns
-            : sessionIndex
-              ? (secondaryColumns ?? stageColumns)
-              : (columns ?? raceColumns)
+            : overallSession
+              ? (columns ?? raceColumns)
+              : (secondaryColumns ?? stageColumns)
         }
         loader={tableLoader}
         toolbarActions={
@@ -228,7 +232,7 @@ export function RaceResultsExplorer({
         }
         search
         rowClassName={podiumClass}
-        pngOptions={session.label === 'Overall' ? overallPngOptions : undefined}
+        pngOptions={overallSession ? overallPngOptions : undefined}
       />
     </>
   )
