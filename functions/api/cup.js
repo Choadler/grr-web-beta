@@ -12,8 +12,8 @@ export const formatCupInterval = (row, leader) => {
 
 async function selectedSeason(db, requested) {
   return requested
-    ? db.prepare("SELECT id,name,status FROM cup_seasons WHERE id=? AND status<>'draft'").bind(requested).first()
-    : db.prepare("SELECT id,name,status FROM cup_seasons WHERE status='active' LIMIT 1").first()
+    ? db.prepare("SELECT id,name,status,chase_enabled AS chaseEnabled,regular_season_races AS regularSeasonRaces,chase_size AS chaseSize,max_points_per_race AS maxPointsPerRace FROM cup_seasons WHERE id=? AND status<>'draft'").bind(requested).first()
+    : db.prepare("SELECT id,name,status,chase_enabled AS chaseEnabled,regular_season_races AS regularSeasonRaces,chase_size AS chaseSize,max_points_per_race AS maxPointsPerRace FROM cup_seasons WHERE status='active' LIMIT 1").first()
 }
 
 export async function onRequestGet({ env, request }) {

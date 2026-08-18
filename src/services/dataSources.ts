@@ -49,7 +49,13 @@ type CupPublicPayload = {
   schedule?: unknown[]
   standings?: unknown[]
   events?: unknown[]
-  season?: { name?: string }
+  season?: {
+    name?: string
+    chaseEnabled?: boolean | number
+    regularSeasonRaces?: number
+    chaseSize?: number
+    maxPointsPerRace?: number
+  }
 }
 
 async function cupInHouse(signal: AbortSignal): Promise<CupPublicPayload | null> {
@@ -167,7 +173,17 @@ export const cupStandings: DataLoader = async (signal) => {
   if (!local) return adaptSimRacerStandings(await fetchJson(publicEndpoints.cup.standings, signal))
   const historical = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('season')
   const rows = (local.standings ?? []) as never[]
-  return { rows: historical ? rows : addCupChaseStatus(rows), label: local.season?.name }
+  const season = local.season
+  const chaseEnabled = season?.chaseEnabled === undefined ? true : Boolean(season.chaseEnabled)
+  return {
+    rows: historical ? rows : addCupChaseStatus(rows, {
+      enabled: chaseEnabled,
+      regularSeasonRaces: season?.regularSeasonRaces,
+      chaseSize: season?.chaseSize,
+      maxPointsPerRace: season?.maxPointsPerRace,
+    }),
+    label: season?.name,
+  }
 }
 export const cupRecentResults: DataLoader = async (signal) =>
   adaptRecentResults(await fetchJson(publicEndpoints.cup.recentResults, signal))

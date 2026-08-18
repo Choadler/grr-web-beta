@@ -8,7 +8,40 @@ const cupAdminTools: LeagueAdminTool[] = [
   { path: 'sporting-code', eyebrow: 'Published rules', title: 'Sporting Code', description: 'Edit, preview, publish, and restore the Cup Series sporting code.' },
 ]
 
-type CupSeason = { id: string; srhSeasonId: number; name: string; status: string; lastSyncedAt?: string; syncStatus: string; syncError?: string }
+type CupSeason = {
+  id: string
+  srhSeasonId: number
+  name: string
+  status: string
+  lastSyncedAt?: string
+  syncStatus: string
+  syncError?: string
+  chaseEnabled: number
+  regularSeasonRaces: number
+  chaseSize: number
+  maxPointsPerRace: number
+}
+
+function CupSeasonFormat({ season, busy, save }: { season: CupSeason; busy: boolean; save: (body: Record<string, unknown>) => void }) {
+  const [chaseEnabled, setChaseEnabled] = useState(Boolean(season.chaseEnabled))
+  const [regularSeasonRaces, setRegularSeasonRaces] = useState(season.regularSeasonRaces)
+  const [chaseSize, setChaseSize] = useState(season.chaseSize)
+  const [maxPointsPerRace, setMaxPointsPerRace] = useState(season.maxPointsPerRace)
+
+  return <div className="cup-season-format">
+    <label className="cup-season-format__toggle">
+      <input type="checkbox" checked={chaseEnabled} onChange={(event) => setChaseEnabled(event.target.checked)} />
+      Chase enabled
+    </label>
+    {chaseEnabled ? <div className="cup-season-format__fields">
+      <label>Regular-season races<input type="number" min="1" value={regularSeasonRaces} onChange={(event) => setRegularSeasonRaces(Number(event.target.value))} /></label>
+      <label>Chase drivers<input type="number" min="1" value={chaseSize} onChange={(event) => setChaseSize(Number(event.target.value))} /></label>
+      <label>Max points per race<input type="number" min="1" value={maxPointsPerRace} onChange={(event) => setMaxPointsPerRace(Number(event.target.value))} /></label>
+    </div> : <p>No cutoff, Chase highlighting, or clinch calculation will be shown.</p>}
+    <button className="button button--secondary" disabled={busy} onClick={() => save({ action: 'configure', seasonId: season.id, chaseEnabled, regularSeasonRaces, chaseSize, maxPointsPerRace })}>Save Format</button>
+  </div>
+}
+
 function CupSeasonManager() {
   const [seasons, setSeasons] = useState<CupSeason[]>([])
   const [message, setMessage] = useState('')
@@ -18,7 +51,7 @@ function CupSeasonManager() {
   const action = async (body: Record<string, unknown>) => { setBusy(true); setMessage(''); try { const response = await fetch('/admin/api/cup', { method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body) }); const payload = await response.json(); if (!response.ok) throw new Error(payload.error); setSeasons(payload.seasons ?? seasons); setMessage(body.action === 'sync' ? `Synced ${payload.result?.races ?? 0} races and ${payload.result?.drivers ?? 0} drivers.` : 'Cup seasons updated.') } catch (error) { setMessage(error instanceof Error ? error.message : 'Cup update failed.') } finally { setBusy(false) } }
   return <section className="admin-panel"><div className="admin-section-heading"><div><p className="eyebrow">SRH Series 12921</p><h2>Cup Season Manager</h2></div><button className="button" disabled={busy} onClick={() => action({ action:'discover' })}>Discover SRH Seasons</button></div>
     <p className="data-note">Discovery reads the SRH season index. Syncing imports normalized schedules, race and stage results, standings, and driver identities into D1.</p>
-    <div className="admin-list">{seasons.map((season)=><article className="admin-list-row" key={season.id}><div><strong>{season.name}</strong><p>SRH {season.srhSeasonId} · {season.syncStatus}{season.lastSyncedAt ? ` · ${new Date(season.lastSyncedAt).toLocaleString()}` : ''}</p>{season.syncError && <p>{season.syncError}</p>}</div><div className="admin-actions"><button className="button button--secondary" disabled={busy} onClick={() => action({action:'sync',srhSeasonId:season.srhSeasonId})}>Sync</button>{season.status !== 'active' && <button className="button button--secondary" disabled={busy} onClick={() => action({action:'setActive',seasonId:season.id})}>Set Active</button>}</div></article>)}</div>{message && <p role="status">{message}</p>}
+    <div className="admin-list">{seasons.map((season)=><article className="admin-list-row" key={season.id}><div><strong>{season.name}</strong><p>SRH {season.srhSeasonId} · {season.syncStatus}{season.lastSyncedAt ? ` · ${new Date(season.lastSyncedAt).toLocaleString()}` : ''}</p>{season.syncError && <p>{season.syncError}</p>}</div><CupSeasonFormat season={season} busy={busy} save={action} /><div className="admin-actions"><button className="button button--secondary" disabled={busy} onClick={() => action({action:'sync',srhSeasonId:season.srhSeasonId})}>Sync</button>{season.status !== 'active' && <button className="button button--secondary" disabled={busy} onClick={() => action({action:'setActive',seasonId:season.id})}>Set Active</button>}</div></article>)}</div>{message && <p role="status">{message}</p>}
   </section>
 }
 

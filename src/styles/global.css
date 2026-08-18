@@ -2815,6 +2815,52 @@ button:focus-visible {
   }
 }
 
+.cup-season-format {
+  display: grid;
+  gap: 0.75rem;
+  min-width: min(100%, 34rem);
+}
+.cup-season-format__toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.cup-season-format__fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(8rem, 1fr));
+  gap: 0.65rem;
+}
+.cup-season-format__fields label {
+  display: grid;
+  gap: 0.35rem;
+  color: #c9d0c6;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.cup-season-format__fields input {
+  min-width: 0;
+  padding: 0.65rem;
+  border: 1px solid #5a6556;
+  border-radius: 0;
+  color: #fff;
+  background: #111610;
+}
+.cup-season-format > p {
+  margin: 0;
+  color: #c9d0c6;
+}
+.cup-season-format > .button {
+  justify-self: start;
+}
+@media (max-width: 700px) {
+  .cup-season-format__fields {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Community gallery */
 .gallery-hero {
   padding-block: clamp(1.5rem, 3vw, 2.25rem);
