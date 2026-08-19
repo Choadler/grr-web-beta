@@ -51,6 +51,6 @@ export async function onRequestGet({ env, request }) {
       sessions: [{ id: event.subsessionId ?? event.round, label: 'Overall Race Finish', rows: eventRows.map((row) => ({ position: row.finish_position, driver: row.driver_name, start: row.start_position, interval: formatInterval(row.finish_interval, row.laps_completed, leaderLaps, row.finish_position), laps: row.laps_completed, led: row.laps_led, racePoints: row.base_points, bonus: row.bonus_points, penalty: row.penalty_points, total: row.total_points, incidents: row.incidents, status: row.status, fastestLap: row.fastest_lap })) }],
     }
   })
-  const schedule = scheduleData.results.map((event) => ({ eventId: event.id, round: event.round, date: event.date, track: event.track, laps: event.laps, winner: event.winner || '—', pole: event.pole || '—' }))
+  const schedule = scheduleData.results.map((event) => ({ eventId: event.id, round: event.round, date: event.date, track: event.track, laps: event.laps, status: event.status, winner: event.winner || '—', pole: event.pole || '—' }))
   return json({ season, schedule, standings, events, source: 'in-house' })
 }

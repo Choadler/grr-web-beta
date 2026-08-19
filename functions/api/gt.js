@@ -346,6 +346,7 @@ export async function onRequestGet({ env, request }) {
       round: event.round,
       date: event.date,
       track: canonicalGtTrackName(event.track),
+      status: event.status,
       am: winner('gt3-am'),
       pro: winner('gt3-pro'),
       gtp: winner('gtp'),

@@ -11,6 +11,7 @@ import { CupAdminPage } from './pages/CupAdminPage'
 import { GalleryPage } from './pages/GalleryPage'
 import { GalleryAdminPage } from './pages/GalleryAdminPage'
 import { DriverComparisonPage } from './pages/DriverComparisonPage'
+import { SchedulePage } from './pages/SchedulePage'
 import { Seo } from './components/Seo'
 import { HomeGallery } from './components/gallery/HomeGallery'
 import {
@@ -531,6 +532,7 @@ function SiteApp() {
       <main id="main-content">
         <Routes>
           <Route index element={<Home />} />
+          <Route path="schedule" element={<SchedulePage />} />
           <Route path="pages/grr-cup-series" element={<CupLandingPage />} />
           <Route path="pages/cup-series-sporting-code" element={<CupSportingCodePage />} />
           <Route path="pages/cupstandings" element={<CupStandingsPage />} />

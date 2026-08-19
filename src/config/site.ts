@@ -19,6 +19,7 @@ export const currentSiteAssets = {
 export type NavGroup = { label: string; href: string; items?: { label: string; href: string }[] }
 export const navigation: NavGroup[] = [
   { label: 'Home', href: '/' },
+  { label: 'Schedule', href: '/schedule' },
   {
     label: 'GT League',
     href: '/pages/gt-league',
