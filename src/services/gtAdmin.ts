@@ -144,6 +144,7 @@ function withRoster(state: GtAdminState): GtAdminState {
       const member = merged.find(
         (item) =>
           item.seasonId === team.seasonId &&
+          item.active !== false &&
           normalizeGtDriverName(item.driver) === normalizeGtDriverName(name),
       )
       if (member) {
@@ -259,13 +260,13 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
       state.assignments.forEach((assignment) => {
         if (
           assignment.seasonId === team.seasonId &&
+          assignment.active !== false &&
           (team.memberIds.includes(assignment.customerId) ||
             team.memberNames.some(
               (name) => normalizeGtDriverName(name) === normalizeGtDriverName(assignment.driver),
             ))
         ) {
           assignment.team = team.name
-          assignment.classKey = team.classKey
           if (team.car) assignment.car = team.car
         }
       })
@@ -274,7 +275,6 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
         .forEach((result) => {
           if (team.memberIds.includes(result.customerId ?? 0)) {
             result.team = team.name
-            result.classKey = team.classKey
             if (team.car) result.car = team.car
           }
         })
@@ -304,8 +304,28 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
       if (index >= 0) state.assignments[index] = item
       else state.assignments.push(item)
     }
+    if (action === 'moveAssignmentClass') {
+      const item = { ...(data.assignment as GtDriverAssignment), active: true }
+      state.assignments.forEach((assignment) => {
+        if (assignment.seasonId === item.seasonId && assignment.customerId === item.customerId)
+          assignment.active = false
+      })
+      const index = state.assignments.findIndex(
+        (assignment) =>
+          assignment.seasonId === item.seasonId &&
+          assignment.customerId === item.customerId &&
+          assignment.classKey === item.classKey,
+      )
+      if (index >= 0) state.assignments[index] = item
+      else state.assignments.push(item)
+    }
     if (action === 'saveAssignments')
       (data.assignments as GtDriverAssignment[]).forEach((item) => {
+        state.assignments.forEach((assignment) => {
+          if (assignment.seasonId === item.seasonId && assignment.customerId === item.customerId)
+            assignment.active = assignment.classKey === item.classKey
+        })
+        item.active = true
         const index = state.assignments.findIndex(
           (assignment) =>
             assignment.seasonId === item.seasonId && assignment.customerId === item.customerId && assignment.classKey === item.classKey,
@@ -362,8 +382,15 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
           team: driver.team,
           car: driver.car,
         }
+        state.assignments.forEach((item) => {
+          if (item.seasonId === seasonId && item.customerId === driver.customerId) item.active = false
+        })
+        assignment.active = true
         const index = state.assignments.findIndex(
-          (item) => item.seasonId === seasonId && item.customerId === driver.customerId,
+          (item) =>
+            item.seasonId === seasonId &&
+            item.customerId === driver.customerId &&
+            item.classKey === driver.classKey,
         )
         if (index >= 0) state.assignments[index] = assignment
         else state.assignments.push(assignment)

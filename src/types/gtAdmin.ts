@@ -39,6 +39,7 @@ export type GtDriverAssignment = {
   classKey: GtClassKey
   team: string
   car: string
+  active?: boolean
 }
 export type GtTeam = {
   id: string

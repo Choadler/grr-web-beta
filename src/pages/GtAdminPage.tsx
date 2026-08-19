@@ -402,6 +402,10 @@ function AssignmentsEditor({
         Search and filter the season roster below. Customer IDs marked pending will be connected
         automatically when a matching iRacing race is imported.
       </p>
+      <p>
+        Changing an active driver's class keeps points already earned in the old class and starts
+        them at zero in the new class. Historical assignments remain listed for reference.
+      </p>
       <details>
         <summary>Add a new driver</summary>
         {editFields(newItem, setNewItem)}
@@ -488,24 +492,31 @@ function AssignmentsEditor({
                 <tr>
                   <td>{row.driver}</td>
                   <td>{row.customerId > 0 ? row.customerId : 'Pending'}</td>
-                  <td>{seasonClasses.find((item) => item.key === row.classKey)?.label}</td>
+                  <td>
+                    {seasonClasses.find((item) => item.key === row.classKey)?.label}
+                    {row.active === false ? ' (Historical)' : ''}
+                  </td>
                   <td>{row.team || '—'}</td>
                   <td>{row.car || '—'}</td>
                   <td>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (editing?.customerId === row.customerId && editingClass === row.classKey) {
-                          setEditing(null)
-                          setEditingClass(null)
-                        } else {
-                          setEditing({ ...row })
-                          setEditingClass(row.classKey)
-                        }
-                      }}
-                    >
-                      Edit
-                    </button>{' '}
+                    {row.active === false ? null : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (editing?.customerId === row.customerId && editingClass === row.classKey) {
+                              setEditing(null)
+                              setEditingClass(null)
+                            } else {
+                              setEditing({ ...row })
+                              setEditingClass(row.classKey)
+                            }
+                          }}
+                        >
+                          Edit
+                        </button>{' '}
+                      </>
+                    )}
                     <button
                       type="button"
                       className="admin-action--danger"
@@ -534,12 +545,23 @@ function AssignmentsEditor({
                           type="button"
                           disabled={!editing.driver}
                           onClick={async () => {
-                            if (editingClass && editingClass !== editing.classKey)
-                              await mutateGtAdmin({ action: 'deleteAssignment', seasonId, customerId: editing.customerId, classKey: editingClass })
-                            await mutateGtAdmin({ action: 'saveAssignment', assignment: editing })
+                            const moved = editingClass && editingClass !== editing.classKey
+                            await mutateGtAdmin(
+                              moved
+                                ? {
+                                    action: 'moveAssignmentClass',
+                                    fromClassKey: editingClass,
+                                    assignment: editing,
+                                  }
+                                : { action: 'saveAssignment', assignment: editing },
+                            )
                             setEditing(null)
                             setEditingClass(null)
-                            await refresh('Driver assignment saved.')
+                            await refresh(
+                              moved
+                                ? 'Driver moved to the new class. Prior class points were preserved.'
+                                : 'Driver assignment saved.',
+                            )
                           }}
                         >
                           Save changes
@@ -1323,6 +1345,7 @@ function Importer({
         const assignment = state.assignments.find(
           (item) =>
             item.seasonId === seasonId &&
+            item.active !== false &&
             ((driver.customerId && item.customerId === driver.customerId) ||
               gtDriverNamesMatch(item.driver, driver.driver)),
         )
