@@ -119,6 +119,38 @@ const escapeIcs = (value: string) => value.replaceAll('\\', '\\\\').replaceAll('
 const calendarTitle = (event: CombinedScheduleEvent) => `GRR ${event.seriesLabel}: ${event.name}`
 const eventUrl = (event: CombinedScheduleEvent, origin: string) => new URL(event.resultsUrl ?? '/schedule', origin).toString()
 
+export type ScheduleDisplay = 'calendar' | 'list'
+export const scheduleDisplay = (value: string | null): ScheduleDisplay => value === 'list' ? 'list' : 'calendar'
+
+export function updateScheduleParams(current: URLSearchParams, key: string, value: string, defaultValue: string) {
+  const next = new URLSearchParams(current)
+  if (value === defaultValue) next.delete(key)
+  else next.set(key, value)
+  if (key === 'series') next.delete('season')
+  if (key === 'history') next.delete('view')
+  return next
+}
+
+export function monthKey(date: Date) {
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`
+}
+
+export function validMonth(value: string | null, fallback = new Date()) {
+  return /^\d{4}-(0[1-9]|1[0-2])$/.test(value ?? '') ? value! : monthKey(fallback)
+}
+
+export function shiftMonth(value: string, amount: number) {
+  const [year, month] = value.split('-').map(Number)
+  return monthKey(new Date(Date.UTC(year, month - 1 + amount, 1)))
+}
+
+export function monthDays(value: string) {
+  const [year, month] = value.split('-').map(Number)
+  const first = new Date(Date.UTC(year, month - 1, 1))
+  const count = new Date(Date.UTC(year, month, 0)).getUTCDate()
+  return { leading: first.getUTCDay(), days: Array.from({ length: count }, (_, index) => `${value}-${String(index + 1).padStart(2, '0')}`) }
+}
+
 export function googleCalendarUrl(event: CombinedScheduleEvent, origin: string) {
   if (!event.date) return undefined
   const params = new URLSearchParams({ action: 'TEMPLATE', text: calendarTitle(event), details: `Grassroots Racing event. ${eventUrl(event, origin)}`, location: event.track ?? '' })
@@ -135,15 +167,43 @@ export function googleCalendarUrl(event: CombinedScheduleEvent, origin: string) 
 
 export function icsCalendar(event: CombinedScheduleEvent, origin: string) {
   if (!event.date) return undefined
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Grassroots Racing//Schedule//EN', 'CALSCALE:GREGORIAN', ...icsEventLines(event, origin), 'END:VCALENDAR']
+  return serializeIcs(lines)
+}
+
+function icsEventLines(event: CombinedScheduleEvent, origin: string) {
+  if (!event.date) return []
   const url = eventUrl(event, origin)
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Grassroots Racing//Schedule//EN', 'CALSCALE:GREGORIAN', 'BEGIN:VEVENT', `UID:${escapeIcs(event.id)}@grassrootsracing.org`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')}`]
+  const lines = ['BEGIN:VEVENT', `UID:${escapeIcs(event.id)}@grassrootsracing.org`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')}`]
   if (event.time && event.timezone) lines.push(`DTSTART;TZID=${escapeIcs(event.timezone)}:${compactDate(event.date)}T${event.time.replace(':', '')}00`)
   else {
     const next = new Date(`${event.date}T00:00:00Z`); next.setUTCDate(next.getUTCDate() + 1)
     lines.push(`DTSTART;VALUE=DATE:${compactDate(event.date)}`, `DTEND;VALUE=DATE:${next.toISOString().slice(0, 10).replaceAll('-', '')}`)
   }
-  lines.push(`SUMMARY:${escapeIcs(calendarTitle(event))}`, `DESCRIPTION:${escapeIcs(`Grassroots Racing event. ${url}`)}`, `LOCATION:${escapeIcs(event.track ?? '')}`, `URL:${escapeIcs(url)}`, 'END:VEVENT', 'END:VCALENDAR')
-  return `${lines.join('\r\n')}\r\n`
+  lines.push(`SUMMARY:${escapeIcs(calendarTitle(event))}`, `DESCRIPTION:${escapeIcs(`Grassroots Racing event. ${url}`)}`, `LOCATION:${escapeIcs(event.track ?? '')}`, `URL:${escapeIcs(url)}`, 'END:VEVENT')
+  return lines
+}
+
+export function uniqueCalendarEvents(events: CombinedScheduleEvent[]) {
+  return [...new Map(events.filter((event) => event.date).map((event) => [event.id, event])).values()]
+}
+
+export function multiEventIcs(events: CombinedScheduleEvent[], origin: string) {
+  const selected = uniqueCalendarEvents(events)
+  if (!selected.length) return undefined
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Grassroots Racing//Schedule//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', ...selected.flatMap((event) => icsEventLines(event, origin)), 'END:VCALENDAR']
+  return serializeIcs(lines)
+}
+
+const foldIcsLine = (line: string) => {
+  const parts: string[] = []
+  for (let offset = 0; offset < line.length; offset += 74) parts.push(`${offset ? ' ' : ''}${line.slice(offset, offset + 74)}`)
+  return parts.length ? parts : ['']
+}
+const serializeIcs = (lines: string[]) => `${lines.flatMap(foldIcsLine).join('\r\n')}\r\n`
+
+export function bulkCalendarFilename(series: 'all' | ScheduleSeries) {
+  return `grr-${series === 'all' ? 'all-series' : series}-schedule.ics`
 }
 
 export function calendarFilename(event: CombinedScheduleEvent) {
