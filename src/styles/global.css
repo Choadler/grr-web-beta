@@ -2834,9 +2834,12 @@ body {
 .schedule-empty,
 .schedule-notice { margin: 0; padding: 1rem; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-muted); }
 .month-calendar { display: grid; gap: 0.75rem; }
-.month-calendar__toolbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 0.75rem; }
-.month-calendar__toolbar h2 { margin: 0; text-align: center; text-transform: uppercase; }
-.month-calendar__toolbar > div { display: flex; justify-content: flex-end; gap: 0.4rem; }
+.month-calendar__toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.7rem 0.8rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-1); }
+.month-calendar__title { display: grid; gap: 0.1rem; }
+.month-calendar__title > span { color: var(--green-light); font-size: 0.62rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
+.month-calendar__toolbar h2 { margin: 0; font-size: clamp(1.25rem, 2vw, 1.75rem); line-height: 1; text-transform: uppercase; }
+.month-calendar__nav { display: flex; gap: 0.4rem; }
+.month-calendar__step { display: inline-flex; min-width: 118px; align-items: center; justify-content: center; gap: 0.4rem; }
 .month-calendar__toolbar button,
 .bulk-calendar__actions button { min-height: 42px; padding: 0.55rem 0.75rem; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface-2); color: #fff; font-weight: 800; text-transform: uppercase; }
 .month-calendar__toolbar button:hover,
@@ -2852,6 +2855,8 @@ body {
 .month-calendar__blank { background: #0b0e0c; }
 .month-calendar__day > time { display: block; margin-bottom: 0.35rem; color: var(--text-muted); font-size: 0.72rem; font-weight: 900; }
 .month-calendar__day.has-events > time { color: #fff; }
+.month-calendar__day.is-today { background: rgba(99, 199, 85, 0.07); box-shadow: inset 0 0 0 1px var(--green); }
+.month-calendar__day.is-today > time { display: grid; width: 1.65rem; height: 1.65rem; place-items: center; margin: -0.15rem 0 0.2rem -0.15rem; border-radius: 50%; background: var(--green); color: #fff; }
 .month-calendar__day > div { display: grid; gap: 0.3rem; }
 .calendar-event-wrap { position: relative; min-width: 0; }
 .calendar-event { display: grid; width: 100%; min-width: 0; gap: 0.15rem; padding: 0.4rem; border: 1px solid #51604d; border-left: 3px solid var(--green); border-radius: 2px; background: #182018; color: #fff; font: inherit; text-align: left; text-decoration: none; }
@@ -2900,10 +2905,10 @@ body {
   .schedule-section__heading { align-items: start; }
   .schedule-view-toggle { width: 100%; }
   .schedule-view-toggle button { flex: 1; }
-  .month-calendar__toolbar { grid-template-columns: 1fr 1fr; }
-  .month-calendar__toolbar h2 { grid-column: 1 / -1; grid-row: 1; }
-  .month-calendar__toolbar > button { grid-column: 1; }
-  .month-calendar__toolbar > div { grid-column: 2; }
+  .month-calendar__toolbar { align-items: stretch; flex-direction: column; }
+  .month-calendar__title { text-align: center; }
+  .month-calendar__nav { display: grid; grid-template-columns: 1fr auto 1fr; }
+  .month-calendar__step { min-width: 0; }
   .month-calendar__weekdays,
   .month-calendar__grid { display: none; }
   .month-agenda { display: grid; gap: 0.55rem; }

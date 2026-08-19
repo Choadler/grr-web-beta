@@ -105,14 +105,15 @@ function canonicalProductionUrl(location: ReturnType<typeof useLocation>) {
 function NavigationBoundary({ children }: { children: React.ReactNode }) {
   const location = useLocation()
   const targetUrl = canonicalProductionUrl(location)
+  const preserveScroll = Boolean((location.state as { preserveScroll?: boolean } | null)?.preserveScroll)
 
   useEffect(() => {
     if (targetUrl) window.location.replace(targetUrl)
   }, [targetUrl])
 
   useEffect(() => {
-    if (!targetUrl) window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
-  }, [location.pathname, location.search, targetUrl])
+    if (!targetUrl && !preserveScroll) window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [location.pathname, location.search, preserveScroll, targetUrl])
 
   // Do not mount a public page on the Access-protected admin origin (or vice
   // versa). Mounting it briefly can start API calls against the wrong origin.
