@@ -2767,7 +2767,7 @@ body {
     url('/assets/home/cup-series.webp') center 54% / cover;
 }
 .schedule-hero p:last-child { max-width: 720px; margin-bottom: 0; color: var(--text-muted); }
-.schedule-page { display: grid; gap: clamp(2rem, 4vw, 3.5rem); }
+.schedule-page { display: grid; gap: clamp(0.85rem, 1.5vw, 1.25rem); }
 .schedule-view-toggle { display: inline-flex; width: fit-content; padding: 0.25rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-1); }
 .schedule-view-toggle button { min-width: 110px; min-height: 42px; border: 0; border-radius: 2px; background: transparent; color: var(--text-muted); font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; }
 .schedule-view-toggle button.is-active { background: var(--green); color: #fff; }
@@ -3299,6 +3299,9 @@ body {
 }
 
 @media (max-width: 600px) {
+  #main-content {
+    padding-top: 64px;
+  }
   .header-inner {
     min-height: 64px;
     padding-inline: 0.75rem;
@@ -4473,6 +4476,15 @@ body {
 }
 
 @media (max-width: 900px) {
+  .site-header {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 1000;
+    width: 100%;
+  }
+  #main-content {
+    padding-top: 70px;
+  }
   html,
   body,
   #root {
