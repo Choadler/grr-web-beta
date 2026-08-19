@@ -2978,8 +2978,8 @@ body {
 
 .hero__content {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(290px, 0.42fr);
-  gap: clamp(2rem, 5vw, 5rem);
+  grid-template-columns: minmax(0, 1fr) minmax(500px, 0.58fr);
+  gap: clamp(2rem, 4vw, 4rem);
   align-items: end;
 }
 
@@ -3058,7 +3058,7 @@ body {
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .hero__content {
     grid-template-columns: 1fr;
     gap: 1.5rem;
