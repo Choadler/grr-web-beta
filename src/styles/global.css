@@ -2581,8 +2581,20 @@ button:focus-visible {
   text-transform: uppercase;
 }
 .data-table--gt-standings {
-  min-width: 1200px;
+  min-width: 960px;
   table-layout: auto;
+}
+.data-table--gt-standings th,
+.data-table--gt-standings td {
+  padding-right: 0.55rem;
+  padding-left: 0.55rem;
+}
+.data-table--gt-standings td:nth-child(2),
+.data-table--gt-standings td:nth-child(3),
+.data-table--gt-standings td:nth-child(4) {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .data-table__expand {
   display: inline-flex;
