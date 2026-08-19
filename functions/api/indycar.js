@@ -12,7 +12,12 @@ const formatInterval = (value, laps, leaderLaps, position) => {
 export async function onRequestGet({ env, request }) {
   if (!env.INDYCAR_DB) return json({ error: 'In-house IndyCar data is not configured.' }, 503)
   const db = env.INDYCAR_DB
-  const requestedSeason = new URL(request.url).searchParams.get('season')
+  const url = new URL(request.url)
+  if (url.searchParams.get('list') === 'seasons') {
+    const seasons = await db.prepare("SELECT id,name,status FROM indy_seasons WHERE status<>'draft' ORDER BY created_at DESC").all()
+    return json({ seasons: seasons.results })
+  }
+  const requestedSeason = url.searchParams.get('season')
   const season = requestedSeason
     ? await db.prepare("SELECT id,name,status,race_time AS raceTime,timezone FROM indy_seasons WHERE id=? AND status<>'draft' LIMIT 1").bind(requestedSeason).first()
     : await db.prepare("SELECT id,name,status,race_time AS raceTime,timezone FROM indy_seasons WHERE status='active' LIMIT 1").first()

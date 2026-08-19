@@ -98,6 +98,7 @@ type GtSeasonSummary = {
 }
 
 type CupSeasonSummary = { id: string; name: string; status: string; champion?: string; races?: number; drivers?: number }
+type SeasonSummary = { id: string; name: string; status: string }
 function useCupSeasons() {
   const [seasons, setSeasons] = useState<CupSeasonSummary[]>([])
   useEffect(() => { const controller = new AbortController(); fetch('/api/cup?list=seasons', { signal: controller.signal }).then((response) => response.ok ? response.json() : Promise.reject()).then((payload: { seasons?: CupSeasonSummary[] }) => setSeasons(payload.seasons ?? [])).catch(() => undefined); return () => controller.abort() }, [])
@@ -394,6 +395,43 @@ function DataPage({
   )
 }
 
+function useIndySeasons() {
+  const [seasons, setSeasons] = useState<SeasonSummary[]>([])
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch('/api/indycar?list=seasons', { signal: controller.signal, headers: { Accept: 'application/json' } })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error('Season list unavailable')))
+      .then((payload: { seasons?: SeasonSummary[] }) => setSeasons(payload.seasons ?? []))
+      .catch(() => undefined)
+    return () => controller.abort()
+  }, [])
+  return seasons
+}
+
+function SeasonSelector({ league, seasons }: { league: string; seasons: SeasonSummary[] }) {
+  if (!seasons.length) return null
+  const requested = new URLSearchParams(window.location.search).get('season')
+  const active = seasons.find((season) => season.status === 'active')
+  const selected = seasons.some((season) => season.id === requested) ? requested! : (active?.id ?? seasons[0].id)
+  return <div className="season-selector">
+    <label>
+      <span>Select season</span>
+      <select value={selected} onChange={(event) => {
+        const url = new URL(window.location.href)
+        if (event.target.value === active?.id) url.searchParams.delete('season')
+        else url.searchParams.set('season', event.target.value)
+        url.searchParams.delete('event')
+        window.location.assign(url.toString())
+      }}>
+        {seasons.map((season) => <option value={season.id} key={season.id}>
+          {season.name}{season.status === 'active' ? ' — Current' : ''}
+        </option>)}
+      </select>
+    </label>
+    <p>Viewing {seasons.find((season) => season.id === selected)?.name ?? league}</p>
+  </div>
+}
+
 function CupPlayoffHistory({ seasonId }: { seasonId: string }) {
   const [payload, setPayload] = useState<CupPlayoffPayload | null>(null)
   useEffect(() => {
@@ -413,6 +451,7 @@ function CupPlayoffHistory({ seasonId }: { seasonId: string }) {
 }
 
 export const CupStandingsPage = () => {
+  const seasons = useCupSeasons()
   const seasonId = new URLSearchParams(window.location.search).get('season')
   const historical = Boolean(seasonId)
   return <DataPage
@@ -421,7 +460,7 @@ export const CupStandingsPage = () => {
     eyebrow="GRR Cup Series 2026"
     search
     loader={cupStandings}
-    contentBeforeTable={seasonId ? <CupPlayoffHistory seasonId={seasonId} /> : undefined}
+    contentBeforeTable={<><SeasonSelector league="Cup Series" seasons={seasons} />{seasonId ? <CupPlayoffHistory seasonId={seasonId} /> : null}</>}
     note={historical ? undefined : 'Chase-enabled seasons show cutoff and clinch status from current SRH points and starts. The green line marks the configured cutoff.'}
     rowClassName={(row) =>
       historical || Number(row.chaseEnabled) === 0 ? '' : Number(row.chaseCutline) === 1
@@ -493,8 +532,10 @@ const cupResultColumns: LiveColumn[] = [
   { key: 'incidents', label: 'Inc' },
   { key: 'status', label: 'Status' },
 ]
-export const CupResultsPage = () => (
-  <PageShell league="cup" title="GRR Cup Series Race Results" eyebrow="GRR Cup Series 2026" compact>
+export const CupResultsPage = () => {
+  const seasons = useCupSeasons()
+  return <PageShell league="cup" title="GRR Cup Series Race Results" eyebrow="GRR Cup Series 2026" compact>
+    <SeasonSelector league="Cup Series" seasons={seasons} />
     <RaceResultsExplorer
       league="cup"
       title="GRR Cup Series Race Results"
@@ -502,7 +543,7 @@ export const CupResultsPage = () => (
       columns={cupResultColumns}
     />
   </PageShell>
-)
+}
 
 function CupCareerSearch() {
   const [drivers, setDrivers] = useState<Record<string, string | number | null>[]>([])
@@ -606,8 +647,10 @@ export const GtStandingsPage = () => {
   const selectedClass = classes[activeClass] ?? classes[0]
   const isTeam = mode === 'team'
   const title = `GT League ${selectedClass?.label ?? ''} ${isTeam ? 'Team' : 'Driver'} Standings`
+  const seasons = useGtSeasons()
 
   return <PageShell league="gt" title="GT League Standings" compact>
+    <SeasonSelector league="GT League" seasons={seasons} />
     <div className="data-toolbar standings-view-controls">
       <fieldset className="filter-group standings-mode-switch">
         <legend>Standings type</legend>
@@ -674,8 +717,10 @@ const gtOverallResultColumns: LiveColumn[] = [
   { key: 'incidents', label: 'Inc' },
   { key: 'status', label: 'Status' },
 ]
-export const GtResultsPage = () => (
-  <PageShell league="gt" title="GT League Race Results" compact>
+export const GtResultsPage = () => {
+  const seasons = useGtSeasons()
+  return <PageShell league="gt" title="GT League Race Results" compact>
+    <SeasonSelector league="GT League" seasons={seasons} />
     <RaceResultsExplorer
       league="gt"
       title="GT League Race Results"
@@ -686,7 +731,7 @@ export const GtResultsPage = () => (
       overallPngOptions={{ preset: 'gt-overall-discord' }}
     />
   </PageShell>
-)
+}
 
 function GtCareerSearch() {
   const initialDriver = new URLSearchParams(window.location.search).get('driver') ?? ''
@@ -785,13 +830,15 @@ export const GtArchivePage = () => <PageShell league="gt" title="GT League Archi
   <GtArchiveSection />
 </PageShell>
 
-export const IndyStandingsPage = () => (
-  <DataPage
+export const IndyStandingsPage = () => {
+  const seasons = useIndySeasons()
+  return <DataPage
     league="indycar"
     title="GRR IndyCar Standings"
     eyebrow="Season 1"
     loader={indyStandings}
     search
+    contentBeforeTable={<SeasonSelector league="IndyCar" seasons={seasons} />}
     columns={[
       { key: 'rank', label: 'Pos' },
       { key: 'driver', label: 'Driver' },
@@ -804,7 +851,7 @@ export const IndyStandingsPage = () => (
       { key: 'lapsLed', label: 'Led' },
     ]}
   />
-)
+}
 export const IndySchedulePage = () => (
   <DataPage
     league="indycar"
@@ -836,8 +883,10 @@ const indyResultColumns: LiveColumn[] = [
   { key: 'incidents', label: 'Inc' },
   { key: 'status', label: 'Status' },
 ]
-export const IndyResultsPage = () => (
-  <PageShell league="indycar" title="GRR IndyCar Race Results" eyebrow="Season 1" compact>
+export const IndyResultsPage = () => {
+  const seasons = useIndySeasons()
+  return <PageShell league="indycar" title="GRR IndyCar Race Results" eyebrow="Season 1" compact>
+    <SeasonSelector league="IndyCar" seasons={seasons} />
     <RaceResultsExplorer
       league="indycar"
       title="GRR IndyCar Race Results"
@@ -845,4 +894,4 @@ export const IndyResultsPage = () => (
       columns={indyResultColumns}
     />
   </PageShell>
-)
+}
