@@ -2983,6 +2983,10 @@ body {
   padding-block: var(--space-page);
 }
 
+.page-content--tight {
+  padding-top: clamp(0.75rem, 1.5vw, 1.25rem);
+}
+
 .league-link-grid a,
 .gt-archive-links a {
   transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;

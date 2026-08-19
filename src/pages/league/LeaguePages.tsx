@@ -142,12 +142,14 @@ function PageShell({
   title,
   eyebrow,
   compact = false,
+  tight = false,
   children,
 }: {
   league: LeagueKey
   title: string
   eyebrow?: string
   compact?: boolean
+  tight?: boolean
   children: React.ReactNode
 }) {
   const config = leagueConfig[league]
@@ -176,9 +178,7 @@ function PageShell({
       </header>
       <LeaguePhotoRails league={league} />
       <div
-        className={
-          compact ? 'page-content page-content--compact container' : 'page-content container'
-        }
+        className={`page-content${compact ? ' page-content--compact' : ''}${tight ? ' page-content--tight' : ''} container`}
       >
         {children}
       </div>
@@ -327,6 +327,7 @@ type DataPageProps = {
   tableClassName?: string
   rowLink?: (row: TableRow) => string | undefined
   contentBeforeTable?: ReactNode
+  tight?: boolean
 }
 function DataPage({
   league,
@@ -343,11 +344,12 @@ function DataPage({
   tableClassName,
   rowLink,
   contentBeforeTable,
+  tight,
 }: DataPageProps) {
   const [activeFilter, setActiveFilter] = useState(0)
   const activeLoader = loaders?.[activeFilter] ?? loader
   return (
-    <PageShell league={league} title={title} eyebrow={eyebrow} compact>
+    <PageShell league={league} title={title} eyebrow={eyebrow} compact tight={tight}>
       {filters && (
         <div className="data-toolbar">
           <fieldset className="filter-group">
@@ -458,6 +460,7 @@ export const CupStandingsPage = () => {
     title="GRR Cup Series Standings"
     eyebrow="GRR Cup Series 2026"
     search
+    tight
     loader={cupStandings}
     contentBeforeTable={<><SeasonSelector seasons={seasons} />{seasonId ? <CupPlayoffHistory seasonId={seasonId} /> : null}</>}
     note={historical ? undefined : 'Chase-enabled seasons show cutoff and clinch status from current SRH points and starts. The green line marks the configured cutoff.'}
@@ -533,7 +536,7 @@ const cupResultColumns: LiveColumn[] = [
 ]
 export const CupResultsPage = () => {
   const seasons = useCupSeasons()
-  return <PageShell league="cup" title="GRR Cup Series Race Results" eyebrow="GRR Cup Series 2026" compact>
+  return <PageShell league="cup" title="GRR Cup Series Race Results" eyebrow="GRR Cup Series 2026" compact tight>
     <SeasonSelector seasons={seasons} />
     <RaceResultsExplorer
       league="cup"
@@ -648,7 +651,7 @@ export const GtStandingsPage = () => {
   const title = `GT League ${selectedClass?.label ?? ''} ${isTeam ? 'Team' : 'Driver'} Standings`
   const seasons = useGtSeasons()
 
-  return <PageShell league="gt" title="GT League Standings" compact>
+  return <PageShell league="gt" title="GT League Standings" compact tight>
     <SeasonSelector seasons={seasons} />
     <div className="data-toolbar standings-view-controls">
       <fieldset className="filter-group standings-mode-switch">
@@ -718,7 +721,7 @@ const gtOverallResultColumns: LiveColumn[] = [
 ]
 export const GtResultsPage = () => {
   const seasons = useGtSeasons()
-  return <PageShell league="gt" title="GT League Race Results" compact>
+  return <PageShell league="gt" title="GT League Race Results" compact tight>
     <SeasonSelector seasons={seasons} />
     <RaceResultsExplorer
       league="gt"
@@ -837,6 +840,7 @@ export const IndyStandingsPage = () => {
     eyebrow="Season 1"
     loader={indyStandings}
     search
+    tight
     contentBeforeTable={<SeasonSelector seasons={seasons} />}
     columns={[
       { key: 'rank', label: 'Pos' },
@@ -884,7 +888,7 @@ const indyResultColumns: LiveColumn[] = [
 ]
 export const IndyResultsPage = () => {
   const seasons = useIndySeasons()
-  return <PageShell league="indycar" title="GRR IndyCar Race Results" eyebrow="Season 1" compact>
+  return <PageShell league="indycar" title="GRR IndyCar Race Results" eyebrow="Season 1" compact tight>
     <SeasonSelector seasons={seasons} />
     <RaceResultsExplorer
       league="indycar"
