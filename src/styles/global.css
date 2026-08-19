@@ -2581,40 +2581,8 @@ button:focus-visible {
   text-transform: uppercase;
 }
 .data-table--gt-standings {
-  table-layout: fixed;
-}
-.data-table--gt-standings th:nth-child(1),
-.data-table--gt-standings td:nth-child(1) {
-  width: 7%;
-}
-.data-table--gt-standings th:nth-child(2),
-.data-table--gt-standings td:nth-child(2) {
-  width: 24%;
-}
-.data-table--gt-standings th:nth-child(3),
-.data-table--gt-standings td:nth-child(3) {
-  width: 18%;
-}
-.data-table--gt-standings th:nth-child(4),
-.data-table--gt-standings td:nth-child(4) {
-  width: 11%;
-  padding-right: 0.35rem;
-}
-.data-table--gt-standings th:nth-child(5),
-.data-table--gt-standings td:nth-child(5) {
-  width: 10%;
-}
-.data-table--gt-standings th:nth-child(6),
-.data-table--gt-standings td:nth-child(6) {
-  width: 13%;
-}
-.data-table--gt-standings th:nth-child(7),
-.data-table--gt-standings td:nth-child(7) {
-  width: 7%;
-}
-.data-table--gt-standings th:nth-child(8),
-.data-table--gt-standings td:nth-child(8) {
-  width: 10%;
+  min-width: 1050px;
+  table-layout: auto;
 }
 .standings-row--chase {
   background: rgba(255, 193, 7, 0.09);

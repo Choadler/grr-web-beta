@@ -591,10 +591,10 @@ const gtDriverStandingsColumns: LiveColumn[] = [
   { key: 'car', label: 'Car' },
   { key: 'starts', label: 'Race Starts' },
   { key: 'points', label: 'Points' },
-  { key: 'drops', label: 'Drop(s)' },
   { key: 'behindLeader', label: 'Behind Leader' },
   { key: 'wins', label: 'Wins' },
   { key: 'podiums', label: 'Podiums' },
+  { key: 'drops', label: 'Drop(s)' },
 ]
 const gtTeamStandingsColumns: LiveColumn[] = gtDriverStandingsColumns.map((column) =>
   column.key === 'driver' ? { ...column, label: 'Team' } : column,
