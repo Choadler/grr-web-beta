@@ -1,5 +1,6 @@
 import { canonicalGtTrackName } from '../_shared/gtTrackNames.js'
 import { selectGtDropWeeks } from '../_shared/gtDropWeeks.js'
+import { canonicalGtCarName } from '../_shared/gtCarNames.js'
 
 const json = (value, status = 200) =>
   Response.json(value, {
@@ -275,7 +276,7 @@ export async function onRequestGet({ env, request }) {
     : defaultClasses.map((key, index) => ({ key, label: defaultLabels[key], sortOrder: index + 1 }))
   const classes = seasonClasses.map((item) => item.key)
   const labels = Object.fromEntries(seasonClasses.map((item) => [item.key, item.label]))
-  const rows = resultData.results
+  const rows = resultData.results.map((row) => ({ ...row, car_name: canonicalGtCarName(row.car_name) }))
   const standings = {}
   const teamStandings = {}
   const eventRounds = new Map(eventData.results.map((event) => [event.id, Number(event.round)]))

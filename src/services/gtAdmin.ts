@@ -15,6 +15,7 @@ import type {
 } from '../types/gtAdmin'
 import { canonicalGtTrackName } from './gtTrackNames'
 import { gtRoster, gtTeamRoster, normalizeGtDriverName } from '../config/gtRoster'
+import { canonicalGtCarName } from '../config/gtCars'
 import { adminFetch } from './adminSession'
 
 const endpoint = '/admin/api/gt'
@@ -74,6 +75,18 @@ function withRaceFormats(state: GtAdminState): GtAdminState {
     ...state,
     points,
     schedule: state.schedule.map((event) => ({ ...event, format: event.format ?? 'standard' })),
+  }
+}
+
+function withStandardCars(state: GtAdminState): GtAdminState {
+  return {
+    ...state,
+    assignments: state.assignments.map((item) => ({ ...item, car: canonicalGtCarName(item.car) })),
+    teams: state.teams.map((item) => ({ ...item, car: canonicalGtCarName(item.car) })),
+    results: Object.fromEntries(Object.entries(state.results).map(([eventId, rows]) => [
+      eventId,
+      rows.map((item) => ({ ...item, car: canonicalGtCarName(item.car) })),
+    ])),
   }
 }
 
@@ -261,6 +274,7 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
     }
     if (action === 'saveTeam') {
       const team = data.team as GtTeam
+      team.car = canonicalGtCarName(team.car)
       const index = state.teams.findIndex((item) => item.id === team.id)
       if (index >= 0) state.teams[index] = team
       else state.teams.push(team)
@@ -304,6 +318,7 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
       state.schedule = state.schedule.filter((event) => event.id !== data.eventId)
     if (action === 'saveAssignment') {
       const item = data.assignment as GtDriverAssignment
+      item.car = canonicalGtCarName(item.car)
       const index = state.assignments.findIndex(
         (assignment) =>
           assignment.seasonId === item.seasonId && assignment.customerId === item.customerId && assignment.classKey === item.classKey,
@@ -313,6 +328,7 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
     }
     if (action === 'moveAssignmentClass') {
       const item = { ...(data.assignment as GtDriverAssignment), active: true }
+      item.car = canonicalGtCarName(item.car)
       state.assignments.forEach((assignment) => {
         if (assignment.seasonId === item.seasonId && assignment.customerId === item.customerId)
           assignment.active = false
@@ -328,6 +344,7 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
     }
     if (action === 'saveAssignments')
       (data.assignments as GtDriverAssignment[]).forEach((item) => {
+        item.car = canonicalGtCarName(item.car)
         state.assignments.forEach((assignment) => {
           if (assignment.seasonId === item.seasonId && assignment.customerId === item.customerId)
             assignment.active = assignment.classKey === item.classKey
@@ -429,7 +446,7 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
 }
 
 export const loadGtAdmin = async () =>
-  withRoster(withRaceFormats(await request<GtAdminState>('GET')))
+  withRoster(withStandardCars(withRaceFormats(await request<GtAdminState>('GET'))))
 export const mutateGtAdmin = (body: unknown) => request<GtAdminState>('POST', body)
 export const loadGtImportSource = async (item: GtAdminState['imports'][number], state: GtAdminState) => {
   if (import.meta.env.DEV) {

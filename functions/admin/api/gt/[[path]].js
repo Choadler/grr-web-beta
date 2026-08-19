@@ -1,4 +1,5 @@
 import { canonicalGtTrackName } from '../../../_shared/gtTrackNames.js'
+import { canonicalGtCarName } from '../../../_shared/gtCarNames.js'
 
 const json = (value, status = 200) =>
   Response.json(value, { status, headers: { 'Cache-Control': 'no-store' } })
@@ -49,7 +50,7 @@ async function state(db) {
   for (const row of seasonClasses.results)
     (classesBySeason[row.season_id] ??= []).push({ key: row.class_key, label: row.label, sortOrder: row.sort_order })
   const byEvent = {}
-  for (const row of results.results) (byEvent[row.eventId] ??= []).push(row)
+  for (const row of results.results) (byEvent[row.eventId] ??= []).push({ ...row, car: canonicalGtCarName(row.car) })
   return {
     seasons: seasons.results,
     classes: classesBySeason,
@@ -57,12 +58,14 @@ async function state(db) {
     schedule: schedule.results,
     assignments: assignments.results.map((assignment) => ({
       ...assignment,
+      car: canonicalGtCarName(assignment.car),
       active: Boolean(assignment.active),
     })),
     teams: teams.results.map((team) => {
       const members = JSON.parse(team.membersJson || '[]')
       return {
         ...team,
+        car: canonicalGtCarName(team.car),
         memberIds: members.map((item) => Number(item.customerId)).filter(Boolean),
         memberNames: members.map((item) => String(item.driver || '')).filter(Boolean),
       }
@@ -142,7 +145,7 @@ const updateScoredRows = async (db, eventId, rows) => {
           driver.pole ? 1 : 0,
           driver.fastestLap ? 1 : 0,
           driver.team || '',
-          driver.car || '',
+          canonicalGtCarName(driver.car),
           driver.racePoints,
           driver.bonus,
           driver.penalty,
@@ -267,7 +270,7 @@ export async function onRequestPost({ request, env }) {
             team.seasonId,
             team.name,
             team.classKey,
-            team.car || '',
+            canonicalGtCarName(team.car),
             JSON.stringify(members),
           ),
       ]
@@ -280,8 +283,8 @@ export async function onRequestPost({ request, env }) {
               )
               .bind(
                 team.name,
-                team.car || '',
-                team.car || '',
+                canonicalGtCarName(team.car),
+                canonicalGtCarName(team.car),
                 team.seasonId,
                 member.customerId,
               ),
@@ -293,8 +296,8 @@ export async function onRequestPost({ request, env }) {
               )
               .bind(
                 team.name,
-                team.car || '',
-                team.car || '',
+                canonicalGtCarName(team.car),
+                canonicalGtCarName(team.car),
                 team.seasonId,
                 member.customerId,
               ),
@@ -349,7 +352,7 @@ export async function onRequestPost({ request, env }) {
           item.driver,
           item.classKey,
           item.team || '',
-          item.car || '',
+          canonicalGtCarName(item.car),
         )
         .run()
     } else if (body.action === 'moveAssignmentClass') {
@@ -368,7 +371,7 @@ export async function onRequestPost({ request, env }) {
           .prepare(
             `INSERT INTO gt_driver_assignments(season_id,customer_id,driver_name,class_key,team_name,car_name,is_active) VALUES(?,?,?,?,?,?,1) ON CONFLICT(season_id,customer_id,class_key) DO UPDATE SET driver_name=excluded.driver_name,team_name=excluded.team_name,car_name=excluded.car_name,is_active=1,updated_at=CURRENT_TIMESTAMP`,
           )
-          .bind(item.seasonId, item.customerId, item.driver, item.classKey, item.team || '', item.car || ''),
+          .bind(item.seasonId, item.customerId, item.driver, item.classKey, item.team || '', canonicalGtCarName(item.car)),
       ])
     } else if (body.action === 'saveAssignments') {
       const items = Array.isArray(body.assignments)
@@ -392,7 +395,7 @@ export async function onRequestPost({ request, env }) {
               item.driver,
               item.classKey,
               item.team || '',
-              item.car || '',
+              canonicalGtCarName(item.car),
             ),
         ]),
       )
@@ -473,7 +476,7 @@ export async function onRequestPost({ request, env }) {
                 driver.driver,
                 driver.classKey,
                 driver.team || '',
-                driver.car || '',
+                canonicalGtCarName(driver.car),
               ),
           )
         }
@@ -501,7 +504,7 @@ export async function onRequestPost({ request, env }) {
               driver.pole ? 1 : 0,
               driver.fastestLap ? 1 : 0,
               driver.team || '',
-              driver.car || '',
+              canonicalGtCarName(driver.car),
               driver.racePoints,
               driver.bonus,
               driver.penalty,

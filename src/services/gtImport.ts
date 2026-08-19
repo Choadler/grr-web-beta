@@ -1,4 +1,5 @@
 import type { GtImportPreview, GtImportedDriver } from '../types/gtAdmin'
+import { canonicalGtCarName } from '../config/gtCars'
 
 type UnknownRecord = Record<string, unknown>
 const record = (value: unknown): UnknownRecord =>
@@ -97,7 +98,7 @@ export function parseGtResultJson(payload: unknown): GtImportPreview {
       bestLapTime: number(
         first(row, ['best_lap_time', 'fastest_lap_time', 'fast_lap_time', 'bestLapTime']),
       ),
-      car: text(first(row, ['car_name', 'car', 'car_screen_name', 'car_name_abbreviated'])),
+      car: canonicalGtCarName(text(first(row, ['car_name', 'car', 'car_screen_name', 'car_name_abbreviated']))),
     }))
     .filter((driver) => driver.driver)
     .sort((a, b) => a.overallPosition - b.overallPosition)

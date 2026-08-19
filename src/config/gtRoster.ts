@@ -1,4 +1,5 @@
 import type { GtClassKey } from '../types/gtAdmin'
+import { canonicalGtCarName } from './gtCars'
 
 export type GtRosterEntry = { driver: string; car: string; classKey: GtClassKey }
 export type GtTeamRosterEntry = {
@@ -133,13 +134,13 @@ const teamRows: [string, GtClassKey, string, string][] = [
 
 const baseRoster: GtRosterEntry[] = rows.map(([driver, car, classKey]) => ({
   driver,
-  car,
+  car: canonicalGtCarName(car),
   classKey,
 }))
 
 teamRows.forEach(([, classKey, car, driver]) => {
   if (!baseRoster.some((entry) => gtDriverNamesMatch(entry.driver, driver)))
-    baseRoster.push({ driver, car, classKey })
+    baseRoster.push({ driver, car: canonicalGtCarName(car), classKey })
 })
 
 export const gtRoster = baseRoster
@@ -147,12 +148,12 @@ export const gtRoster = baseRoster
 export const gtTeamRoster: GtTeamRosterEntry[] = [...new Set(teamRows.map(([name]) => name))].map(
   (name) => {
     const members = teamRows.filter(([team]) => team === name)
-    const cars = [...new Set(members.map(([, , car]) => car))]
+    const cars = [...new Set(members.map(([, , car]) => canonicalGtCarName(car)))]
     return {
       name,
       classKey: members[0][1],
       car: cars.length === 1 ? cars[0] : '',
-      members: members.map(([, , car, driver]) => ({ driver, car })),
+      members: members.map(([, , car, driver]) => ({ driver, car: canonicalGtCarName(car) })),
     }
   },
 )

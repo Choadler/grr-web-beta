@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useId, useMemo, useState } from 'react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { SportingCodeAdmin } from '../components/admin/SportingCodeAdmin'
 import { LeagueAdminNav, type LeagueAdminTool } from '../components/admin/LeagueAdminNav'
@@ -6,6 +6,7 @@ import { ImportSourceViewer, type ImportSource } from '../components/admin/Impor
 import { defaultGtPoints, gtClassesForSeason, loadGtAdmin, loadGtImportSource, mutateGtAdmin } from '../services/gtAdmin'
 import { parseGtResultJson } from '../services/gtImport'
 import { gtDriverNamesMatch } from '../config/gtRoster'
+import { canonicalGtCarName, gtCarNames } from '../config/gtCars'
 import type {
   GtAdminState,
   GtClassKey,
@@ -20,6 +21,19 @@ import type {
 } from '../types/gtAdmin'
 
 const id = () => crypto.randomUUID()
+function CarInput({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const listId = useId()
+  return <>
+    <input
+      value={value}
+      list={listId}
+      onChange={(event) => onChange(canonicalGtCarName(event.target.value))}
+      onBlur={(event) => onChange(canonicalGtCarName(event.target.value))}
+      placeholder="Select or enter a car"
+    />
+    <datalist id={listId}>{gtCarNames.map((car) => <option value={car} key={car} />)}</datalist>
+  </>
+}
 type Control = { open?: boolean; onToggle?: (open: boolean) => void; standalone?: boolean }
 function Section({
   title,
@@ -408,10 +422,7 @@ function AssignmentsEditor({
       </label>
       <label>
         Car
-        <input
-          value={value.car}
-          onChange={(event) => setValue({ ...value, car: event.target.value })}
-        />
+        <CarInput value={value.car} onChange={(car) => setValue({ ...value, car })} />
       </label>
     </div>
   )
@@ -734,10 +745,7 @@ function TeamsEditor({
         </label>
         <label>
           Car
-          <input
-            value={team.car}
-            onChange={(event) => setTeam({ ...team, car: event.target.value })}
-          />
+          <CarInput value={team.car} onChange={(car) => setTeam({ ...team, car })} />
         </label>
       </div>
       <div className="admin-team-editor__heading admin-team-editor__heading--drivers">
