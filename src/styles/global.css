@@ -2947,7 +2947,7 @@ body {
 }
 
 .hero {
-  min-height: clamp(440px, 67vh, 650px);
+  min-height: clamp(440px, 50vh, 600px);
 }
 
 .hero-overlay {
