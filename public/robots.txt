@@ -1,3 +1,5 @@
 User-agent: *
 Allow: /
-Sitemap: https://grassrootsracing.org/sitemap.xml
+Disallow: /admin
+Disallow: /api/
+Sitemap: https://www.grassrootsracing.org/sitemap.xml

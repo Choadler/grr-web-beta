@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadGallery, submitGalleryPhoto } from '../services/gallery'
 import type { GalleryLeague, GalleryPhoto } from '../types/gallery'
-import { PageMeta } from '../components/league/PageMeta'
 import { PhotoLightbox } from '../components/gallery/PhotoLightbox'
 import { prepareGalleryPhoto } from '../utils/galleryImage'
 import { TurnstileWidget } from '../components/gallery/TurnstileWidget'
@@ -173,7 +172,6 @@ export function GalleryPage() {
 
   return (
     <section className="gallery-page">
-      <PageMeta title="Gallery" description="Grassroots Racing community race photos" />
       <header className="gallery-hero">
         <div className="container">
           <p className="eyebrow">Grassroots Racing Community</p>

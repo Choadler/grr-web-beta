@@ -9,7 +9,6 @@ import { LeagueCountdown } from '../../components/league/LeagueCountdown'
 import { LeaguePhotoRails } from '../../components/league/LeaguePhotoRails'
 import { LeagueOverview } from '../../components/league/LeagueOverview'
 import { LeagueNav, type LeagueNavItem } from '../../components/league/LeagueNav'
-import { PageMeta } from '../../components/league/PageMeta'
 import { EmptyState } from '../../components/league/States'
 import { externalLinks } from '../../config/site'
 import { cupSchedule as cupCalendar, indycarSchedule as indyCalendar } from '../../config/schedules'
@@ -153,7 +152,6 @@ function PageShell({
   const config = leagueConfig[league]
   return (
     <>
-      <PageMeta title={title} description={title} />
       <LeagueNav label={config.label} items={config.nav} />
       <aside className="league-race-banner">
         <LeagueCountdown

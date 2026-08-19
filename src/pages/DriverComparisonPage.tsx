@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ErrorState, LoadingState } from '../components/league/States'
-import { PageMeta } from '../components/league/PageMeta'
 import {
   calculateDriverHistory,
   calculateDriverComparison,
@@ -271,10 +270,6 @@ export function DriverComparisonPage() {
     : ''
   return (
     <main className="comparison-page">
-      <PageMeta
-        title="Driver History"
-        description="Explore a Grassroots Racing driver's complete history or compare up to four drivers across Cup, GT, and IndyCar."
-      />
       <header className="comparison-hero">
         <div className="container">
           <p className="eyebrow">Grassroots Racing statistics</p>

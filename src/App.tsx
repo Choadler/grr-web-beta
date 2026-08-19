@@ -11,6 +11,7 @@ import { CupAdminPage } from './pages/CupAdminPage'
 import { GalleryPage } from './pages/GalleryPage'
 import { GalleryAdminPage } from './pages/GalleryAdminPage'
 import { DriverComparisonPage } from './pages/DriverComparisonPage'
+import { Seo } from './components/Seo'
 import { HomeGallery } from './components/gallery/HomeGallery'
 import {
   CupBroadcastPage,
@@ -515,6 +516,7 @@ function SiteApp() {
   const adminIdentity = useAdminIdentity()
   return (
     <>
+      <Seo />
       <Header identity={adminIdentity} />
       <main id="main-content">
         <Routes>
