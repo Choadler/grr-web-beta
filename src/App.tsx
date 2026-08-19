@@ -229,6 +229,7 @@ function AdminSessionControls({ identity, className = '' }: { identity: AdminIde
 }
 
 function Header({ identity }: { identity: AdminIdentity | null }) {
+  const location = useLocation()
   const [open, setOpen] = useState(false)
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null)
   const closeMenu = () => {
@@ -239,6 +240,8 @@ function Header({ identity }: { identity: AdminIdentity | null }) {
     closeMenu()
     if (event.detail > 0) event.currentTarget.blur()
   }
+  const groupIsActive = (href: string, items?: { href: string }[]) =>
+    location.pathname === href || items?.some((item) => location.pathname === item.href)
 
   useEffect(() => {
     const close = (e: KeyboardEvent) => {
@@ -274,7 +277,10 @@ function Header({ identity }: { identity: AdminIdentity | null }) {
             {navigation.map((g) => (
               <li className={g.items ? 'nav-group' : ''} key={g.label}>
                 <NavLink
-                  className={g.href === externalLinks.discord ? 'discord-button' : undefined}
+                  className={[
+                    g.href === externalLinks.discord ? 'discord-button' : '',
+                    groupIsActive(g.href, g.items) ? 'is-current-section' : '',
+                  ].filter(Boolean).join(' ') || undefined}
                   to={g.href}
                   onClick={closeDesktopMenu}
                 >
@@ -344,7 +350,8 @@ function Header({ identity }: { identity: AdminIdentity | null }) {
           aria-controls="main-navigation"
           onClick={() => setOpen(!open)}
         >
-          <span aria-hidden="true">{open ? 'Close' : 'Menu'}</span>
+          <span className="menu-toggle__icon" aria-hidden="true"><i /><i /><i /></span>
+          <span className="menu-toggle__label" aria-hidden="true">{open ? 'Close' : 'Menu'}</span>
           <span className="sr-only">{open ? 'Close menu' : 'Open menu'}</span>
         </button>
       </div>
@@ -361,6 +368,9 @@ function Footer() {
           <p>Free-to-Enter iRacing Leagues by Sim Racers, For Sim Racers</p>
         </div>
         <nav aria-label="Footer">
+          <Link to="/">Home</Link>
+          <Link to="/gallery">Gallery</Link>
+          <Link to="/driver-comparison">Driver History</Link>
           <External href={externalLinks.discord} highlightDiscord={false}>Discord</External>
           <External href={externalLinks.twitch}>Twitch</External>
           <External href={externalLinks.merchandise}>Merch</External>
@@ -394,7 +404,7 @@ function League({
         {leaders}
         {countdown}
         <Link className="button" to={href}>
-          Click Here
+          Explore the league <span aria-hidden="true">→</span>
         </Link>
       </div>
     </article>
