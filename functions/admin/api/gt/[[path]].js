@@ -8,7 +8,7 @@ async function state(db) {
   const [seasons, seasonClasses, points, schedule, assignments, teams, imports, results] = await Promise.all([
     db
       .prepare(
-        'SELECT id,name,status,race_time AS raceTime,timezone,legacy_roster_fallback AS legacyRosterFallback FROM gt_seasons ORDER BY created_at DESC',
+        'SELECT id,name,status,race_time AS raceTime,timezone,drop_weeks AS dropWeeks,drop_start_round AS dropStartRound,legacy_roster_fallback AS legacyRosterFallback FROM gt_seasons ORDER BY created_at DESC',
       )
       .all(),
     db.prepare('SELECT season_id,class_key,label,sort_order FROM gt_season_classes ORDER BY season_id,sort_order').all(),
@@ -195,6 +195,8 @@ export async function onRequestPost({ request, env }) {
   try {
     if (body.action === 'saveSeason') {
       const item = body.season
+      const dropWeeks = Math.max(0, Math.trunc(Number(item.dropWeeks) || 0))
+      const dropStartRound = Math.max(1, Math.trunc(Number(item.dropStartRound) || 1))
       const existing = await db.prepare('SELECT id,status FROM gt_seasons WHERE id=?').bind(item.id).first()
       if (existing?.status === 'active' && item.status !== 'active') return json({ error: 'Set another GT season active before archiving the current public season.' }, 409)
       if (item.status === 'active')
@@ -206,9 +208,9 @@ export async function onRequestPost({ request, env }) {
           .run()
       await db
         .prepare(
-          `INSERT INTO gt_seasons(id,name,status,race_time,timezone) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,status=excluded.status,race_time=excluded.race_time,timezone=excluded.timezone,updated_at=CURRENT_TIMESTAMP`,
+          `INSERT INTO gt_seasons(id,name,status,race_time,timezone,drop_weeks,drop_start_round) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,status=excluded.status,race_time=excluded.race_time,timezone=excluded.timezone,drop_weeks=excluded.drop_weeks,drop_start_round=excluded.drop_start_round,updated_at=CURRENT_TIMESTAMP`,
         )
-        .bind(item.id, item.name, item.status, item.raceTime, item.timezone)
+        .bind(item.id, item.name, item.status, item.raceTime, item.timezone, dropWeeks, dropStartRound)
         .run()
       if (!existing) {
         const sourceClasses = body.copyFrom
@@ -219,6 +221,8 @@ export async function onRequestPost({ request, env }) {
       if (!existing && body.copyFrom) {
         const statements = []
         if (body.copy?.settings) {
+          const sourceSeason = await db.prepare('SELECT drop_weeks AS dropWeeks,drop_start_round AS dropStartRound FROM gt_seasons WHERE id=?').bind(body.copyFrom).first()
+          if (sourceSeason) statements.push(db.prepare('UPDATE gt_seasons SET drop_weeks=?,drop_start_round=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(sourceSeason.dropWeeks, sourceSeason.dropStartRound, item.id))
           const configs = await db.prepare('SELECT format_key,config_json FROM gt_format_points_configs WHERE season_id=?').bind(body.copyFrom).all()
           for (const config of configs.results) statements.push(db.prepare('INSERT INTO gt_format_points_configs(season_id,format_key,config_json) VALUES(?,?,?)').bind(item.id, config.format_key, config.config_json))
         }

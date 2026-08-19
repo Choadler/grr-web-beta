@@ -60,6 +60,8 @@ const newSeason = (): GtSeason => ({
   status: 'draft',
   raceTime: '20:00',
   timezone: 'America/New_York',
+  dropWeeks: 0,
+  dropStartRound: 2,
   legacyRosterFallback: 0,
 })
 
@@ -143,6 +145,28 @@ function SeasonEditor({
             value={season.timezone}
             onChange={(event) => setSeason({ ...season, timezone: event.target.value })}
           />
+        </label>
+        <label>
+          Driver drop weeks
+          <input
+            type="number"
+            min="0"
+            step="1"
+            value={season.dropWeeks ?? 0}
+            onChange={(event) => setSeason({ ...season, dropWeeks: Math.max(0, Math.trunc(Number(event.target.value) || 0)) })}
+          />
+          <small>Each driver’s lowest-scoring completed round, including an absence worth 0 points, is dropped.</small>
+        </label>
+        <label>
+          Calculate drops after round
+          <input
+            type="number"
+            min="1"
+            step="1"
+            value={season.dropStartRound ?? 2}
+            onChange={(event) => setSeason({ ...season, dropStartRound: Math.max(1, Math.trunc(Number(event.target.value) || 1)) })}
+          />
+          <small>Drop selections stay hidden until this round has been completed.</small>
         </label>
       </div>
       {isNew && state.seasons.length ? <fieldset className="admin-copy-options"><legend>Initialize from another season</legend>

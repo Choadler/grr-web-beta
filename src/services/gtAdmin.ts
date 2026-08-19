@@ -234,7 +234,14 @@ async function request<T>(method: string, body?: unknown): Promise<T> {
           : gtClasses.map((entry, classIndex) => ({ ...entry, sortOrder: classIndex + 1 }))
       const copy = record(data.copy)
       if (isNew && sourceId) {
-        if (copy.settings && state.points[sourceId]) state.points[item.id] = structuredClone(state.points[sourceId])
+        if (copy.settings) {
+          if (state.points[sourceId]) state.points[item.id] = structuredClone(state.points[sourceId])
+          const sourceSeason = state.seasons.find((season) => season.id === sourceId)
+          if (sourceSeason) {
+            item.dropWeeks = sourceSeason.dropWeeks ?? 0
+            item.dropStartRound = sourceSeason.dropStartRound ?? 2
+          }
+        }
         if (copy.drivers || copy.teams) state.assignments.push(...state.assignments.filter((entry) => entry.seasonId === sourceId).map((entry) => ({ ...entry, id: undefined, seasonId: item.id, team: copy.teams ? entry.team : '' })))
         if (copy.teams) state.teams.push(...state.teams.filter((team) => team.seasonId === sourceId).map((team) => ({ ...team, id: crypto.randomUUID(), seasonId: item.id })))
         if (copy.schedule) state.schedule.push(...state.schedule.filter((event) => event.seasonId === sourceId).map((event) => ({ ...event, id: crypto.randomUUID(), seasonId: item.id, status: 'scheduled' as const, subsessionId: undefined })))
@@ -453,6 +460,7 @@ export function loadLocalGtPublic(): GtPublicData | null {
   const rows = seasonEvents.flatMap((event) =>
     (state.results[event.id] ?? []).map((row) => ({ ...row, event })),
   )
+  const completedEvents = seasonEvents.filter((event) => event.status === 'completed')
   const standings = {} as GtPublicData['standings']
   const teamStandings = {} as GtPublicData['teamStandings']
   gtClasses.forEach(({ key }) => {
@@ -491,6 +499,22 @@ export function loadLocalGtPublic(): GtPublicData | null {
           teams.set(row.team, team)
         }
       })
+    const dropsEnabled = Number(season.dropWeeks) > 0 && completedEvents.some((event) => event.round >= Number(season.dropStartRound))
+    drivers.forEach((item, driverKey) => {
+      item.rawPoints = item.points
+      item.drops = '—'
+      if (!dropsEnabled) return
+      const driverRows = rows.filter((row) => row.classKey === key && (row.customerId ? `id:${row.customerId}` : row.driver) === driverKey)
+      const pointsByEvent = new Map(driverRows.map((row) => [row.event.id, row.total]))
+      const selected = completedEvents
+        .map((event) => ({ round: event.round, points: pointsByEvent.get(event.id) ?? 0 }))
+        .sort((a, b) => a.points - b.points || a.round - b.round)
+        .slice(0, Math.min(Number(season.dropWeeks), completedEvents.length))
+      const droppedPoints = selected.reduce((total, event) => total + event.points, 0)
+      item.points = Number(item.points) - droppedPoints
+      item.droppedPoints = droppedPoints
+      item.drops = selected.map((event) => `R${event.round} (${event.points})`).join(', ')
+    })
     const rank = (values: Map<string, Record<string, string | number>>) =>
       [...values.values()]
         .sort((a, b) => Number(b.points) - Number(a.points))

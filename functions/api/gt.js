@@ -1,4 +1,5 @@
 import { canonicalGtTrackName } from '../_shared/gtTrackNames.js'
+import { selectGtDropWeeks } from '../_shared/gtDropWeeks.js'
 
 const json = (value, status = 200) =>
   Response.json(value, {
@@ -7,6 +8,22 @@ const json = (value, status = 200) =>
   })
 const defaultClasses = ['gt3-am', 'gt3-pro', 'gtp']
 const defaultLabels = { 'gt3-am': 'GT3 AM', 'gt3-pro': 'GT3 Pro', gtp: 'GTP' }
+const driverIdentity = (row) => row.customer_id
+  ? `id:${row.customer_id}`
+  : `name:${row.driver_name.toLowerCase()}`
+const applyDriverDrops = (items, driverRows, completedEvents, season) => {
+  for (const [key, item] of items) {
+    item.rawPoints = item.points
+    item.drops = '—'
+    const pointsByEvent = new Map(driverRows.filter((row) => driverIdentity(row) === key).map((row) => [row.event_id, Number(row.total_points) || 0]))
+    const selected = selectGtDropWeeks(completedEvents, pointsByEvent, season.dropWeeks, season.dropStartRound)
+    if (!selected.length) continue
+    const droppedPoints = selected.reduce((total, event) => total + event.points, 0)
+    item.points -= droppedPoints
+    item.droppedPoints = droppedPoints
+    item.drops = selected.map((event) => `R${event.round} (${event.points})`).join(', ')
+  }
+}
 const preferredDriverName = (current, candidate) => {
   if (!current) return candidate
   const currentBase = current.replace(/\d+$/, '').trim().toLowerCase()
@@ -45,29 +62,32 @@ export async function onRequestGet({ env, request }) {
   const db = env.INDYCAR_DB
   const url = new URL(request.url)
   if (url.searchParams.get('list') === 'seasons') {
-    const [seasons, championRows] = await Promise.all([
-      db.prepare("SELECT id,name,status FROM gt_seasons WHERE status<>'draft' ORDER BY created_at DESC").all(),
-      db.prepare(
-        `WITH driver_points AS (
-          SELECT r.season_id,r.class_key,COALESCE(c.label,r.class_key) AS class_label,
-            MAX(r.driver_name) AS driver_name,SUM(r.total_points) AS points,
-            SUM(CASE WHEN r.class_position=1 THEN 1 ELSE 0 END) AS wins
-          FROM gt_results r
-          JOIN gt_seasons s ON s.id=r.season_id AND s.status<>'draft'
-          LEFT JOIN gt_season_classes c ON c.season_id=r.season_id AND c.class_key=r.class_key
-          GROUP BY r.season_id,r.class_key,
-            CASE WHEN r.customer_id IS NOT NULL THEN 'id:' || r.customer_id ELSE 'name:' || LOWER(r.driver_name) END
-        ), ranked AS (
-          SELECT *,ROW_NUMBER() OVER (PARTITION BY season_id,class_key ORDER BY points DESC,wins DESC,driver_name) AS rank
-          FROM driver_points
-        )
-        SELECT season_id AS seasonId,class_key AS classKey,class_label AS classLabel,driver_name AS driver
-        FROM ranked WHERE rank=1 ORDER BY season_id,class_key`,
-      ).all(),
-    ])
+    const seasons = await db.prepare("SELECT id,name,status,drop_weeks AS dropWeeks,drop_start_round AS dropStartRound FROM gt_seasons WHERE status<>'draft' ORDER BY created_at DESC").all()
+    const championRows = []
+    for (const listedSeason of seasons.results) {
+      const [seasonResults, seasonEvents, seasonClasses] = await Promise.all([
+        db.prepare('SELECT * FROM gt_results WHERE season_id=?').bind(listedSeason.id).all(),
+        db.prepare("SELECT id,round_number AS round FROM gt_events WHERE season_id=? AND status='completed' ORDER BY round_number").bind(listedSeason.id).all(),
+        db.prepare('SELECT class_key AS classKey,label AS classLabel FROM gt_season_classes WHERE season_id=?').bind(listedSeason.id).all(),
+      ])
+      for (const classInfo of seasonClasses.results) {
+        const classRows = seasonResults.results.filter((row) => row.class_key === classInfo.classKey)
+        const drivers = new Map()
+        for (const row of classRows) {
+          const key = driverIdentity(row)
+          const item = drivers.get(key) ?? { driver: row.driver_name, points: 0, wins: 0 }
+          item.points += Number(row.total_points) || 0
+          item.wins += Number(row.class_position) === 1 ? 1 : 0
+          drivers.set(key, item)
+        }
+        applyDriverDrops(drivers, classRows, seasonEvents.results, listedSeason)
+        const champion = [...drivers.values()].sort((a, b) => b.points - a.points || b.wins - a.wins || a.driver.localeCompare(b.driver))[0]
+        if (champion) championRows.push({ seasonId: listedSeason.id, ...classInfo, driver: champion.driver })
+      }
+    }
     return json({ seasons: seasons.results.map((season) => ({
       ...season,
-      champions: championRows.results.filter((row) => row.seasonId === season.id),
+      champions: championRows.filter((row) => row.seasonId === season.id),
     })) })
   }
   if (url.searchParams.get('list') === 'classes') {
@@ -129,18 +149,23 @@ export async function onRequestGet({ env, request }) {
   if (url.searchParams.get('view') === 'career') {
     const driverKey = url.searchParams.get('driver') ?? ''
     if (!driverKey.startsWith('id:') && !driverKey.startsWith('name:')) return json({ error: 'A valid GT driver is required.' }, 400)
-    const historyData = await db.prepare(
+    const [historyData, completedEventData] = await Promise.all([db.prepare(
       `SELECT r.customer_id AS customerId,r.driver_name AS driver,r.class_key AS classKey,
         COALESCE(c.label,r.class_key) AS classLabel,r.class_position AS classPosition,
         r.total_points AS points,r.pole,r.fastest_lap AS fastestLap,r.laps_completed AS laps,
         r.incidents,r.car_name AS car,r.team_name AS team,r.season_id AS seasonId,s.name AS season,
-        e.track,e.race_date AS raceDate
+        s.drop_weeks AS dropWeeks,s.drop_start_round AS dropStartRound,
+        r.event_id AS eventId,e.round_number AS round,e.track,e.race_date AS raceDate
        FROM gt_results r
        JOIN gt_seasons s ON s.id=r.season_id AND s.status<>'draft'
        JOIN gt_events e ON e.id=r.event_id
        LEFT JOIN gt_season_classes c ON c.season_id=r.season_id AND c.class_key=r.class_key
        ORDER BY e.race_date,e.round_number`,
-    ).all()
+    ).all(), db.prepare(
+      `SELECT e.id,e.season_id AS seasonId,e.round_number AS round
+       FROM gt_events e JOIN gt_seasons s ON s.id=e.season_id AND s.status<>'draft'
+       WHERE e.status='completed' ORDER BY e.season_id,e.round_number`,
+    ).all()])
     const identity = (row) => row.customerId ? `id:${row.customerId}` : `name:${row.driver.toLowerCase()}`
     const selectedRows = historyData.results.filter((row) => identity(row) === driverKey)
     if (!selectedRows.length) return json({ error: 'That GT driver was not found.' }, 404)
@@ -157,15 +182,29 @@ export async function onRequestGet({ env, request }) {
       bestFinish: Math.min(...rows.map((row) => Number(row.classPosition))),
     })
     const seasonClassStandings = new Map()
+    const seasonClassRows = new Map()
     for (const row of historyData.results) {
       const key = `${row.seasonId}:${row.classKey}`
       const drivers = seasonClassStandings.get(key) ?? new Map()
+      const rows = seasonClassRows.get(key) ?? []
       const id = identity(row)
       const item = drivers.get(id) ?? { driverKey: id, points: 0, wins: 0 }
       item.points += Number(row.points) || 0
       item.wins += Number(row.classPosition) === 1 ? 1 : 0
       drivers.set(id, item)
       seasonClassStandings.set(key, drivers)
+      rows.push({ ...row, customer_id: row.customerId, driver_name: row.driver, event_id: row.eventId, total_points: row.points })
+      seasonClassRows.set(key, rows)
+    }
+    for (const [key, drivers] of seasonClassStandings) {
+      const rows = seasonClassRows.get(key)
+      const sample = rows[0]
+      applyDriverDrops(
+        drivers,
+        rows,
+        completedEventData.results.filter((event) => event.seasonId === sample.seasonId),
+        sample,
+      )
     }
     const rankFor = (seasonId, classKey) => [...seasonClassStandings.get(`${seasonId}:${classKey}`).values()]
       .sort((a, b) => b.points - a.points || b.wins - a.wins || a.driverKey.localeCompare(b.driverKey))
@@ -184,7 +223,17 @@ export async function onRequestGet({ env, request }) {
     const seasons = group((row) => `${row.seasonId}:${row.classKey}`, (row) => ({
       seasonId: row.seasonId, season: row.season, classKey: row.classKey, classLabel: row.classLabel,
       championshipPosition: rankFor(row.seasonId, row.classKey),
-    })).sort((a, b) => b.season.localeCompare(a.season, undefined, { numeric: true }))
+    })).map((item) => {
+      const rows = selectedRows.filter((row) => `${row.seasonId}:${row.classKey}` === item.key)
+      const pointsByEvent = new Map(rows.map((row) => [row.eventId, Number(row.points) || 0]))
+      const drops = selectGtDropWeeks(
+        completedEventData.results.filter((event) => event.seasonId === item.seasonId),
+        pointsByEvent,
+        rows[0]?.dropWeeks,
+        rows[0]?.dropStartRound,
+      )
+      return { ...item, points: Number(item.points) - drops.reduce((total, drop) => total + drop.points, 0) }
+    }).sort((a, b) => b.season.localeCompare(a.season, undefined, { numeric: true }))
     const tracks = group((row) => canonicalGtTrackName(row.track), (row) => ({ track: canonicalGtTrackName(row.track) }))
       .sort((a, b) => b.wins - a.wins || b.podiums - a.podiums || b.starts - a.starts || a.track.localeCompare(b.track))
     const summary = summarize(selectedRows)
@@ -203,8 +252,8 @@ export async function onRequestGet({ env, request }) {
   }
   const requestedSeason = url.searchParams.get('season')
   const season = requestedSeason
-    ? await db.prepare("SELECT id,name,status,race_time AS raceTime,timezone FROM gt_seasons WHERE id=? AND status<>'draft' LIMIT 1").bind(requestedSeason).first()
-    : await db.prepare("SELECT id,name,status,race_time AS raceTime,timezone FROM gt_seasons WHERE status='active' LIMIT 1").first()
+    ? await db.prepare("SELECT id,name,status,race_time AS raceTime,timezone,drop_weeks AS dropWeeks,drop_start_round AS dropStartRound FROM gt_seasons WHERE id=? AND status<>'draft' LIMIT 1").bind(requestedSeason).first()
+    : await db.prepare("SELECT id,name,status,race_time AS raceTime,timezone,drop_weeks AS dropWeeks,drop_start_round AS dropStartRound FROM gt_seasons WHERE status='active' LIMIT 1").first()
   if (!season) return json({ error: requestedSeason ? 'That GT season is not publicly available.' : 'No active in-house GT season.' }, 404)
   const [classData, eventData, resultData] = await Promise.all([
     db.prepare('SELECT class_key AS key,label,sort_order AS sortOrder FROM gt_season_classes WHERE season_id=? ORDER BY sort_order').bind(season.id).all(),
@@ -271,6 +320,7 @@ export async function onRequestGet({ env, request }) {
       [...items.values()]
         .sort((a, b) => b.points - a.points || b.wins - a.wins)
         .map((item, index) => ({ rank: index + 1, ...item }))
+    applyDriverDrops(aggregate, rows.filter((row) => row.class_key === classKey), eventData.results.filter((event) => event.status === 'completed'), season)
     standings[classKey] = rank(aggregate)
     teamStandings[classKey] = rank(teams)
   }

@@ -591,13 +591,14 @@ const gtDriverStandingsColumns: LiveColumn[] = [
   { key: 'car', label: 'Car' },
   { key: 'starts', label: 'Race Starts' },
   { key: 'points', label: 'Points' },
+  { key: 'drops', label: 'Drop(s)' },
   { key: 'behindLeader', label: 'Behind Leader' },
   { key: 'wins', label: 'Wins' },
   { key: 'podiums', label: 'Podiums' },
 ]
 const gtTeamStandingsColumns: LiveColumn[] = gtDriverStandingsColumns.map((column) =>
   column.key === 'driver' ? { ...column, label: 'Team' } : column,
-)
+).filter((column) => column.key !== 'drops')
 
 export const GtStandingsPage = () => {
   const classes = useGtSeasonClasses()
@@ -634,6 +635,7 @@ export const GtStandingsPage = () => {
         </button>)}
       </fieldset>
     </div>
+    {!isTeam && <p className="standings-legend">Drop(s) shows the round and points removed from each driver’s total. An absence counts as 0 points.</p>}
     {selectedClass && <LiveDataTable
       key={`${mode}-${selectedClass.key}`}
       title={title}

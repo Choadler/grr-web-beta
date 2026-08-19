@@ -9,6 +9,8 @@ export type GtSeason = {
   status: GtSeasonStatus
   raceTime: string
   timezone: string
+  dropWeeks: number
+  dropStartRound: number
   legacyRosterFallback?: number
 }
 export type GtPointsRule = { position: number; points: number }
