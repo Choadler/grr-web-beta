@@ -367,7 +367,7 @@ function Footer() {
           <Link to="/admin">Admin</Link>
         </nav>
       </div>
-      <p className="copyright">&copy; {new Date().getFullYear()} Grassroots Racing</p>
+      <p className="copyright">Grassroots Racing © 2026. Website software developed and owned by Corey Mason Knoedler and licensed for use by Grassroots Racing. GRR names, logos, racing content, and other GRR-owned materials remain the property of their respective owners.</p>
     </footer>
   )
 }
