@@ -14,6 +14,7 @@ import { DriverComparisonPage } from './pages/DriverComparisonPage'
 import { SchedulePage } from './pages/SchedulePage'
 import { Seo } from './components/Seo'
 import { HomeGallery } from './components/gallery/HomeGallery'
+import { HomeStats } from './components/HomeStats'
 import {
   CupBroadcastPage,
   CupLandingPage,
@@ -421,8 +422,13 @@ function Home() {
         </video>
         <div className="hero-overlay">
           <div className="container">
-            <p className="welcome">Welcome to Grassroots Racing</p>
-            <h1 id="home-title">Free-to-Enter iRacing Leagues by Sim Racers, For Sim Racers</h1>
+            <div className="hero__content">
+              <div>
+                <p className="welcome">Welcome to Grassroots Racing</p>
+                <h1 id="home-title">Free-to-Enter iRacing Leagues by Sim Racers, For Sim Racers</h1>
+              </div>
+              <HomeStats />
+            </div>
             <div className="hero-actions">
               <External className="button" href={externalLinks.discord}>
                 Join our Discord!
