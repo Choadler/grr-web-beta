@@ -1,3 +1,5 @@
+import { compareIndyStandings } from '../_shared/leagueScoring.js'
+
 const json = (value, status = 200) => Response.json(value, { status, headers: { 'Cache-Control': 'public, max-age=30, stale-while-revalidate=300' } })
 
 const formatInterval = (value, laps, leaderLaps, position) => {
@@ -29,13 +31,18 @@ export async function onRequestGet({ env, request }) {
   const aggregate = new Map()
   for (const row of rows) {
     const key = row.customer_id ? `id:${row.customer_id}` : `name:${row.driver_name.toLowerCase()}`
-    const item = aggregate.get(key) ?? { driver: row.driver_name, points: 0, starts: 0, wins: 0, poles: 0, top5: 0, top10: 0, lapsLed: 0 }
+    const item = aggregate.get(key) ?? { driver: row.driver_name, points: 0, starts: 0, wins: 0, poles: 0, top5: 0, top10: 0, lapsLed: 0, finishCounts: [], previousEventFinish: Number.POSITIVE_INFINITY, latestRound: 0 }
     item.points += row.total_points; item.starts += 1; item.wins += row.finish_position === 1 ? 1 : 0
     item.poles += row.start_position === 1 ? 1 : 0; item.top5 += row.finish_position <= 5 ? 1 : 0
     item.top10 += row.finish_position <= 10 ? 1 : 0; item.lapsLed += row.laps_led
+    item.finishCounts[row.finish_position] = (item.finishCounts[row.finish_position] || 0) + 1
+    if (Number(row.round_number) >= item.latestRound) {
+      item.latestRound = Number(row.round_number)
+      item.previousEventFinish = Number(row.finish_position)
+    }
     aggregate.set(key, item)
   }
-  const standings = [...aggregate.values()].sort((a, b) => b.points - a.points || b.wins - a.wins).map((item, index) => ({ rank: index + 1, ...item }))
+  const standings = [...aggregate.values()].sort(compareIndyStandings).map(({ finishCounts: _finishCounts, previousEventFinish: _previousEventFinish, latestRound: _latestRound, ...item }, index) => ({ rank: index + 1, ...item }))
   const events = scheduleData.results.filter((event) => event.status === 'completed').map((event) => {
     const eventRows = rows.filter((row) => row.event_id === event.id)
     const leaderLaps = eventRows.find((row) => row.finish_position === 1)?.laps_completed ?? Math.max(0, ...eventRows.map((row) => row.laps_completed))

@@ -1,5 +1,6 @@
 import { canonicalGtTrackName } from '../../../_shared/gtTrackNames.js'
 import { canonicalGtCarName } from '../../../_shared/gtCarNames.js'
+import { scoreGtRows } from '../../../_shared/leagueScoring.js'
 
 const json = (value, status = 200) =>
   Response.json(value, { status, headers: { 'Cache-Control': 'no-store' } })
@@ -75,60 +76,7 @@ async function state(db) {
   }
 }
 
-const scoreRows = (drivers, config) => {
-  if (!config) throw new Error('Save the selected race format points table before publishing.')
-  const output = []
-  for (const classKey of classes) {
-    const rows = drivers
-      .filter((driver) => driver.classKey === classKey)
-      .sort((a, b) => Number(a.overallPosition) - Number(b.overallPosition))
-    const poleStart = Math.min(...rows.map((row) => Number(row.start) || 9999))
-    const fastestDriver = rows
-      .filter((row) => Number(row.bestLapTime) > 0)
-      .sort(
-        (a, b) =>
-          Number(a.bestLapTime) - Number(b.bestLapTime) ||
-          Number(a.overallPosition) - Number(b.overallPosition),
-      )[0]
-    const mostLed = Math.max(0, ...rows.map((row) => Number(row.lapsLed) || 0))
-    rows.forEach((driver, index) => {
-      const classPosition = index + 1
-      const pole = Number(driver.start) === poleStart
-      const fastestLap = driver === fastestDriver
-      const base =
-        Number(config.positions.find((rule) => Number(rule.position) === classPosition)?.points) ||
-        0
-      const bonus =
-        (pole ? Number(config.poleBonus) || 0 : 0) +
-        (fastestLap ? Number(config.fastestLapBonus) || 0 : 0) +
-        (Number(driver.lapsLed) > 0 ? Number(config.lapLedBonus) || 0 : 0) +
-        (mostLed > 0 && Number(driver.lapsLed) === mostLed
-          ? Number(config.mostLapsLedBonus) || 0
-          : 0)
-      const penalty = Math.max(0, Number(driver.penalty) || 0)
-      output.push({
-        ...driver,
-        classPosition,
-        pole,
-        fastestLap,
-        racePoints: base,
-        bonus,
-        penalty,
-        total: base + bonus - penalty,
-      })
-    })
-  }
-  for (const classKey of classes) {
-    const classRows = output.filter((driver) => driver.classKey === classKey)
-    const hasValidLap = classRows.some((driver) => Number(driver.bestLapTime) > 0)
-    const fastestCount = classRows.filter((driver) => driver.fastestLap).length
-    if (hasValidLap && fastestCount !== 1)
-      throw new Error(`Could not assign exactly one fastest lap for ${classKey}.`)
-    if (!hasValidLap && fastestCount !== 0)
-      throw new Error(`A fastest lap was assigned without valid lap data for ${classKey}.`)
-  }
-  return output
-}
+const scoreRows = (drivers, config) => scoreGtRows(drivers, config, classes)
 
 const updateScoredRows = async (db, eventId, rows) => {
   if (!rows.length) return
@@ -405,6 +353,9 @@ export async function onRequestPost({ request, env }) {
         .bind(body.seasonId, body.customerId, body.classKey)
         .run()
     else if (body.action === 'deleteResults')
+      {
+      const target = await db.prepare('SELECT s.status FROM gt_events e JOIN gt_seasons s ON s.id=e.season_id WHERE e.id=?').bind(body.eventId).first()
+      if (target?.status === 'archived' && body.archivedOverride !== true) return json({ error: 'Archived GT results are immutable without an explicit override.' }, 409)
       await db.batch([
         db.prepare('DELETE FROM gt_results WHERE event_id=?').bind(body.eventId),
         db.prepare('DELETE FROM gt_imports WHERE event_id=?').bind(body.eventId),
@@ -414,12 +365,15 @@ export async function onRequestPost({ request, env }) {
           )
           .bind(body.eventId),
       ])
+      }
     else if (body.action === 'publishResults') {
       const event = await db
         .prepare('SELECT race_format AS format FROM gt_events WHERE id=? AND season_id=?')
         .bind(body.eventId, body.seasonId)
         .first()
       if (!event) return json({ error: 'That event no longer exists.' }, 404)
+      const season = await db.prepare('SELECT status FROM gt_seasons WHERE id=?').bind(body.seasonId).first()
+      if (season?.status === 'archived' && body.archivedOverride !== true) return json({ error: 'Archived GT results are immutable without an explicit override.' }, 409)
       const pointRow = await db
         .prepare(
           'SELECT config_json FROM gt_format_points_configs WHERE season_id=? AND format_key=?',
@@ -519,6 +473,8 @@ export async function onRequestPost({ request, env }) {
         .bind(body.eventId)
         .first()
       if (!event) return json({ error: 'That event no longer exists.' }, 404)
+      const season = await db.prepare('SELECT status FROM gt_seasons WHERE id=?').bind(event.seasonId).first()
+      if (season?.status === 'archived' && body.archivedOverride !== true) return json({ error: 'Archived GT results are immutable without an explicit override.' }, 409)
       const pointRow = await db
         .prepare(
           'SELECT config_json FROM gt_format_points_configs WHERE season_id=? AND format_key=?',
