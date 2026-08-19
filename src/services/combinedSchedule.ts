@@ -35,11 +35,19 @@ const validWinner = (value: unknown) => {
   return winner && winner !== '—' && winner !== '-'
 }
 
-export function normalizeScheduleState(row: UnknownRecord, completedEventIds: Set<string>): ScheduleState {
+const easternDate = () => {
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date())
+  const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? ''
+  return `${value('year')}-${value('month')}-${value('day')}`
+}
+
+export function normalizeScheduleState(row: UnknownRecord, completedEventIds: Set<string>, today = easternDate()): ScheduleState {
   const status = text(row.status).toLowerCase()
   if (status === 'cancelled' || status === 'canceled') return 'cancelled'
   if (status === 'postponed') return 'postponed'
   if (status === 'completed' || row.state === 'done' || completedEventIds.has(String(row.eventId ?? row.id ?? ''))) return 'completed'
+  const date = text(row.date)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(date) && date < today) return 'completed'
   if (!status || status === 'scheduled' || row.state === 'upcoming' || row.state === 'next') return 'upcoming'
   return 'other'
 }

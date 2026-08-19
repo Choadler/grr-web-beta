@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { bulkCalendarFilename, googleCalendarUrl, icsCalendar, monthDays, multiEventIcs, normalizeScheduleRows, scheduleDisplay, shiftMonth, sortSchedule, uniqueCalendarEvents, updateScheduleParams, validMonth } from './combinedSchedule.ts'
+import { bulkCalendarFilename, googleCalendarUrl, icsCalendar, monthDays, multiEventIcs, normalizeScheduleRows, normalizeScheduleState, scheduleDisplay, shiftMonth, sortSchedule, uniqueCalendarEvents, updateScheduleParams, validMonth } from './combinedSchedule.ts'
 
 const season = { id: 's1', name: 'Season 1', status: 'active' }
 
@@ -20,6 +20,13 @@ test('sorts upcoming nearest first and completed newest first', () => {
 test('preserves supported cancellation and postponement statuses', () => {
   const rows = normalizeScheduleRows('indycar', { season, schedule: [{ eventId: 'a', date: '2026-08-20', track: 'A', status: 'cancelled' }, { eventId: 'b', date: '2026-08-21', track: 'B', status: 'postponed' }] }, season)
   assert.deepEqual(rows.map((item) => item.state), ['cancelled', 'postponed'])
+})
+
+test('does not classify scheduled races before today as upcoming', () => {
+  assert.equal(normalizeScheduleState({ eventId: 'past', date: '2026-08-18', status: 'scheduled' }, new Set(), '2026-08-19'), 'completed')
+  assert.equal(normalizeScheduleState({ eventId: 'today', date: '2026-08-19', status: 'scheduled' }, new Set(), '2026-08-19'), 'upcoming')
+  assert.equal(normalizeScheduleState({ eventId: 'future', date: '2026-08-20', state: 'upcoming' }, new Set(), '2026-08-19'), 'upcoming')
+  assert.equal(normalizeScheduleState({ eventId: 'postponed', date: '2026-08-18', status: 'postponed' }, new Set(), '2026-08-19'), 'postponed')
 })
 
 test('creates encoded Google all-day and timezone-aware calendar links', () => {
