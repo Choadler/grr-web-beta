@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useId, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import type { DataLoader, TableRow } from '../../types/league'
@@ -10,6 +10,7 @@ export type LiveColumn = {
   key: string
   label: string
   link?: boolean
+  expandDetailsKey?: string
   cellClassName?: (value: string | number, row: TableRow) => string
 }
 
@@ -40,6 +41,8 @@ export function LiveDataTable({
   const [message, setMessage] = useState('')
   const [retry, setRetry] = useState(0)
   const [sort, setSort] = useState<{ key: string; direction: 1 | -1 } | null>(null)
+  const [expandedRow, setExpandedRow] = useState<string | null>(null)
+  const tableId = useId().replace(/:/g, '')
   const [pngStatus, setPngStatus] = useState<
     'idle' | 'copying' | 'copied' | 'downloaded' | 'error'
   >('idle')
@@ -176,14 +179,27 @@ export function LiveDataTable({
           )
         }}
       >
-        {visibleRows.map((row, index) => (
-          <tr
-            className={rowClassName?.(row)}
-            key={`${String(row.driver ?? row.track ?? 'row')}-${index}`}
-          >
-            {columns.map((column) => (
-              <td className={column.cellClassName?.(row[column.key] ?? '', row)} key={column.key}>
-                {rowLink?.(row) && column.key === 'track' ? (
+        {visibleRows.map((row, index) => {
+          const rowKey = `${String(row.driver ?? row.track ?? 'row')}-${index}`
+          const detailColumn = columns.find((column) => column.expandDetailsKey)
+          const detailId = `${tableId}-details-${index}`
+          const expanded = expandedRow === rowKey
+          return (
+            <Fragment key={rowKey}>
+              <tr className={rowClassName?.(row)}>
+                {columns.map((column) => (
+                  <td className={column.cellClassName?.(row[column.key] ?? '', row)} key={column.key}>
+                {column.expandDetailsKey ? (
+                  <button
+                    className="data-table__expand"
+                    type="button"
+                    aria-expanded={expanded}
+                    aria-controls={detailId}
+                    onClick={() => setExpandedRow(expanded ? null : rowKey)}
+                  >
+                    {row[column.key]} <span aria-hidden="true">{expanded ? '−' : '+'}</span>
+                  </button>
+                ) : rowLink?.(row) && column.key === 'track' ? (
                   <Link className="data-table__race-link" to={rowLink(row)!}>
                     {row[column.key]}
                   </Link>
@@ -201,10 +217,18 @@ export function LiveDataTable({
                     )}
                   </>
                 )}
-              </td>
-            ))}
-          </tr>
-        ))}
+                  </td>
+                ))}
+              </tr>
+              {expanded && detailColumn && <tr className="data-table__details" id={detailId}>
+                <td colSpan={columns.length}>
+                  <strong>Drivers</strong>
+                  <span>{row[detailColumn.expandDetailsKey!] || 'No drivers listed.'}</span>
+                </td>
+              </tr>}
+            </Fragment>
+          )
+        })}
         {!visibleRows.length && (
           <EmptyTableRow
             columns={columns.length}

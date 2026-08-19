@@ -473,11 +473,14 @@ export function loadLocalGtPublic(): GtPublicData | null {
         const item = drivers.get(driverKey) ?? {
           driver: row.driver,
           car: row.car,
+          team: row.team || '—',
           points: 0,
           starts: 0,
           wins: 0,
           podiums: 0,
         }
+        item.car = row.car
+        item.team = row.team || '—'
         item.points = Number(item.points) + row.total
         item.starts = Number(item.starts) + 1
         item.wins = Number(item.wins) + (row.classPosition === 1 ? 1 : 0)
@@ -491,11 +494,14 @@ export function loadLocalGtPublic(): GtPublicData | null {
             starts: 0,
             wins: 0,
             podiums: 0,
+            drivers: '',
           }
           team.points = Number(team.points) + row.total
           team.starts = Number(team.starts) + 1
           team.wins = Number(team.wins) + (row.classPosition === 1 ? 1 : 0)
           team.podiums = Number(team.podiums) + (row.classPosition <= 3 ? 1 : 0)
+          const teamDrivers = String(team.drivers || '').split(', ').filter(Boolean)
+          if (!teamDrivers.includes(row.driver)) team.drivers = [...teamDrivers, row.driver].sort().join(', ')
           teams.set(row.team, team)
         }
       })

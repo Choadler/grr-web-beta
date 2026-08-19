@@ -278,6 +278,7 @@ export async function onRequestGet({ env, request }) {
   const rows = resultData.results
   const standings = {}
   const teamStandings = {}
+  const eventRounds = new Map(eventData.results.map((event) => [event.id, Number(event.round)]))
   for (const classKey of classes) {
     const aggregate = new Map()
     const teams = new Map()
@@ -290,10 +291,18 @@ export async function onRequestGet({ env, request }) {
         const item = aggregate.get(key) ?? {
           driver: row.driver_name,
           car: row.car_name,
+          team: row.team_name || '—',
+          latestRound: 0,
           points: 0,
           starts: 0,
           wins: 0,
           podiums: 0,
+        }
+        const rowRound = eventRounds.get(row.event_id) ?? 0
+        if (rowRound >= item.latestRound) {
+          item.car = row.car_name
+          item.team = row.team_name || '—'
+          item.latestRound = rowRound
         }
         item.points += row.total_points
         item.starts += 1
@@ -308,18 +317,21 @@ export async function onRequestGet({ env, request }) {
             starts: 0,
             wins: 0,
             podiums: 0,
+            drivers: '',
           }
           team.points += row.total_points
           team.starts += 1
           team.wins += row.class_position === 1 ? 1 : 0
           team.podiums += row.class_position <= 3 ? 1 : 0
+          const teamDrivers = team.drivers ? team.drivers.split(', ') : []
+          if (!teamDrivers.includes(row.driver_name)) team.drivers = [...teamDrivers, row.driver_name].sort().join(', ')
           teams.set(row.team_name, team)
         }
       })
     const rank = (items) =>
       [...items.values()]
         .sort((a, b) => b.points - a.points || b.wins - a.wins)
-        .map((item, index) => ({ rank: index + 1, ...item }))
+        .map(({ latestRound: _latestRound, ...item }, index) => ({ rank: index + 1, ...item }))
     applyDriverDrops(aggregate, rows.filter((row) => row.class_key === classKey), eventData.results.filter((event) => event.status === 'completed'), season)
     standings[classKey] = rank(aggregate)
     teamStandings[classKey] = rank(teams)

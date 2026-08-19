@@ -2581,8 +2581,49 @@ button:focus-visible {
   text-transform: uppercase;
 }
 .data-table--gt-standings {
-  min-width: 1050px;
+  min-width: 1200px;
   table-layout: auto;
+}
+.data-table__expand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  border: 0;
+  background: transparent;
+  color: var(--white);
+  padding: 0;
+  font: inherit;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.data-table__expand span {
+  display: inline-grid;
+  width: 1.35rem;
+  height: 1.35rem;
+  place-items: center;
+  border: 1px solid #61805e;
+  color: var(--green-light);
+}
+.data-table__expand:hover,
+.data-table__expand:focus-visible {
+  color: var(--green-light);
+}
+.data-table__details td {
+  white-space: normal;
+  background: #1b2519;
+}
+.data-table__details td > strong,
+.data-table__details td > span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.data-table__details td > strong {
+  margin-bottom: 0.25rem;
+  color: var(--green-light);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 .standings-row--chase {
   background: rgba(255, 193, 7, 0.09);

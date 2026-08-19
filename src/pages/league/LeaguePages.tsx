@@ -588,6 +588,7 @@ export const GtSchedulePage = () => {
 const gtDriverStandingsColumns: LiveColumn[] = [
   { key: 'rank', label: 'Rank' },
   { key: 'driver', label: 'Driver' },
+  { key: 'team', label: 'Team' },
   { key: 'car', label: 'Car' },
   { key: 'starts', label: 'Race Starts' },
   { key: 'points', label: 'Points' },
@@ -597,8 +598,8 @@ const gtDriverStandingsColumns: LiveColumn[] = [
   { key: 'drops', label: 'Drop(s)' },
 ]
 const gtTeamStandingsColumns: LiveColumn[] = gtDriverStandingsColumns.map((column) =>
-  column.key === 'driver' ? { ...column, label: 'Team' } : column,
-).filter((column) => column.key !== 'drops')
+  column.key === 'driver' ? { ...column, label: 'Team', expandDetailsKey: 'drivers' } : column,
+).filter((column) => column.key !== 'drops' && column.key !== 'team')
 
 export const GtStandingsPage = () => {
   const classes = useGtSeasonClasses()
