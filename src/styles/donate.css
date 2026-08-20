@@ -1,0 +1,56 @@
+.donate-page {
+  min-height: 70vh;
+  background: var(--surface-1);
+}
+
+.donate-page__content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+  gap: clamp(2rem, 6vw, 5rem);
+  align-items: start;
+}
+
+.donate-page__intro {
+  padding-left: clamp(1.25rem, 3vw, 2rem);
+  border-left: 4px solid var(--green);
+}
+
+.donate-page__intro h2 {
+  margin-top: 0;
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  text-transform: uppercase;
+}
+
+.donate-page__intro p {
+  max-width: 720px;
+  line-height: 1.7;
+}
+
+.donate-options {
+  display: grid;
+  gap: 1rem;
+}
+
+.donate-option {
+  padding: clamp(1.4rem, 3vw, 2rem);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--green);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-sm);
+}
+
+.donate-option h2 {
+  margin: 0.25rem 0 1.4rem;
+  overflow-wrap: anywhere;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+}
+
+.donate-option .eyebrow {
+  color: var(--green-light);
+}
+
+@media (max-width: 800px) {
+  .donate-page__content {
+    grid-template-columns: 1fr;
+  }
+}

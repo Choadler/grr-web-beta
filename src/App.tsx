@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import './styles/donate.css'
 import { currentSiteAssets, externalLinks, navigation } from './config/site'
 import { cupSchedule as cupCalendar, indycarSchedule as indyCalendar } from './config/schedules'
 import { LeagueCountdown } from './components/league/LeagueCountdown'
@@ -500,9 +501,9 @@ function Home() {
               from donations go directly to supporting GRR Leagues.
             </p>
           </div>
-          <External className="button button--light" href={externalLinks.donate}>
+          <Link className="button button--light" to="/donate">
             Donate
-          </External>
+          </Link>
         </div>
       </section>
       <section className="section merch-section">
@@ -516,6 +517,50 @@ function Home() {
       </section>
       {/* TODO(content): Restore additional copy only after it is verified on the live site. */}
     </>
+  )
+}
+function DonatePage() {
+  return (
+    <div className="donate-page">
+      <section className="page-hero page-hero--compact" aria-labelledby="donate-title">
+        <div className="container">
+          <p className="eyebrow">Support the leagues</p>
+          <h1 id="donate-title">Support GRR</h1>
+          <p>Help keep Grassroots Racing free for every driver.</p>
+        </div>
+      </section>
+      <section className="section">
+        <div className="container donate-page__content">
+          <div className="donate-page__intro">
+            <h2>Every dollar supports GRR</h2>
+            <p>
+              GRR is committed to being free for all to enjoy! Donations help fund our league
+              broadcasts, hosting, and other expenses.
+            </p>
+            <p>
+              Donations are <strong>optional</strong> and not required in any way to enjoy GRR
+              Leagues. Every dollar donated goes directly to supporting GRR Leagues.
+            </p>
+          </div>
+          <div className="donate-options" aria-label="Donation options">
+            <article className="donate-option">
+              <p className="eyebrow">Cash App</p>
+              <h2>$coreykno</h2>
+              <External className="button" href="https://cash.app/$coreykno">
+                Donate with Cash App
+              </External>
+            </article>
+            <article className="donate-option">
+              <p className="eyebrow">Venmo</p>
+              <h2>@Corey-Knoedler</h2>
+              <External className="button" href="https://venmo.com/u/Corey-Knoedler">
+                Donate with Venmo
+              </External>
+            </article>
+          </div>
+        </div>
+      </section>
+    </div>
   )
 }
 function Missing() {
@@ -540,6 +585,7 @@ function SiteApp() {
         <Routes>
           <Route index element={<Home />} />
           <Route path="schedule" element={<SchedulePage />} />
+          <Route path="donate" element={<DonatePage />} />
           <Route path="pages/grr-cup-series" element={<CupLandingPage />} />
           <Route path="pages/cup-series-sporting-code" element={<CupSportingCodePage />} />
           <Route path="pages/cupstandings" element={<CupStandingsPage />} />

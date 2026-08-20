@@ -4,9 +4,6 @@ export const externalLinks = {
   merchandise:
     import.meta.env.VITE_FOURTHWALL_STOREFRONT_URL ||
     'https://grassroots-racing-shop.fourthwall.com/collections/all',
-  donate:
-    import.meta.env.VITE_FOURTHWALL_DONATION_URL ||
-    'https://grassroots-racing-shop.fourthwall.com/pages/donate',
 } as const
 
 // TODO(assets): Migrate these verified GRR homepage files locally when originals are supplied.
