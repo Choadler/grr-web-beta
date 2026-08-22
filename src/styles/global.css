@@ -2732,6 +2732,45 @@ body {
   width: 18px;
   height: 14px;
 }
+
+.sponsorship-admin__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.sponsorship-admin__list { display: grid; gap: 1.25rem; }
+.sponsorship-inquiry { padding: clamp(1.1rem, 3vw, 1.75rem); border: 1px solid var(--border); border-top: 4px solid var(--green); background: var(--surface-2); box-shadow: var(--shadow-sm); }
+.sponsorship-inquiry > header { display: flex; justify-content: space-between; gap: 1rem; align-items: start; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.sponsorship-inquiry > header h2 { margin: 0.35rem 0 0.2rem; font-size: clamp(1.5rem, 3vw, 2.25rem); text-transform: uppercase; }
+.sponsorship-inquiry > header p { margin: 0; color: var(--muted); }
+.sponsorship-inquiry > header > strong { color: var(--green-light); font-size: clamp(1.25rem, 3vw, 2rem); }
+.sponsorship-status { display: inline-block; padding: 0.3rem 0.55rem; background: #243522; color: var(--green-light); font-size: 0.72rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; }
+.sponsorship-status--declined { background: #39201d; color: #ffb0a4; }
+.sponsorship-status--closed { background: #29302a; color: #d2dad0; }
+.sponsorship-inquiry__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; margin-top: 1.25rem; }
+.sponsorship-inquiry__grid section { min-width: 0; }
+.sponsorship-inquiry__grid h3 { margin: 0 0 0.45rem; color: var(--green-light); font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.sponsorship-inquiry__details, .sponsorship-inquiry__logos { grid-column: 1 / -1; }
+.sponsorship-inquiry__details p { margin: 0; white-space: pre-wrap; }
+.sponsorship-inquiry__logos > div { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.sponsorship-inquiry__logos a { display: grid; width: 150px; gap: 0.35rem; color: #fff; font-size: 0.72rem; overflow-wrap: anywhere; }
+.sponsorship-inquiry__logos img { width: 150px; height: 90px; object-fit: contain; padding: 0.4rem; border: 1px solid var(--border); background: #fff; }
+.sponsorship-inquiry__notes { display: grid; gap: 0.4rem; margin-top: 1.25rem; font-weight: 800; text-transform: uppercase; }
+.sponsorship-inquiry__notes textarea, .sponsorship-inquiry__actions select { border: 1px solid var(--border-strong); border-radius: 0; background: #0c110d; color: #fff; font: inherit; }
+.sponsorship-inquiry__notes textarea { width: 100%; padding: 0.7rem; resize: vertical; text-transform: none; }
+.sponsorship-inquiry__actions { display: flex; flex-wrap: wrap; align-items: end; gap: 0.65rem; margin-top: 1rem; }
+.sponsorship-inquiry__actions label { display: grid; gap: 0.25rem; font-size: 0.72rem; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; }
+.sponsorship-inquiry__actions select { min-height: 39px; padding: 0.45rem 0.6rem; }
+.sponsorship-inquiry__delete { margin-left: auto; border-color: #8f382c; background: #5b241d; }
+
+@media (max-width: 700px) {
+  .sponsorship-inquiry > header { flex-direction: column; }
+  .sponsorship-inquiry__grid { grid-template-columns: 1fr; }
+  .sponsorship-inquiry__details, .sponsorship-inquiry__logos { grid-column: auto; }
+  .sponsorship-inquiry__delete { margin-left: 0; }
+}
 .season-selector {
   display: block;
   margin: 0 0 0.75rem;

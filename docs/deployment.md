@@ -63,3 +63,7 @@ The gallery keeps moderation metadata in the existing `INDYCAR_DB` D1 database a
 8. Add a Cloudflare rate-limiting rule for `POST /api/gallery`. Turnstile rejects automated submissions, while the rate limit bounds requests that reach multipart parsing.
 
 Do not expose the R2 bucket publicly. Approved files are served through `/api/gallery/photo/:id`, while pending and rejected files are available only through the Access-protected admin API. Public uploads accept JPEG, PNG, and WebP originals up to 50 MB and validate their file signatures. One Turnstile challenge authorizes one sequential batch of at most ten photos for 15 minutes; D1 rejects skipped or replayed batch positions.
+
+## Race sponsorship inquiries
+
+Apply `migrations/0020_sponsorship_inquiries.sql` to `grr-scoring`, then redeploy. The public form uses the existing Turnstile widget, stores inquiry details in the shared `INDYCAR_DB` database, and stores logos under a private `sponsorships/` prefix in `GALLERY_BUCKET`. Administrators review and update inquiries at `/admin/sponsorships`; the logo routes remain behind Cloudflare Access. Add a Cloudflare rate-limiting rule for `POST /api/sponsorship` alongside the gallery upload rule.

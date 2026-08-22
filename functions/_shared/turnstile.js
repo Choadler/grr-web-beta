@@ -1,5 +1,4 @@
 const siteverifyUrl = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
-const expectedAction = 'gallery_upload'
 const defaultHostnames = new Set(['www.grassrootsracing.org'])
 
 const allowedHostnames = (env) => {
@@ -10,7 +9,7 @@ const allowedHostnames = (env) => {
   return configured.length ? new Set(configured) : defaultHostnames
 }
 
-export async function verifyGalleryTurnstile(request, env, token) {
+export async function verifyTurnstile(request, env, token, expectedAction) {
   if (!env.TURNSTILE_SECRET || typeof token !== 'string' || !token || token.length > 2048)
     return false
 
@@ -45,6 +44,9 @@ export async function verifyGalleryTurnstile(request, env, token) {
     return false
   }
 }
+
+export const verifyGalleryTurnstile = (request, env, token) =>
+  verifyTurnstile(request, env, token, 'gallery_upload')
 
 export async function hashClientIp(request) {
   const value = request.headers.get('CF-Connecting-IP') || 'unknown'

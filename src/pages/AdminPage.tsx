@@ -1015,7 +1015,12 @@ export function AdminPage() {
             <p>Review, approve, reject, and remove community race photos.</p>
             <span className="admin-module__action">Open moderation →</span>
           </Link>
-          <SupremeLeaderCorey />
+          <Link className="admin-module" to="/admin/sponsorships">
+            <span>Partnerships</span>
+            <strong>Sponsorship Inquiries</strong>
+            <p>Review proposals, view brand assets, track outreach, and contact potential sponsors.</p>
+            <span className="admin-module__action">Open inquiries →</span>
+          </Link>
         </div>
       </div>
     </section>

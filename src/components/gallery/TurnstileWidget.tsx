@@ -28,7 +28,15 @@ function loadTurnstile() {
   return scriptPromise
 }
 
-export function TurnstileWidget({ onToken }: { onToken: (token: string) => void }) {
+export function TurnstileWidget({
+  onToken,
+  action = 'gallery_upload',
+  unavailableMessage = 'Photo submissions are temporarily unavailable.',
+}: {
+  onToken: (token: string) => void
+  action?: string
+  unavailableMessage?: string
+}) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [error, setError] = useState('')
   const sitekey = import.meta.env.VITE_TURNSTILE_SITE_KEY
@@ -40,7 +48,7 @@ export function TurnstileWidget({ onToken }: { onToken: (token: string) => void 
     }
     if (!sitekey || !containerRef.current) {
       onToken('')
-      setError('Photo submissions are temporarily unavailable.')
+      setError(unavailableMessage)
       return
     }
 
@@ -51,7 +59,7 @@ export function TurnstileWidget({ onToken }: { onToken: (token: string) => void 
         if (!active || !containerRef.current || !window.turnstile) return
         widgetId = window.turnstile.render(containerRef.current, {
           sitekey,
-          action: 'gallery_upload',
+          action,
           theme: 'dark',
           size: 'flexible',
           callback: (token: string) => {
@@ -75,7 +83,7 @@ export function TurnstileWidget({ onToken }: { onToken: (token: string) => void 
       active = false
       if (widgetId && window.turnstile) window.turnstile.remove(widgetId)
     }
-  }, [onToken, sitekey])
+  }, [action, onToken, sitekey, unavailableMessage])
 
   return (
     <div className="gallery-turnstile">

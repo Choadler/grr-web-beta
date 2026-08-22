@@ -11,11 +11,13 @@ import { GtAdminPage } from './pages/GtAdminPage'
 import { CupAdminPage } from './pages/CupAdminPage'
 import { GalleryPage } from './pages/GalleryPage'
 import { GalleryAdminPage } from './pages/GalleryAdminPage'
+import { SponsorshipAdminPage } from './pages/SponsorshipAdminPage'
 import { DriverComparisonPage } from './pages/DriverComparisonPage'
 import { SchedulePage } from './pages/SchedulePage'
 import { Seo } from './components/Seo'
 import { HomeGallery } from './components/gallery/HomeGallery'
 import { HomeStats } from './components/HomeStats'
+import { TurnstileWidget } from './components/gallery/TurnstileWidget'
 import {
   CupBroadcastPage,
   CupLandingPage,
@@ -501,9 +503,14 @@ function Home() {
               from donations go directly to supporting GRR Leagues.
             </p>
           </div>
-          <Link className="button button--light" to="/donate">
-            Donate
-          </Link>
+          <div className="donation-callout__actions">
+            <Link className="button button--light" to="/donate">
+              Donate
+            </Link>
+            <Link className="button button--outline-light" to="/donate#sponsor-a-race">
+              Sponsor a Race
+            </Link>
+          </div>
         </div>
       </section>
       <section className="section merch-section">
@@ -519,6 +526,120 @@ function Home() {
     </>
   )
 }
+function SponsorRaceForm() {
+  const location = useLocation()
+  const [open, setOpen] = useState(location.hash === '#sponsor-a-race')
+  const [busy, setBusy] = useState(false)
+  const [status, setStatus] = useState('')
+  const [error, setError] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState('')
+  const [challengeVersion, setChallengeVersion] = useState(0)
+
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const formElement = event.currentTarget
+    setBusy(true)
+    setStatus('')
+    setError('')
+    const form = new FormData(formElement)
+    form.set('cf-turnstile-response', turnstileToken)
+    try {
+      const response = await fetch('/api/sponsorship', { method: 'POST', body: form })
+      const payload = (await response.json().catch(() => ({}))) as { message?: string; error?: string }
+      if (!response.ok) throw new Error(payload.error || 'Your sponsorship request could not be sent.')
+      setStatus(payload.message || 'Thanks! Your sponsorship request has been sent to GRR.')
+      formElement.reset()
+      setTurnstileToken('')
+      setChallengeVersion((current) => current + 1)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Your sponsorship request could not be sent.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="sponsor-card" id="sponsor-a-race" aria-labelledby="sponsor-title">
+      <div className="sponsor-card__heading">
+        <div>
+          <p className="eyebrow">Put your brand on race night</p>
+          <h2 id="sponsor-title">Sponsor a Race</h2>
+          <p>Tell us what you have in mind. This is an inquiry, not a payment or commitment.</p>
+        </div>
+        {!open && (
+          <button className="button" type="button" onClick={() => setOpen(true)} aria-expanded="false">
+            Start a Sponsorship Request
+          </button>
+        )}
+      </div>
+      {open && (
+        <form className="sponsor-form" onSubmit={(event) => void submit(event)}>
+          <div className="sponsor-form__grid">
+            <label>
+              Your name
+              <input name="name" required minLength={2} maxLength={80} autoComplete="name" />
+            </label>
+            <label>
+              Email
+              <input name="email" type="email" required maxLength={160} autoComplete="email" />
+            </label>
+            <label>
+              Brand or company
+              <input name="brand" required minLength={2} maxLength={100} autoComplete="organization" />
+            </label>
+            <label>
+              Brand website <span>(optional)</span>
+              <input name="brandWebsite" type="url" maxLength={300} placeholder="https://" inputMode="url" />
+            </label>
+            <label>
+              League
+              <select name="league" required defaultValue="">
+                <option value="" disabled>Select a league</option>
+                <option value="Cup Series">Cup Series</option>
+                <option value="GT League">GT League</option>
+                <option value="IndyCar">IndyCar</option>
+                <option value="Any league">Any league</option>
+              </select>
+            </label>
+            <label>
+              Race or event
+              <input name="race" required minLength={2} maxLength={140} placeholder="Race name, track, or date" />
+            </label>
+            <label className="sponsor-form__wide">
+              Sponsorship bid (USD)
+              <input name="bid" required maxLength={40} placeholder="$ amount or proposed range" inputMode="decimal" />
+            </label>
+            <label className="sponsor-form__wide">
+              About the brand and sponsorship
+              <textarea name="brandInfo" required minLength={20} maxLength={2000} rows={6} placeholder="Tell us about the brand, what you would like included, and any goals or timing we should know about." />
+            </label>
+            <label className="sponsor-form__wide sponsor-file-picker">
+              Brand logos
+              <input name="logos" type="file" multiple required accept="image/jpeg,image/png,image/webp" />
+              <span>Attach up to 3 JPEG, PNG, or WebP files. 8 MB total.</span>
+            </label>
+          </div>
+          <label className="sponsor-honeypot" aria-hidden="true">
+            Company URL
+            <input name="companyUrl" tabIndex={-1} autoComplete="off" />
+          </label>
+          <TurnstileWidget key={challengeVersion} action="sponsorship_inquiry" unavailableMessage="Sponsorship requests are temporarily unavailable." onToken={setTurnstileToken} />
+          <div className="sponsor-form__actions">
+            <button className="button" type="submit" disabled={busy || !turnstileToken}>
+              {busy ? 'Sending Request...' : 'Send Sponsorship Request'}
+            </button>
+            <button className="button button--ghost" type="button" onClick={() => setOpen(false)} disabled={busy}>
+              Close
+            </button>
+          </div>
+        </form>
+      )}
+      {status && <p className="sponsor-notice sponsor-notice--success" role="status">{status}</p>}
+      {error && <p className="sponsor-notice sponsor-notice--error" role="alert">{error}</p>}
+    </section>
+  )
+}
+
 function DonatePage() {
   return (
     <div className="donate-page">
@@ -558,6 +679,7 @@ function DonatePage() {
               </External>
             </article>
           </div>
+          <SponsorRaceForm />
         </div>
       </section>
     </div>
@@ -617,6 +739,7 @@ function SiteApp() {
           <Route path="admin/cup/:tool?" element={<CupAdminPage />} />
           <Route path="admin/gt/:tool?" element={<GtAdminPage />} />
           <Route path="admin/gallery" element={<GalleryAdminPage />} />
+          <Route path="admin/sponsorships" element={<SponsorshipAdminPage />} />
           <Route path="*" element={<Missing />} />
         </Routes>
       </main>

@@ -49,8 +49,97 @@
   color: var(--green-light);
 }
 
+.donation-callout__actions,
+.sponsor-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.sponsor-card {
+  grid-column: 1 / -1;
+  scroll-margin-top: 7rem;
+  padding: clamp(1.4rem, 4vw, 2.5rem);
+  border: 1px solid var(--border);
+  border-top: 5px solid var(--green);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-sm);
+}
+
+.sponsor-card__heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 2rem;
+}
+
+.sponsor-card__heading h2 {
+  margin: 0.2rem 0 0.5rem;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  text-transform: uppercase;
+}
+
+.sponsor-card__heading p:last-child { margin-bottom: 0; }
+
+.sponsor-form {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.sponsor-form__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.sponsor-form label {
+  display: grid;
+  gap: 0.45rem;
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.sponsor-form label > span { color: var(--muted); font-size: 0.75rem; }
+
+.sponsor-form input,
+.sponsor-form select,
+.sponsor-form textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 0;
+  background: #0c110d;
+  color: #fff;
+  font: inherit;
+  text-transform: none;
+}
+
+.sponsor-form textarea { resize: vertical; }
+.sponsor-form__wide { grid-column: 1 / -1; }
+.sponsor-file-picker input { padding: 0.55rem; }
+.sponsor-form__actions { margin-top: 1.25rem; }
+.sponsor-honeypot { position: absolute !important; left: -10000px; }
+
+.sponsor-notice {
+  margin: 1rem 0 0;
+  padding: 0.85rem 1rem;
+  border-left: 4px solid var(--green);
+  background: #101a10;
+}
+
+.sponsor-notice--error { border-left-color: #ff765e; }
+
 @media (max-width: 800px) {
   .donate-page__content {
     grid-template-columns: 1fr;
   }
+
+  .sponsor-card__heading { align-items: stretch; flex-direction: column; }
+  .sponsor-form__grid { grid-template-columns: 1fr; }
+  .sponsor-form__wide { grid-column: auto; }
+  .donation-callout__actions { grid-column: 1 / -1; }
 }
