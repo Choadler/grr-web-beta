@@ -52,6 +52,7 @@ export async function onRequest(context) {
   if (adminPath || url.pathname.startsWith('/api/')) {
     const headers = new Headers(response.headers)
     headers.set('X-Robots-Tag', 'noindex, nofollow')
+    if (adminPath) headers.set('Referrer-Policy', 'no-referrer')
     return new Response(response.body, { status: response.status, statusText: response.statusText, headers })
   }
 

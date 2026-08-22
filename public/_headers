@@ -1,41 +1,22 @@
 /*
-  Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' https:; connect-src 'self' https:; frame-src https://challenges.cloudflare.com
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://imgproxy.fourthwall.dev; media-src 'self' https://cdn.fourthwall.com; connect-src 'self' https://www.simracerhub.com https://red-star-b0d9.cknoedler1013.workers.dev https://challenges.cloudflare.com https://cloudflareinsights.com; frame-src https://challenges.cloudflare.com
   Permissions-Policy: camera=(), geolocation=(), microphone=(), payment=(), usb=()
   Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
 
 /
   Cache-Control: no-store, no-cache, must-revalidate, no-transform
-  Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' https:; connect-src 'self' https:; frame-src https://challenges.cloudflare.com
-  Permissions-Policy: camera=(), geolocation=(), microphone=(), payment=(), usb=()
-  Referrer-Policy: strict-origin-when-cross-origin
-  X-Content-Type-Options: nosniff
-  X-Frame-Options: DENY
 
 /*.html
   Cache-Control: no-store, no-cache, must-revalidate, no-transform
-  Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' https:; connect-src 'self' https:; frame-src https://challenges.cloudflare.com
-  Permissions-Policy: camera=(), geolocation=(), microphone=(), payment=(), usb=()
-  Referrer-Policy: strict-origin-when-cross-origin
-  X-Content-Type-Options: nosniff
-  X-Frame-Options: DENY
 
 /pages/*
   Cache-Control: no-store, no-cache, must-revalidate, no-transform
-  Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' https:; connect-src 'self' https:; frame-src https://challenges.cloudflare.com
-  Permissions-Policy: camera=(), geolocation=(), microphone=(), payment=(), usb=()
-  Referrer-Policy: strict-origin-when-cross-origin
-  X-Content-Type-Options: nosniff
-  X-Frame-Options: DENY
 
 /admin/*
   Cache-Control: no-store, no-cache, must-revalidate, no-transform
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' https:; connect-src 'self'
-  Permissions-Policy: camera=(), geolocation=(), microphone=(), payment=(), usb=()
-  Referrer-Policy: no-referrer
-  X-Content-Type-Options: nosniff
-  X-Frame-Options: DENY
 
 /assets/*
   Cache-Control: public, max-age=0, must-revalidate, no-transform
