@@ -3795,6 +3795,71 @@ body {
   }
 }
 
+/* Focused Cup season workspace. */
+.cup-season-manager { display: grid; gap: 1rem; }
+.cup-season-manager__hero { display: flex; align-items: center; justify-content: space-between; gap: 2rem; padding: 1.5rem; border: 1px solid #3b5039; border-left: 4px solid var(--green); background: linear-gradient(110deg, #10170f, #182417); }
+.cup-season-manager__hero h2 { margin: .15rem 0 .35rem; font-size: clamp(1.55rem, 3vw, 2.25rem); text-transform: uppercase; }
+.cup-season-manager__hero p { max-width: 48rem; margin-bottom: 0; color: #bfc8bc; }
+.cup-season-manager__summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid #343d32; background: #0c110c; }
+.cup-season-manager__summary > div { display: grid; gap: .2rem; padding: .9rem 1rem; border-right: 1px solid #343d32; }
+.cup-season-manager__summary > div:last-child { border-right: 0; }
+.cup-season-manager__summary span { color: #9da798; font-size: .68rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.cup-season-manager__summary strong { overflow: hidden; font-size: 1rem; text-overflow: ellipsis; white-space: nowrap; }
+.cup-season-manager__summary small { color: #889184; }
+.cup-season-manager__state { padding: 3rem 1.5rem; border: 1px dashed #536551; background: #10150f; text-align: center; }
+.cup-season-manager__state strong { font-size: 1.25rem; text-transform: uppercase; }
+.cup-season-manager__state p { color: #aeb7aa; }
+.cup-season-workspace { display: grid; grid-template-columns: minmax(15rem, .75fr) minmax(0, 2fr); gap: 1rem; align-items: start; }
+.cup-season-browser, .cup-season-editor { border: 1px solid #3b4638; background: #0d120d; }
+.cup-season-browser { position: sticky; top: 5.5rem; }
+.cup-season-browser__heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border-bottom: 1px solid #303a2e; }
+.cup-season-browser__heading h3, .cup-season-browser__heading p { margin: 0; }
+.cup-season-browser__heading > span { display: grid; place-items: center; width: 2rem; height: 2rem; border: 1px solid #4e694a; color: var(--green); font-weight: 900; }
+.cup-season-browser__list { display: grid; padding: .45rem; }
+.cup-season-option { display: grid; gap: .35rem; width: 100%; padding: .85rem; border: 1px solid transparent; border-bottom-color: #293027; color: #dfe5dc; background: transparent; text-align: left; cursor: pointer; }
+.cup-season-option:hover, .cup-season-option:focus-visible { background: #171f16; }
+.cup-season-option.is-selected { border-color: var(--green); background: #1b2919; box-shadow: inset 3px 0 0 var(--green); }
+.cup-season-option__top { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; }
+.cup-season-option__top > strong { font-size: .9rem; text-transform: none; }
+.cup-season-option__meta { display: flex; gap: .35rem; color: #9ee79e; font-size: .7rem; font-weight: 800; text-transform: uppercase; }
+.cup-season-option small { color: #899385; }
+.cup-season-browser__help { margin: 0; padding: .85rem 1rem; border-top: 1px solid #303a2e; color: #8f998b; font-size: .72rem; line-height: 1.5; }
+.cup-season-editor { padding: 1.25rem; }
+.cup-season-editor__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; padding-bottom: 1.1rem; border-bottom: 1px solid #354032; }
+.cup-season-editor__heading h3 { margin: .5rem 0 .2rem; font-size: clamp(1.4rem, 2.5vw, 2rem); }
+.cup-season-editor__heading p { margin: 0; color: #9da798; }
+.cup-season-editor__status { display: flex; align-items: center; gap: .6rem; color: #96a191; font-size: .72rem; font-weight: 800; text-transform: uppercase; }
+.cup-season-editor__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .55rem; }
+.cup-season-format { gap: 1.25rem; min-width: 0; padding: 1.25rem; border: 1px solid #3f493d; background: #111610; }
+.cup-season-format__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; }
+.cup-season-format__heading h3, .cup-season-format__heading p { margin: 0; }
+.cup-season-format__toggle { gap: .7rem; min-width: 17rem; padding: .75rem; border: 1px solid #4d5c48; background: #192018; cursor: pointer; }
+.cup-season-format__toggle input { width: 1.15rem; height: 1.15rem; accent-color: var(--green); }
+.cup-season-format__toggle span { display: grid; gap: .15rem; }
+.cup-season-format__toggle strong { text-transform: uppercase; }
+.cup-season-format__toggle small { color: #aeb7aa; font-size: .7rem; text-transform: none; }
+.cup-season-format__fields label { grid-template-rows: auto 2rem auto; gap: .25rem; }
+.cup-season-format__fields label > span { color: #e5e9e2; }
+.cup-season-format__fields label > small { color: #899385; font-size: .67rem; font-weight: 500; text-transform: none; }
+.cup-season-format__disabled-note { padding: 1rem; border-left: 3px solid #75806f; background: #1a1e18; }
+.cup-season-format__footer { display: flex; justify-content: flex-end; padding-top: .25rem; border-top: 1px solid #30382e; }
+@media (max-width: 900px) {
+  .cup-season-workspace { grid-template-columns: 1fr; }
+  .cup-season-browser { position: static; }
+  .cup-season-browser__list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .cup-season-manager__hero, .cup-season-format__heading, .cup-season-editor__heading { align-items: stretch; flex-direction: column; }
+  .cup-season-manager__hero .button, .cup-season-editor__actions .button { width: 100%; }
+  .cup-season-manager__summary { grid-template-columns: 1fr; }
+  .cup-season-manager__summary > div { border-right: 0; border-bottom: 1px solid #343d32; }
+  .cup-season-manager__summary > div:last-child { border-bottom: 0; }
+  .cup-season-browser__list { grid-template-columns: 1fr; }
+  .cup-season-format__toggle { min-width: 0; }
+  .cup-season-editor__actions { display: grid; }
+  .cup-season-format__footer .button { width: 100%; }
+}
+
 /* Community gallery */
 .gallery-hero {
   padding-block: clamp(1.5rem, 3vw, 2.25rem);
