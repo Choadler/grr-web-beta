@@ -3302,6 +3302,23 @@ body {
   background: var(--green);
 }
 
+.page-hero--cup .container,
+.page-hero--gt .container,
+.page-hero--indycar .container {
+  text-align: center;
+}
+
+.page-hero--cup .container::before,
+.page-hero--gt .container::before,
+.page-hero--indycar .container::before {
+  top: -0.75rem;
+  bottom: auto;
+  left: 50%;
+  width: 72px;
+  height: 4px;
+  transform: translateX(-50%);
+}
+
 .page-content {
   padding-block: var(--space-page);
 }
