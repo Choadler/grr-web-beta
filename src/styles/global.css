@@ -3251,6 +3251,8 @@ body {
 }
 
 .league-nav__inner {
+  width: min(calc(100% - 2rem), 1460px);
+  max-width: none;
   scrollbar-width: none;
 }
 
@@ -3265,6 +3267,17 @@ body {
 
 .league-nav a.active {
   background: rgba(99, 199, 85, 0.08);
+}
+
+@media (min-width: 1101px) {
+  .league-nav a {
+    min-width: 0;
+    flex: 1 1 0;
+    padding-inline: clamp(0.45rem, 0.7vw, 1rem);
+    font-size: clamp(0.68rem, 0.62vw, 0.78rem);
+    text-align: center;
+    white-space: nowrap;
+  }
 }
 
 .league-race-banner {
