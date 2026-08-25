@@ -3261,8 +3261,13 @@ body {
 }
 
 .league-nav a {
+  display: flex;
   min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  padding-block: 0.75rem;
   padding-inline: 1rem;
+  text-align: center;
 }
 
 .league-nav a.active {
@@ -3300,23 +3305,6 @@ body {
   width: 4px;
   content: "";
   background: var(--green);
-}
-
-.page-hero--cup .container,
-.page-hero--gt .container,
-.page-hero--indycar .container {
-  text-align: center;
-}
-
-.page-hero--cup .container::before,
-.page-hero--gt .container::before,
-.page-hero--indycar .container::before {
-  top: -0.75rem;
-  bottom: auto;
-  left: 50%;
-  width: 72px;
-  height: 4px;
-  transform: translateX(-50%);
 }
 
 .page-content {
