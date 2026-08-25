@@ -1,0 +1,23 @@
+import { useEffect, useState } from 'react'
+import { loadCupPenaltyReport } from '../../services/cupPenalties'
+import type { CupPenaltyReport as Report } from '../../types/cupPenalties'
+
+const penaltyLabels = { AT_FAULT_INCIDENT: 'At-Fault Incident', CLEAN_RACE: 'Clean Race', ADMIN_ADJUSTMENT: 'Administrative Adjustment', APPEAL_ADJUSTMENT: 'Appeal Adjustment', SUSPENSION_REDUCTION: 'Suspension Reduction', OTHER: 'Other' }
+const sanctionLabels = { QUALIFYING_BAN: 'Qualifying Ban', RACE_SUSPENSION: 'One-Race Suspension' }
+const levelLabels = { CLEAR: 'Clear', ACTIVE: 'Active', QUALIFYING_BAN_THRESHOLD: 'Qualifying Ban Threshold', SUSPENSION_THRESHOLD: 'Suspension Threshold' }
+const points = (value: number) => `${value > 0 ? '+' : ''}${value}`
+
+export function CupPenaltyReport() {
+  const [report, setReport] = useState<Report | null>(null), [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
+  useEffect(() => { const controller = new AbortController(); const season = new URLSearchParams(window.location.search).get('season') ?? ''; loadCupPenaltyReport(season, controller.signal).then((value) => { setReport(value); setState('ready') }).catch(() => { if (!controller.signal.aborted) setState('error') }); return () => controller.abort() }, [])
+  if (state === 'loading') return <section className="cup-penalty-public-state" role="status">Loading Cup penalty report…</section>
+  if (state === 'error' || !report) return <section className="cup-penalty-public-state"><strong>Cup penalty report unavailable</strong><p>Please try again shortly.</p></section>
+  return <div className="cup-penalty-report">
+    <section className="cup-penalty-rules"><div><p className="eyebrow">Penalty Point System</p><h2>Championship Cumulative Penalty Points</h2></div><div className="cup-penalty-rules__grid"><p>Officials may assess <strong>3 penalty points</strong> for responsibility in an avoidable incident.</p><p>Officials may remove <strong>1 penalty point</strong> for an awarded clean race.</p><p>At <strong>9 active points</strong>, a qualifying ban and rear-of-field start are required for the following event.</p><p>At <strong>12 active points</strong>, a one-race suspension is required. Serving it removes 6 points.</p></div><small>Appealed decisions remain in this report. Overturned entries do not count toward the active balance.</small></section>
+    {report.penalties.length === 0 ? <section className="cup-penalty-public-state"><strong>No Cup Series penalties have been issued this season.</strong></section> : <>
+      <section className="cup-penalty-public-panel"><header><p className="eyebrow">{report.season.name}</p><h2>Current Penalty Standings</h2></header><div className="cup-penalty-public-table"><table><thead><tr><th>Driver</th><th>Penalty Points</th><th>Status</th><th>Pending Penalty</th></tr></thead><tbody>{report.summaries.map((item) => <tr key={item.driverId}><th scope="row">{item.driver}</th><td><strong>{item.balance}</strong></td><td><span className={`cup-penalty-badge cup-penalty-badge--${item.level.toLowerCase()}`}>{levelLabels[item.level]}</span></td><td>{item.pendingSanctions.map((sanction) => sanctionLabels[sanction.type]).join(', ') || '—'}</td></tr>)}</tbody></table></div></section>
+      <section className="cup-penalty-public-panel"><header><p className="eyebrow">Official decisions</p><h2>Penalty History</h2></header><div className="cup-penalty-history-cards">{report.penalties.map((item) => <article className={item.status === 'OVERTURNED' ? 'is-overturned' : ''} key={item.id}><div className="cup-penalty-history-card__event"><span>{item.eventRound ? `Round ${item.eventRound}` : 'Ledger entry'}</span><h3>{item.eventName}</h3>{item.eventDate && <small>{new Date(`${item.eventDate}T12:00:00`).toLocaleDateString([], { dateStyle: 'medium' })}</small>}</div><div><span>{item.driver}</span><strong>{penaltyLabels[item.type]} <b>{points(item.adjustment)}</b></strong><p>{item.description}</p>{item.appealNote && <small>{item.appealNote}</small>}</div><span className="cup-penalty-history-card__status">{item.status === 'OVERTURNED' ? 'Overturned on Appeal' : item.status.replaceAll('_', ' ')}</span></article>)}</div></section>
+      {report.sanctions.length > 0 && <section className="cup-penalty-public-panel"><header><p className="eyebrow">Disciplinary record</p><h2>Sanctions</h2></header><div className="cup-public-sanctions">{report.sanctions.map((item) => <article key={item.id}><span>{item.status}</span><h3>{sanctionLabels[item.type]}</h3><p>{item.driver} · Triggered at {item.triggeringBalance} points</p>{item.targetEventName && <small>{item.targetEventName}</small>}</article>)}</div></section>}
+    </>}
+  </div>
+}

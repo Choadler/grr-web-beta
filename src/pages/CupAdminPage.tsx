@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { SportingCodeAdmin } from '../components/admin/SportingCodeAdmin'
 import { LeagueAdminNav, type LeagueAdminTool } from '../components/admin/LeagueAdminNav'
+import { CupPenaltyAdmin } from '../components/admin/CupPenaltyAdmin'
 
 const cupAdminTools: LeagueAdminTool[] = [
   { path: 'seasons', eyebrow: 'SimRacerHub history', title: 'Season Manager', description: 'Discover, sync, inspect, and activate Cup seasons.' },
+  { path: 'penalties', eyebrow: 'Championship discipline', title: 'Penalty Management', description: 'Manage cumulative points, appeals, and threshold sanctions.' },
   { path: 'sporting-code', eyebrow: 'Published rules', title: 'Sporting Code', description: 'Edit, preview, publish, and restore the Cup Series sporting code.' },
 ]
 
@@ -75,7 +77,7 @@ function CupSeasonManager() {
 
 export function CupAdminPage() {
   const { tool } = useParams<{ tool?: string }>()
-  if (tool && !['sporting-code','seasons'].includes(tool)) return <Navigate to="/admin/cup" replace />
+  if (tool && !['sporting-code','seasons','penalties'].includes(tool)) return <Navigate to="/admin/cup" replace />
   return <section className="admin-dashboard">
     <div className="container">
       <div className="admin-page-heading">
@@ -85,6 +87,7 @@ export function CupAdminPage() {
       {!tool ? <p className="admin-dashboard__intro">Choose a management area. Each tool now has its own focused workspace.</p> : null}
       <LeagueAdminNav basePath="/admin/cup" leagueName="Cup Series" tools={cupAdminTools} activeTool={tool} />
       {tool === 'seasons' ? <CupSeasonManager /> : null}
+      {tool === 'penalties' ? <CupPenaltyAdmin /> : null}
       {tool === 'sporting-code' ? <SportingCodeAdmin league="cup" /> : null}
     </div>
   </section>

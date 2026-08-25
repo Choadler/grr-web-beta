@@ -37,6 +37,7 @@ export const navigation: NavGroup[] = [
       ['Cup Series', '/pages/grr-cup-series'],
       ['Sporting Code', '/pages/cup-series-sporting-code'],
       ['Cup Standings', '/pages/cupstandings'],
+      ['Cup Penalty Report', '/cup/penalties'],
       ['Cup Schedule', '/pages/cup-series-schedule'],
       ['Latest Race Results', '/pages/cup-latest-race-results'],
       ['Broadcast', '/pages/broadcast'],

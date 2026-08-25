@@ -25,6 +25,7 @@ import {
   CupSchedulePage,
   CupSportingCodePage,
   CupStandingsPage,
+  CupPenaltyReportPage,
   GtLandingPage,
   GtResultsPage,
   GtRulesPage,
@@ -711,6 +712,7 @@ function SiteApp() {
           <Route path="pages/grr-cup-series" element={<CupLandingPage />} />
           <Route path="pages/cup-series-sporting-code" element={<CupSportingCodePage />} />
           <Route path="pages/cupstandings" element={<CupStandingsPage />} />
+          <Route path="cup/penalties" element={<CupPenaltyReportPage />} />
           <Route path="pages/cup-series-schedule" element={<CupSchedulePage />} />
           <Route path="pages/cup-latest-race-results" element={<CupResultsPage />} />
           <Route path="pages/cup-stats" element={<CupStatsPage />} />

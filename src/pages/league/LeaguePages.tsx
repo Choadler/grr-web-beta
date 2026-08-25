@@ -37,11 +37,13 @@ import type { TableRow } from '../../types/league'
 import type { GtCareerProfile } from '../../services/dataSources'
 import type { CupPlayoffPayload } from '../../services/dataSources'
 import { shareGtCareerImage } from '../../utils/gtCareerExport'
+import { CupPenaltyReport } from '../../components/league/CupPenaltyReport'
 
 const cupNav: LeagueNavItem[] = [
   { label: 'Cup Sporting Code', href: '/pages/cup-series-sporting-code' },
   { label: 'Cup Schedule', href: '/pages/cup-series-schedule' },
   { label: 'Cup Standings', href: '/pages/cupstandings' },
+  { label: 'Cup Penalty Report', href: '/cup/penalties' },
   { label: 'Cup Race Results', href: '/pages/cup-latest-race-results' },
   { label: 'Cup Stats', href: '/pages/cup-stats' },
   { label: 'Cup Archive', href: '/pages/cup-archive' },
@@ -519,6 +521,8 @@ export const CupSchedulePage = () => (
     ]}
   />
 )
+
+export const CupPenaltyReportPage = () => <PageShell league="cup" title="Cup Penalty Report" eyebrow="Championship cumulative penalty points" compact><CupPenaltyReport /></PageShell>
 const cupResultColumns: LiveColumn[] = [
   { key: 'position', label: 'Pos' },
   { key: 'driver', label: 'Driver' },
