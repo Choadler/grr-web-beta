@@ -13,7 +13,7 @@ const publicPagePaths = new Set([
   '/', '/gallery', '/driver-history',
   '/pages/grr-cup-series', '/pages/cup-series-sporting-code', '/pages/cupstandings',
   '/pages/cup-series-schedule', '/pages/cup-latest-race-results', '/pages/cup-stats',
-  '/pages/cup-archive', '/pages/broadcast', '/pages/gt-league', '/pages/gt-rules',
+  '/pages/cup-archive', '/pages/broadcast', '/cup/penalties', '/pages/gt-league', '/pages/gt-rules',
   '/pages/gt-schedule', '/pages/gt-standings', '/pages/gt-race-results', '/pages/gt-stats',
   '/pages/gt-archive', '/pages/indycar', '/pages/indycar-sporting-code',
   '/pages/indycar-standings', '/pages/indycar-schedule', '/pages/indycar-results',
