@@ -5,6 +5,8 @@ const DATA_CACHE_NAME = 'grr-last-known-good-v1'
 
 const memoryCache = new Map<string, unknown>()
 const inFlightRequests = new Map<string, Promise<unknown>>()
+const successfulResponses = new Map<string, { payload: unknown; expiresAt: number }>()
+const SUCCESS_TTL_MS = 60_000
 
 function parsePayload(text: string) {
   if (text.length > MAX_RESPONSE_BYTES) throw new Error('The data response was unexpectedly large.')
@@ -56,13 +58,13 @@ async function readLastKnownGood(url: string) {
   }
 }
 
-async function requestJson(url: string, timeout: number) {
+async function requestJson(url: string, timeout: number, forceFresh: boolean, cacheSuccessful: boolean) {
   const timeoutController = new AbortController()
   const timeoutId = window.setTimeout(() => timeoutController.abort(), timeout)
 
   try {
     const response = await fetch(url, {
-      cache: 'no-store',
+      ...(forceFresh ? { cache: 'no-store' as const } : {}),
       credentials: 'omit',
       headers: { Accept: 'application/json' },
       signal: timeoutController.signal,
@@ -75,6 +77,7 @@ async function requestJson(url: string, timeout: number) {
 
     const text = await response.text()
     const payload = parsePayload(text)
+    if (cacheSuccessful) successfulResponses.set(url, { payload, expiresAt: Date.now() + SUCCESS_TTL_MS })
     await storeLastKnownGood(url, text, payload)
     return payload
   } catch (error) {
@@ -97,12 +100,25 @@ function waitForRequest(request: Promise<unknown>, signal: AbortSignal) {
   })
 }
 
-export async function fetchJson(url: string, signal: AbortSignal, timeout = DEFAULT_TIMEOUT) {
-  const requestKey = `${timeout}:${url}`
+export function clearSuccessfulResponseCache(url?: string) {
+  if (url) successfulResponses.delete(url)
+  else successfulResponses.clear()
+}
+
+export async function fetchJson(url: string, signal: AbortSignal, timeout = DEFAULT_TIMEOUT, forceFresh = false, allowLastKnownGood = true) {
+  if (signal.aborted) throw signal.reason
+  const cacheSuccessful = !new URL(url, window.location.origin).pathname.startsWith('/admin/')
+  if (!forceFresh && cacheSuccessful) {
+    const cached = successfulResponses.get(url)
+    if (cached && cached.expiresAt > Date.now()) return cached.payload
+    if (cached) successfulResponses.delete(url)
+  } else clearSuccessfulResponseCache(url)
+
+  const requestKey = `${forceFresh ? 'fresh' : 'cached'}:${timeout}:${url}`
   let request = inFlightRequests.get(requestKey)
 
   if (!request) {
-    request = requestJson(url, timeout)
+    request = requestJson(url, timeout, forceFresh, cacheSuccessful)
     inFlightRequests.set(requestKey, request)
     void request.finally(() => inFlightRequests.delete(requestKey)).catch(() => undefined)
   }
@@ -111,8 +127,10 @@ export async function fetchJson(url: string, signal: AbortSignal, timeout = DEFA
     return await waitForRequest(request, signal)
   } catch (error) {
     if (signal.aborted) throw error
-    const cached = await readLastKnownGood(url)
-    if (cached !== undefined) return cached
+    if (allowLastKnownGood) {
+      const cached = await readLastKnownGood(url)
+      if (cached !== undefined) return cached
+    }
     throw error
   }
 }

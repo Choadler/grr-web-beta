@@ -13,7 +13,7 @@ export async function onRequestGet({ env, request }) {
   if (!env.INDYCAR_DB) return json({ error: 'In-house IndyCar data is not configured.' }, 503)
   const db = env.INDYCAR_DB
   const url = new URL(request.url)
-  if (url.searchParams.get('list') === 'seasons') {
+  if (url.searchParams.get('list') === 'seasons' || url.searchParams.get('list') === 'schedule-seasons') {
     const seasons = await db.prepare("SELECT id,name,status FROM indy_seasons WHERE status<>'draft' ORDER BY created_at DESC").all()
     return json({ seasons: seasons.results })
   }
@@ -22,6 +22,17 @@ export async function onRequestGet({ env, request }) {
     ? await db.prepare("SELECT id,name,status,race_time AS raceTime,timezone FROM indy_seasons WHERE id=? AND status<>'draft' LIMIT 1").bind(requestedSeason).first()
     : await db.prepare("SELECT id,name,status,race_time AS raceTime,timezone FROM indy_seasons WHERE status='active' LIMIT 1").first()
   if (!season) return json({ error: requestedSeason ? 'That IndyCar season is not publicly available.' : 'No active in-house IndyCar season.' }, 404)
+  if (url.searchParams.get('view') === 'schedule') {
+    const scheduleData = await db.prepare(`SELECT e.id,e.round_number AS round,e.race_date AS date,e.track,e.laps,e.status,
+      (SELECT driver_name FROM indy_results r WHERE r.event_id=e.id ORDER BY finish_position LIMIT 1) AS winner,
+      (SELECT driver_name FROM indy_results r WHERE r.event_id=e.id ORDER BY start_position LIMIT 1) AS pole
+      FROM indy_events e WHERE e.season_id=? ORDER BY e.round_number`).bind(season.id).all()
+    return json({
+      season,
+      schedule: scheduleData.results.map((event) => ({ eventId: event.id, round: event.round, date: event.date, track: event.track, laps: event.laps, status: event.status, winner: event.winner || '—', pole: event.pole || '—' })),
+      events: scheduleData.results.filter((event) => event.status === 'completed').map((event) => ({ sourceEventId: event.id })),
+    })
+  }
   const [scheduleData, resultData] = await Promise.all([
     db.prepare(`SELECT e.id,e.round_number AS round,e.race_date AS date,e.track,e.laps,e.status,e.subsession_id AS subsessionId,
       (SELECT driver_name FROM indy_results r WHERE r.event_id=e.id ORDER BY finish_position LIMIT 1) AS winner,

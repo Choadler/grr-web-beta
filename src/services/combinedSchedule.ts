@@ -1,3 +1,5 @@
+import { fetchJson } from './http'
+
 export type ScheduleSeries = 'cup' | 'gt' | 'indycar'
 export type ScheduleState = 'upcoming' | 'completed' | 'cancelled' | 'postponed' | 'other'
 
@@ -88,18 +90,13 @@ export function normalizeScheduleRows(series: ScheduleSeries, payload: UnknownRe
   })
 }
 
-async function json(response: Response) {
-  if (!response.ok) throw new Error(`Schedule request failed (${response.status}).`)
-  return response.json() as Promise<UnknownRecord>
-}
-
 async function loadSeries(series: ScheduleSeries, signal: AbortSignal) {
   const config = seriesConfig[series]
-  const listed = await json(await fetch(`${config.endpoint.split('?')[0]}?list=seasons`, { signal, headers: { Accept: 'application/json' } }))
+  const endpoint = config.endpoint.split('?')[0]
+  const listed = await fetchJson(`${endpoint}?list=schedule-seasons`, signal, undefined, false, false) as UnknownRecord
   const seasons = Array.isArray(listed.seasons) ? listed.seasons as SeasonSummary[] : []
   const payloads = await Promise.all(seasons.map(async (season) => {
-    const separator = config.endpoint.includes('?') ? '&' : '?'
-    const payload = await json(await fetch(`${config.endpoint}${separator}season=${encodeURIComponent(season.id)}`, { signal, headers: { Accept: 'application/json' } }))
+    const payload = await fetchJson(`${endpoint}?view=schedule&season=${encodeURIComponent(season.id)}`, signal, undefined, false, false) as UnknownRecord
     return normalizeScheduleRows(series, payload, season)
   }))
   return payloads.flat()

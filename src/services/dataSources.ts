@@ -27,14 +27,7 @@ async function indyInHouse(signal: AbortSignal): Promise<IndyPublicPayload> {
   const season = typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get('season')
   const seasonQuery = season ? `?season=${encodeURIComponent(season)}` : ''
 
-  const response = await fetch(`/api/indycar${seasonQuery}`, {
-    signal,
-    headers: { Accept: 'application/json' },
-  })
-  if (!response.ok) {
-    throw new Error(`IndyCar data request failed (${response.status}).`)
-  }
-  return (await response.json()) as IndyPublicPayload
+  return (await fetchJson(`/api/indycar${seasonQuery}`, signal, undefined, false, false)) as IndyPublicPayload
 }
 
 type GtPublicPayload = {
@@ -60,10 +53,12 @@ type CupPublicPayload = {
 
 async function cupInHouse(signal: AbortSignal): Promise<CupPublicPayload | null> {
   const season = typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get('season')
-  const response = await fetch(`/api/cup${season ? `?season=${encodeURIComponent(season)}` : ''}`, { signal, headers: { Accept: 'application/json' } })
-  if (response.status === 404 || response.status === 503) return null
-  if (!response.ok) throw new Error(`Cup data request failed (${response.status}).`)
-  return response.json() as Promise<CupPublicPayload>
+  try {
+    return (await fetchJson(`/api/cup${season ? `?season=${encodeURIComponent(season)}` : ''}`, signal, undefined, false, false)) as CupPublicPayload
+  } catch (error) {
+    if (error instanceof Error && /HTTP (404|503)/.test(error.message)) return null
+    throw error
+  }
 }
 
 const gtClassKey = { am: 'gt3-am', pro: 'gt3-pro', gtp: 'gtp', 'gt3-am': 'gt3-am', 'gt3-pro': 'gt3-pro' } as const

@@ -1,13 +1,16 @@
+import { cachedPublicGet } from '../_shared/publicCache.js'
+import { observedFirst } from '../_shared/d1Observability.js'
+
 const json = (value, status = 200) =>
   Response.json(value, {
     status,
     headers: { 'Cache-Control': 'public, max-age=60, stale-while-revalidate=600' },
   })
 
-export async function onRequestGet({ env }) {
+async function loadStats({ env }) {
   if (!env.INDYCAR_DB) return json({ error: 'GRR statistics are not configured.' }, 503)
 
-  const stats = await env.INDYCAR_DB.prepare(`
+  const stats = await observedFirst(env.INDYCAR_DB.prepare(`
     WITH race_results AS (
       SELECT LOWER(TRIM(d.display_name)) AS driver, r.event_id, COALESCE(r.laps_completed, 0) AS laps, 'cup' AS league
       FROM cup_results r
@@ -29,11 +32,15 @@ export async function onRequestGet({ env }) {
       COALESCE(SUM(laps), 0) AS totalLaps
     FROM race_results
     WHERE driver <> ''
-  `).first()
+  `), env, '/api/grr-stats', 'all-public-race-totals')
 
   return json({
     uniqueDrivers: Number(stats?.uniqueDrivers) || 0,
     races: Number(stats?.races) || 0,
     totalLaps: Number(stats?.totalLaps) || 0,
   })
+}
+
+export async function onRequestGet(context) {
+  return cachedPublicGet(context, 3600, () => loadStats(context))
 }

@@ -5,6 +5,7 @@ import type { DataLoader, TableRow } from '../../types/league'
 import { copyPng, downloadCsv, type PngExportOptions } from '../../utils/tableExport'
 import { DataTable, EmptyTableRow } from './DataTable'
 import { ErrorState, LoadingState } from './States'
+import { clearSuccessfulResponseCache } from '../../services/http'
 
 export type LiveColumn = {
   key: string
@@ -64,6 +65,7 @@ export function LiveDataTable({
   }, [loader, retry])
 
   const reload = () => {
+    clearSuccessfulResponseCache()
     setStatus('loading')
     setRetry((value) => value + 1)
   }

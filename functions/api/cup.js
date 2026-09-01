@@ -1,3 +1,6 @@
+import { cachedPublicGet } from '../_shared/publicCache.js'
+import { observedAll } from '../_shared/d1Observability.js'
+
 const json = (value, status = 200) => Response.json(value, { status, headers: { 'Cache-Control': 'public, max-age=30, stale-while-revalidate=300' } })
 const identity = (row) => `id:${row.srhDriverId}`
 
@@ -16,10 +19,14 @@ async function selectedSeason(db, requested) {
     : db.prepare("SELECT id,name,status,chase_enabled AS chaseEnabled,regular_season_races AS regularSeasonRaces,chase_size AS chaseSize,max_points_per_race AS maxPointsPerRace FROM cup_seasons WHERE status='active' LIMIT 1").first()
 }
 
-export async function onRequestGet({ env, request }) {
+async function loadCup({ env, request }) {
   if (!env.INDYCAR_DB) return json({ error: 'Cup history data is not configured.' }, 503)
   const db = env.INDYCAR_DB
   const url = new URL(request.url)
+  if (url.searchParams.get('list') === 'schedule-seasons') {
+    const seasons = await db.prepare("SELECT id,name,status FROM cup_seasons WHERE status<>'draft' ORDER BY srh_season_id DESC").all()
+    return json({ seasons: seasons.results })
+  }
   if (url.searchParams.get('list') === 'seasons') {
     const seasons = await db.prepare(`SELECT s.id,s.name,s.status,s.srh_season_id AS srhSeasonId,s.last_synced_at AS lastSyncedAt,
       (SELECT COUNT(*) FROM cup_events e WHERE e.season_id=s.id) AS races,
@@ -44,10 +51,21 @@ export async function onRequestGet({ env, request }) {
     return json({ season, playoffs: { ...playoff, rounds, drivers } })
   }
   if (url.searchParams.get('view') === 'history' || url.searchParams.get('view') === 'career') {
-    const rows = (await db.prepare(`SELECT r.srh_driver_id AS srhDriverId,d.display_name AS driver,r.season_id AS seasonId,s.name AS season,e.id AS eventId,e.round_number AS round,e.race_date AS date,e.track,
+    const career = url.searchParams.get('view') === 'career'
+    const key = url.searchParams.get('driver') ?? ''
+    const driverId = career && key.startsWith('id:') ? Number(key.slice(3)) : null
+    if (career && !Number.isFinite(driverId)) return json({ error: 'A valid Cup driver is required.' }, 400)
+    const resultStatement = db.prepare(`SELECT r.srh_driver_id AS srhDriverId,d.display_name AS driver,r.season_id AS seasonId,s.name AS season,e.id AS eventId,e.round_number AS round,e.race_date AS date,e.track,
       r.finish_position AS finish,r.start_position AS start,r.laps_completed AS laps,r.laps_led AS lapsLed,r.incidents,r.total_points AS points,r.fastest_lap_time AS fastestLapTime,r.status
-      FROM cup_results r JOIN cup_sessions cs ON cs.srh_race_id=r.srh_race_id AND cs.session_type='RACE' JOIN cup_drivers d ON d.srh_driver_id=r.srh_driver_id JOIN cup_seasons s ON s.id=r.season_id AND s.status<>'draft' JOIN cup_events e ON e.id=r.event_id ORDER BY e.race_date,e.round_number,r.finish_position`).all()).results
-    const standings = (await db.prepare(`SELECT st.season_id AS seasonId,st.srh_driver_id AS srhDriverId,st.championship_position AS championshipPosition,st.stage_wins AS stageWins,st.poles,s.status AS seasonStatus FROM cup_standings st JOIN cup_seasons s ON s.id=st.season_id AND s.status<>'draft'`).all()).results
+      FROM cup_results r JOIN cup_sessions cs ON cs.srh_race_id=r.srh_race_id AND cs.session_type='RACE' JOIN cup_drivers d ON d.srh_driver_id=r.srh_driver_id JOIN cup_seasons s ON s.id=r.season_id AND s.status<>'draft' JOIN cup_events e ON e.id=r.event_id
+      ${career ? 'WHERE r.srh_driver_id=?' : ''} ORDER BY e.race_date,e.round_number,r.finish_position`)
+    const standingStatement = db.prepare(`SELECT st.season_id AS seasonId,st.srh_driver_id AS srhDriverId,st.championship_position AS championshipPosition,st.stage_wins AS stageWins,st.poles,s.status AS seasonStatus FROM cup_standings st JOIN cup_seasons s ON s.id=st.season_id AND s.status<>'draft' ${career ? 'WHERE st.srh_driver_id=?' : ''}`)
+    const [resultData, standingData] = await Promise.all([
+      observedAll(career ? resultStatement.bind(driverId) : resultStatement, env, career ? '/api/cup?view=career' : '/api/cup?view=history', 'race-results'),
+      observedAll(career ? standingStatement.bind(driverId) : standingStatement, env, career ? '/api/cup?view=career' : '/api/cup?view=history', 'standings'),
+    ])
+    const rows = resultData.results
+    const standings = standingData.results
     const summary = (selected) => {
       const knownFinish = selected.filter((row) => row.finish != null), knownStart = selected.filter((row) => row.start != null)
       return { starts: selected.length, wins: selected.filter((row) => row.finish === 1).length, top5: selected.filter((row) => row.finish != null && row.finish <= 5).length, top10: selected.filter((row) => row.finish != null && row.finish <= 10).length,
@@ -57,17 +75,36 @@ export async function onRequestGet({ env, request }) {
     const groups = new Map()
     rows.forEach((row) => groups.set(row.srhDriverId, [...(groups.get(row.srhDriverId) ?? []), row]))
     if (url.searchParams.get('view') === 'history') return json({ stats: [...groups.values()].map((items) => ({ driverKey: identity(items[0]), driver: items[0].driver, seasons: new Set(items.map((item)=>item.seasonId)).size, ...summary(items) })).sort((a,b)=>b.wins-a.wins||b.starts-a.starts) })
-    const key = url.searchParams.get('driver') ?? ''
-    const selected = rows.filter((row) => identity(row) === key)
+    const selected = rows
     if (!selected.length) return json({ error: 'That Cup driver was not found.' }, 404)
     const seasonGroups = new Map(); selected.forEach((row)=>seasonGroups.set(row.seasonId,[...(seasonGroups.get(row.seasonId)??[]),row]))
     return json({ driverKey:key,driver:selected[0].driver,seasonsEntered:seasonGroups.size,championships:[...seasonGroups.keys()].filter((seasonId)=>standings.some((item)=>item.seasonId===seasonId&&identity(item)===key&&item.championshipPosition===1&&item.seasonStatus==='archived')).length,...summary(selected),seasons:[...seasonGroups.values()].map((items)=>({seasonId:items[0].seasonId,season:items[0].season,championshipPosition:standingFor(standings,items[0])?.championshipPosition,...summary(items)})),races:selected })
   }
+  if (url.searchParams.get('view') === 'schedule') {
+    const requestedSeason = url.searchParams.get('season')
+    const scheduleSeason = requestedSeason
+      ? await db.prepare("SELECT id,name,status FROM cup_seasons WHERE id=? AND status<>'draft'").bind(requestedSeason).first()
+      : await db.prepare("SELECT id,name,status FROM cup_seasons WHERE status='active' LIMIT 1").first()
+    if (!scheduleSeason) return json({ error: 'No public Cup season is available.' }, 404)
+    const scheduleData = await db.prepare(`SELECT e.id AS eventId,e.round_number AS round,e.race_date AS date,e.track,e.event_name AS eventName,e.scheduled_laps AS laps,
+      CASE WHEN EXISTS(SELECT 1 FROM cup_sessions cs JOIN cup_results r ON r.srh_race_id=cs.srh_race_id WHERE cs.event_id=e.id AND cs.session_type='RACE') THEN 'completed' ELSE 'scheduled' END AS status,
+      (SELECT d.display_name FROM cup_results r JOIN cup_sessions cs ON cs.srh_race_id=r.srh_race_id AND cs.session_type='RACE' JOIN cup_drivers d ON d.srh_driver_id=r.srh_driver_id WHERE r.event_id=e.id ORDER BY r.finish_position LIMIT 1) AS winner,
+      (SELECT d.display_name FROM cup_results r JOIN cup_sessions cs ON cs.srh_race_id=r.srh_race_id AND cs.session_type='RACE' JOIN cup_drivers d ON d.srh_driver_id=r.srh_driver_id WHERE r.event_id=e.id ORDER BY r.start_position LIMIT 1) AS pole
+      FROM cup_events e WHERE e.season_id=? AND TRIM(COALESCE(e.track,''))<>'' ORDER BY e.round_number`).bind(scheduleSeason.id).all()
+    return json({
+      season: scheduleSeason,
+      schedule: scheduleData.results,
+      events: scheduleData.results.filter((event) => event.status === 'completed').map((event) => ({ sourceEventId: event.eventId })),
+    })
+  }
   const season = await selectedSeason(db, url.searchParams.get('season'))
   if (!season) return json({ error: 'No public Cup season is available.' }, 404)
-  const events = (await db.prepare("SELECT id,round_number AS round,race_date AS date,track,track_config AS trackConfig,event_name AS eventName,scheduled_laps AS laps,srh_schedule_id AS scheduleId FROM cup_events WHERE season_id=? AND TRIM(COALESCE(track,''))<>'' ORDER BY round_number").bind(season.id).all()).results
-  const standings = (await db.prepare(`SELECT st.championship_position AS rank,d.display_name AS driver,st.points,st.starts,st.wins,st.stage_wins AS stageWins,st.poles,st.top5,st.top10,st.laps_led AS lapsLed,st.srh_driver_id AS driverId FROM cup_standings st JOIN cup_drivers d ON d.srh_driver_id=st.srh_driver_id WHERE st.season_id=? ORDER BY st.championship_position`).bind(season.id).all()).results
-  const results = (await db.prepare(`SELECT r.*,d.display_name,cs.session_type,cs.sort_order FROM cup_results r JOIN cup_drivers d ON d.srh_driver_id=r.srh_driver_id JOIN cup_sessions cs ON cs.srh_race_id=r.srh_race_id WHERE r.season_id=? ORDER BY r.event_id,cs.sort_order,r.finish_position`).bind(season.id).all()).results
+  const [eventData, standingData, resultData] = await Promise.all([
+    observedAll(db.prepare("SELECT id,round_number AS round,race_date AS date,track,track_config AS trackConfig,event_name AS eventName,scheduled_laps AS laps,srh_schedule_id AS scheduleId FROM cup_events WHERE season_id=? AND TRIM(COALESCE(track,''))<>'' ORDER BY round_number").bind(season.id), env, '/api/cup', 'events'),
+    observedAll(db.prepare(`SELECT st.championship_position AS rank,d.display_name AS driver,st.points,st.starts,st.wins,st.stage_wins AS stageWins,st.poles,st.top5,st.top10,st.laps_led AS lapsLed,st.srh_driver_id AS driverId FROM cup_standings st JOIN cup_drivers d ON d.srh_driver_id=st.srh_driver_id WHERE st.season_id=? ORDER BY st.championship_position`).bind(season.id), env, '/api/cup', 'standings'),
+    observedAll(db.prepare(`SELECT r.*,d.display_name,cs.session_type,cs.sort_order FROM cup_results r JOIN cup_drivers d ON d.srh_driver_id=r.srh_driver_id JOIN cup_sessions cs ON cs.srh_race_id=r.srh_race_id WHERE r.season_id=? ORDER BY r.event_id,cs.sort_order,r.finish_position`).bind(season.id), env, '/api/cup', 'results'),
+  ])
+  const events = eventData.results, standings = standingData.results, results = resultData.results
   const raceEvents = events.map((event) => {
     const eventRows = results.filter((row) => row.event_id === event.id && row.session_type !== 'OTHER')
     const stageTotals = new Map()
@@ -95,6 +132,13 @@ export async function onRequestGet({ env, request }) {
   }).filter((event) => event.sessions.length)
   const schedule = events.map((event)=>{ const race=raceEvents.find((item)=>item.sourceEventId===event.id)?.sessions.find((item)=>item.label==='Overall Race Finish'); return {...event,winner:race?.rows.find((row)=>row.position===1)?.driver??'—',pole:race?.rows.find((row)=>row.start===1)?.driver??'—',state:race?'done':'upcoming'} })
   return json({ season, standings, schedule, events:raceEvents, source:'in-house' })
+}
+
+export async function onRequestGet(context) {
+  const view = new URL(context.request.url).searchParams.get('view')
+  if (view === 'history' || view === 'career')
+    return cachedPublicGet(context, 1800, () => loadCup(context))
+  return loadCup(context)
 }
 
 const standingFor = (standings, row) => standings.find((item) => item.seasonId === row.seasonId && item.srhDriverId === row.srhDriverId)
