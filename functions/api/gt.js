@@ -1,6 +1,7 @@
 import { canonicalGtTrackName } from '../_shared/gtTrackNames.js'
 import { selectGtDropWeeks } from '../_shared/gtDropWeeks.js'
 import { canonicalGtCarName } from '../_shared/gtCarNames.js'
+import { compareGtStandings } from '../_shared/leagueScoring.js'
 
 const json = (value, status = 200) =>
   Response.json(value, {
@@ -66,8 +67,8 @@ export async function onRequestGet({ env, request }) {
     const seasons = await db.prepare("SELECT id,name,status,drop_weeks AS dropWeeks,drop_start_round AS dropStartRound FROM gt_seasons WHERE status<>'draft' ORDER BY created_at DESC").all()
     const championRows = []
     for (const listedSeason of seasons.results) {
-      const [seasonResults, seasonEvents, seasonClasses] = await Promise.all([
-        db.prepare('SELECT * FROM gt_results WHERE season_id=?').bind(listedSeason.id).all(),
+        const [seasonResults, seasonEvents, seasonClasses] = await Promise.all([
+        db.prepare('SELECT r.*,e.round_number AS round FROM gt_results r JOIN gt_events e ON e.id=r.event_id WHERE r.season_id=?').bind(listedSeason.id).all(),
         db.prepare("SELECT id,round_number AS round FROM gt_events WHERE season_id=? AND status='completed' ORDER BY round_number").bind(listedSeason.id).all(),
         db.prepare('SELECT class_key AS classKey,label AS classLabel FROM gt_season_classes WHERE season_id=?').bind(listedSeason.id).all(),
       ])
@@ -76,13 +77,19 @@ export async function onRequestGet({ env, request }) {
         const drivers = new Map()
         for (const row of classRows) {
           const key = driverIdentity(row)
-          const item = drivers.get(key) ?? { driver: row.driver_name, points: 0, wins: 0 }
+          const item = drivers.get(key) ?? { driver: row.driver_name, points: 0, wins: 0, secondPlaces: 0, poles: 0, finalRaceFinish: Number.POSITIVE_INFINITY, latestRound: 0 }
           item.points += Number(row.total_points) || 0
           item.wins += Number(row.class_position) === 1 ? 1 : 0
+          item.secondPlaces += Number(row.class_position) === 2 ? 1 : 0
+          item.poles += Number(row.pole) ? 1 : 0
+          if (Number(row.round) >= item.latestRound) {
+            item.latestRound = Number(row.round)
+            item.finalRaceFinish = Number(row.class_position)
+          }
           drivers.set(key, item)
         }
         applyDriverDrops(drivers, classRows, seasonEvents.results, listedSeason)
-        const champion = [...drivers.values()].sort((a, b) => b.points - a.points || b.wins - a.wins || a.driver.localeCompare(b.driver))[0]
+        const champion = [...drivers.values()].sort(compareGtStandings)[0]
         if (champion) championRows.push({ seasonId: listedSeason.id, ...classInfo, driver: champion.driver })
       }
     }
@@ -189,9 +196,15 @@ export async function onRequestGet({ env, request }) {
       const drivers = seasonClassStandings.get(key) ?? new Map()
       const rows = seasonClassRows.get(key) ?? []
       const id = identity(row)
-      const item = drivers.get(id) ?? { driverKey: id, points: 0, wins: 0 }
+      const item = drivers.get(id) ?? { driverKey: id, driver: row.driver, points: 0, wins: 0, secondPlaces: 0, poles: 0, finalRaceFinish: Number.POSITIVE_INFINITY, latestRound: 0 }
       item.points += Number(row.points) || 0
       item.wins += Number(row.classPosition) === 1 ? 1 : 0
+      item.secondPlaces += Number(row.classPosition) === 2 ? 1 : 0
+      item.poles += Number(row.pole) ? 1 : 0
+      if (Number(row.round) >= item.latestRound) {
+        item.latestRound = Number(row.round)
+        item.finalRaceFinish = Number(row.classPosition)
+      }
       drivers.set(id, item)
       seasonClassStandings.set(key, drivers)
       rows.push({ ...row, customer_id: row.customerId, driver_name: row.driver, event_id: row.eventId, total_points: row.points })
@@ -208,7 +221,7 @@ export async function onRequestGet({ env, request }) {
       )
     }
     const rankFor = (seasonId, classKey) => [...seasonClassStandings.get(`${seasonId}:${classKey}`).values()]
-      .sort((a, b) => b.points - a.points || b.wins - a.wins || a.driverKey.localeCompare(b.driverKey))
+      .sort(compareGtStandings)
       .findIndex((item) => item.driverKey === driverKey) + 1
     const group = (keyFor, details) => {
       const groups = new Map()
@@ -298,6 +311,9 @@ export async function onRequestGet({ env, request }) {
           starts: 0,
           wins: 0,
           podiums: 0,
+          secondPlaces: 0,
+          poles: 0,
+          finalRaceFinish: Number.POSITIVE_INFINITY,
         }
         const rowRound = eventRounds.get(row.event_id) ?? 0
         if (rowRound >= item.latestRound) {
@@ -309,6 +325,9 @@ export async function onRequestGet({ env, request }) {
         item.starts += 1
         item.wins += row.class_position === 1 ? 1 : 0
         item.podiums += row.class_position <= 3 ? 1 : 0
+        item.secondPlaces += row.class_position === 2 ? 1 : 0
+        item.poles += Number(row.pole) ? 1 : 0
+        if (rowRound >= item.latestRound) item.finalRaceFinish = Number(row.class_position)
         aggregate.set(key, item)
         if (row.team_name) {
           const team = teams.get(row.team_name) ?? {
@@ -318,12 +337,22 @@ export async function onRequestGet({ env, request }) {
             starts: 0,
             wins: 0,
             podiums: 0,
+            secondPlaces: 0,
+            poles: 0,
+            finalRaceFinish: Number.POSITIVE_INFINITY,
+            latestRound: 0,
             drivers: '',
           }
           team.points += row.total_points
           team.starts += 1
           team.wins += row.class_position === 1 ? 1 : 0
           team.podiums += row.class_position <= 3 ? 1 : 0
+          team.secondPlaces += row.class_position === 2 ? 1 : 0
+          team.poles += Number(row.pole) ? 1 : 0
+          if (rowRound >= team.latestRound) {
+            team.latestRound = rowRound
+            team.finalRaceFinish = Number(row.class_position)
+          }
           const teamDrivers = team.drivers ? team.drivers.split(', ') : []
           if (!teamDrivers.includes(row.driver_name)) team.drivers = [...teamDrivers, row.driver_name].sort().join(', ')
           teams.set(row.team_name, team)
@@ -331,9 +360,16 @@ export async function onRequestGet({ env, request }) {
       })
     const rank = (items) =>
       [...items.values()]
-        .sort((a, b) => b.points - a.points || b.wins - a.wins)
-        .map(({ latestRound: _latestRound, ...item }, index) => ({ rank: index + 1, ...item }))
+        .sort(compareGtStandings)
+        .map(({ latestRound: _latestRound, secondPlaces: _secondPlaces, poles: _poles, finalRaceFinish: _finalRaceFinish, ...item }, index) => ({ rank: index + 1, ...item }))
     applyDriverDrops(aggregate, rows.filter((row) => row.class_key === classKey), eventData.results.filter((event) => event.status === 'completed'), season)
+    for (const [teamName, team] of teams) {
+      const pointsByEvent = new Map()
+      for (const row of rows.filter((item) => item.class_key === classKey && item.team_name === teamName))
+        pointsByEvent.set(row.event_id, (pointsByEvent.get(row.event_id) || 0) + (Number(row.total_points) || 0))
+      const selected = selectGtDropWeeks(eventData.results.filter((event) => event.status === 'completed'), pointsByEvent, season.dropWeeks, season.dropStartRound)
+      team.points -= selected.reduce((total, event) => total + event.points, 0)
+    }
     standings[classKey] = rank(aggregate)
     teamStandings[classKey] = rank(teams)
   }

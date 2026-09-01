@@ -1,3 +1,5 @@
+import { scoreIndyRows } from '../../../_shared/leagueScoring.js'
+
 const json = (value, status = 200) => Response.json(value, { status, headers: { 'Cache-Control': 'no-store' } })
 
 async function state(db) {
@@ -64,6 +66,19 @@ export async function onRequestPost({ request, env }) {
       await db.prepare(`INSERT INTO indy_points_configs(season_id,config_json) VALUES(?,?)
         ON CONFLICT(season_id) DO UPDATE SET config_json=excluded.config_json,updated_at=CURRENT_TIMESTAMP`)
         .bind(body.seasonId, JSON.stringify(body.points)).run()
+      const resultData = await db.prepare(`SELECT id,event_id AS eventId,customer_id AS customerId,driver_name AS driver,finish_position AS position,
+        start_position AS start,laps_led AS lapsLed,penalty_points AS penalty FROM indy_results WHERE season_id=? ORDER BY event_id,finish_position`).bind(body.seasonId).all()
+      const byEvent = new Map()
+      for (const row of resultData.results) {
+        const rows = byEvent.get(row.eventId) ?? []
+        rows.push(row)
+        byEvent.set(row.eventId, rows)
+      }
+      for (const [eventId, rows] of byEvent) {
+        const scored = scoreIndyRows(rows, body.points)
+        await db.batch(scored.map((driver) => db.prepare('UPDATE indy_results SET base_points=?,bonus_points=?,penalty_points=?,total_points=? WHERE id=? AND event_id=?')
+          .bind(driver.racePoints, driver.bonus, driver.penalty, driver.total, driver.id, eventId)))
+      }
     } else if (body.action === 'saveEvent') {
       const item = body.event
       await db.prepare(`INSERT INTO indy_events(id,season_id,round_number,race_date,track,laps,status,subsession_id) VALUES(?,?,?,?,?,?,?,?)
@@ -72,6 +87,8 @@ export async function onRequestPost({ request, env }) {
     } else if (body.action === 'deleteEvent') {
       await db.prepare('DELETE FROM indy_events WHERE id=?').bind(body.eventId).run()
     } else if (body.action === 'deleteResults') {
+      const target = await db.prepare('SELECT s.status FROM indy_events e JOIN indy_seasons s ON s.id=e.season_id WHERE e.id=?').bind(body.eventId).first()
+      if (target?.status === 'archived' && body.archivedOverride !== true) return json({ error: 'Archived IndyCar results are immutable without an explicit override.' }, 409)
       await db.batch([
         db.prepare('DELETE FROM indy_results WHERE event_id=?').bind(body.eventId),
         db.prepare('DELETE FROM indy_imports WHERE event_id=?').bind(body.eventId),
@@ -81,13 +98,15 @@ export async function onRequestPost({ request, env }) {
       const event = await db.prepare('SELECT season_id AS seasonId FROM indy_events WHERE id=?').bind(body.eventId).first()
       if (!event) return json({ error: 'That scheduled event no longer exists.' }, 404)
       if (event.seasonId !== body.seasonId) return json({ error: 'The selected season does not own that event.' }, 409)
+      const season = await db.prepare('SELECT status FROM indy_seasons WHERE id=?').bind(body.seasonId).first()
+      if (season?.status === 'archived' && body.archivedOverride !== true) return json({ error: 'Archived IndyCar results are immutable without an explicit override.' }, 409)
       const pointsRow = await db.prepare('SELECT config_json FROM indy_points_configs WHERE season_id=?').bind(body.seasonId).first()
       if (!pointsRow) return json({ error: 'Save a points table before publishing results.' }, 400)
       const config = JSON.parse(pointsRow.config_json)
       const drivers = body.preview?.drivers
       if (!Array.isArray(drivers) || !drivers.length) return json({ error: 'No normalized race results were supplied.' }, 400)
       const importId = crypto.randomUUID()
-      const mostLapsLed = Math.max(...drivers.map((driver) => Number(driver.lapsLed) || 0))
+      const scored = scoreIndyRows(drivers, config)
       const statements = [
         db.prepare('DELETE FROM indy_results WHERE event_id=?').bind(body.eventId),
         db.prepare('DELETE FROM indy_imports WHERE event_id=?').bind(body.eventId),
@@ -96,33 +115,24 @@ export async function onRequestPost({ request, env }) {
         db.prepare("UPDATE indy_events SET status='completed',subsession_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=?")
           .bind(body.preview.subsessionId ?? null, body.eventId),
       ]
-      for (const driver of drivers) {
-        const base = Number(config.positions.find((rule) => Number(rule.position) === Number(driver.position))?.points) || 0
-        const bonus = (Number(driver.start) === 1 ? Number(config.poleBonus) || 0 : 0) +
-          (Number(driver.lapsLed) > 0 ? Number(config.lapLedBonus) || 0 : 0) +
-          (mostLapsLed > 0 && Number(driver.lapsLed) === mostLapsLed ? Number(config.mostLapsLedBonus) || 0 : 0)
+      for (const driver of scored) {
         statements.push(db.prepare(`INSERT INTO indy_results(import_id,season_id,event_id,customer_id,driver_name,finish_position,start_position,finish_interval,laps_completed,laps_led,incidents,status,fastest_lap,base_points,bonus_points,total_points)
-          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(importId, body.seasonId, body.eventId, driver.customerId ?? null, driver.driver, driver.position, driver.start, driver.interval || '-', driver.laps, driver.lapsLed, driver.incidents, driver.status, driver.fastestLap ? 1 : 0, base, bonus, base + bonus))
+          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(importId, body.seasonId, body.eventId, driver.customerId ?? null, driver.driver, driver.position, driver.start, driver.interval || '-', driver.laps, driver.lapsLed, driver.incidents, driver.status, driver.fastestLap ? 1 : 0, driver.racePoints, driver.bonus, driver.total))
       }
       await db.batch(statements)
     } else if (body.action === 'saveResults') {
       const event = await db.prepare('SELECT season_id AS seasonId FROM indy_events WHERE id=?').bind(body.eventId).first()
       if (!event) return json({ error: 'That scheduled event no longer exists.' }, 404)
+      const season = await db.prepare('SELECT status FROM indy_seasons WHERE id=?').bind(event.seasonId).first()
+      if (season?.status === 'archived' && body.archivedOverride !== true) return json({ error: 'Archived IndyCar results are immutable without an explicit override.' }, 409)
       const pointsRow = await db.prepare('SELECT config_json FROM indy_points_configs WHERE season_id=?').bind(event.seasonId).first()
       if (!pointsRow) return json({ error: 'Save a points table before rescoring results.' }, 400)
       const config = JSON.parse(pointsRow.config_json)
       const rows = Array.isArray(body.results) ? body.results : []
       if (!rows.length) return json({ error: 'No race results were supplied.' }, 400)
-      const mostLapsLed = Math.max(...rows.map((driver) => Number(driver.lapsLed) || 0))
-      const updates = rows.map((driver, index) => {
-        const position = index + 1
-        const base = Number(config.positions.find((rule) => Number(rule.position) === position)?.points) || 0
-        const bonus = (Number(driver.start) === 1 ? Number(config.poleBonus) || 0 : 0) +
-          (Number(driver.lapsLed) > 0 ? Number(config.lapLedBonus) || 0 : 0) +
-          (mostLapsLed > 0 && Number(driver.lapsLed) === mostLapsLed ? Number(config.mostLapsLedBonus) || 0 : 0)
-        const penalty = Math.max(0, Number(driver.penalty) || 0)
+      const updates = scoreIndyRows(rows.map((driver, index) => ({ ...driver, position: index + 1 })), config).map((driver) => {
         return db.prepare(`UPDATE indy_results SET finish_position=?,penalty_points=?,base_points=?,bonus_points=?,total_points=? WHERE id=? AND event_id=?`)
-          .bind(position, penalty, base, bonus, base + bonus - penalty, driver.id, body.eventId)
+          .bind(driver.position, driver.penalty, driver.racePoints, driver.bonus, driver.total, driver.id, body.eventId)
       })
       await db.batch(updates)
     } else return json({ error: 'Unknown admin action.' }, 400)
