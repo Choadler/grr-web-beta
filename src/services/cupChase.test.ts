@@ -9,12 +9,12 @@ const standings = Array.from({ length: 18 }, (_, index) => ({
   starts: 24,
 }))
 
-test('adds cutoff values to synced Cup standings', () => {
+test('adds leader-relative points gaps to synced Cup standings', () => {
   const rows = addCupChaseStatus(standings)
 
-  assert.equal(rows[0].cutoff, '+528')
-  assert.equal(rows[15].cutoff, '+33')
-  assert.equal(rows[16].cutoff, '-33')
+  assert.equal(rows[0].behind, 'LEAD')
+  assert.equal(rows[1].behind, '-33')
+  assert.equal(rows[16].behind, '-528')
 })
 
 test('marks a driver clinched only when 17th cannot catch them', () => {
@@ -29,7 +29,8 @@ test('marks a no-Chase season without calculating a cutoff', () => {
   const rows = addCupChaseStatus(standings, { enabled: false })
 
   assert.equal(rows[0].chase, 'NO CHASE')
-  assert.equal(rows[0].cutoff, '—')
+  assert.equal(rows[0].behind, 'LEAD')
+  assert.equal(rows[16].behind, '-528')
   assert.equal(rows[16].chaseEnabled, 0)
 })
 
@@ -43,5 +44,5 @@ test('uses the configured Chase length and field size', () => {
 
   assert.equal(rows[11].chase, 'CLINCHED')
   assert.equal(rows[12].chase, '—')
-  assert.equal(rows[12].cutoff, '-33')
+  assert.equal(rows[12].behind, '-396')
 })

@@ -465,27 +465,20 @@ export const CupStandingsPage = () => {
     tight
     loader={cupStandings}
     contentBeforeTable={<><SeasonSelector seasons={seasons} />{seasonId ? <CupPlayoffHistory seasonId={seasonId} /> : null}</>}
-    note={historical ? undefined : 'Chase-enabled seasons show cutoff and clinch status from current SRH points and starts. The green line marks the configured cutoff.'}
+    note={historical ? undefined : 'Chase-enabled seasons show clinch status from current SRH points and starts.'}
     rowClassName={(row) =>
-      historical || Number(row.chaseEnabled) === 0 ? '' : Number(row.chaseCutline) === 1
-        ? 'standings-row--cutline'
-        : Number(row.inChase) === 1
-          ? 'standings-row--chase'
-          : ''
+      historical || Number(row.chaseEnabled) === 0 ? '' : Number(row.inChase) === 1
+        ? 'standings-row--chase'
+        : ''
     }
     columns={[
       { key: 'rank', label: 'Pos' },
       { key: 'driver', label: 'Driver' },
       { key: 'points', label: 'Pts' },
       {
-        key: 'cutoff',
-        label: '+/- Cutoff',
-        cellClassName: (value) =>
-          Number(value) >= 100
-            ? 'cutoff-value cutoff-value--safe'
-            : Number(value) <= -100
-              ? 'cutoff-value cutoff-value--danger'
-              : 'cutoff-value cutoff-value--close',
+        key: 'behind',
+        label: 'Behind',
+        cellClassName: () => 'cutoff-value',
       },
       {
         key: 'chase',
