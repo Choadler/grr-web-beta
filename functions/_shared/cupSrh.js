@@ -7,6 +7,9 @@ const entities = (value = '') => String(value)
 const integer = (value) => value === null || value === undefined || value === '' ? null : Number.parseInt(value, 10)
 const numeric = (value) => value === null || value === undefined || value === '' ? null : Number(value)
 const values = (value) => Array.isArray(value) ? value : Object.values(value ?? {})
+const isChaseMarker = (schedule) =>
+  !String(schedule?.config_id ?? '').trim()
+  && /\bchase\b/i.test(String(schedule?.event_name ?? ''))
 const displayDriverName = (value) => {
   const name = String(value ?? '').trim()
   if (!name.includes(',')) return name
@@ -76,7 +79,8 @@ export function normalizeCupSeason(payload) {
   const driverNames = new Map(drivers.map((driver) => [driver.srhDriverId, driver.displayName]))
   const tracks = payload.tracks ?? {}
   const competitionSchedules = values(payload.schedules).filter((schedule) =>
-    String(schedule.config_id ?? '').trim() || Object.keys(schedule.race_id ?? {}).length,
+    !isChaseMarker(schedule)
+    && (String(schedule.config_id ?? '').trim() || Object.keys(schedule.race_id ?? {}).length),
   )
   const events = competitionSchedules.map((schedule, index) => {
     const track = tracks[String(schedule.config_id)] ?? {}

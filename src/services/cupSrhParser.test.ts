@@ -41,7 +41,7 @@ test('excludes an SRH Chase control marker and keeps race rounds contiguous', ()
     tracks: { '14': { track_name: 'Darlington Raceway' }, '15': { track_name: 'Gateway' } },
     schedules: [
       { schedule_id: '28', race_date: 1, config_id: '14', event_name: 'GRR Southern 500' },
-      { schedule_id: '29', race_date: 1, config_id: '', chase: 'Y', event_name: 'GRR Chase For the Cup' },
+      { schedule_id: '29', race_date: 1, config_id: '', chase: 'Y', event_name: 'GRR Chase For the Cup', race_id: { '0.0': '376853' } },
       { schedule_id: '30', race_date: 2, config_id: '15', event_name: 'GRR Cup Series @ Gateway' },
     ],
   })
