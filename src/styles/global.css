@@ -5145,6 +5145,41 @@ body {
 .admin-season-status--active { border-color: #99ff00; color: #99ff00; }
 .admin-season-status--draft { color: #d5d8d1; }
 .admin-season-status--archived { color: #9ca195; }
+.admin-season-status--complete { border-color: #d6ae48; color: #f3cf6a; }
+
+.admin-season-completion > span { display: flex; align-items: center; gap: .55rem; color: #e5e9df; font-weight: 700; text-transform: none; }
+.admin-season-completion input { width: 1rem; height: 1rem; margin: 0; accent-color: #99ff00; }
+
+.champion-banner { position: relative; overflow: hidden; margin: 1rem 0 1.2rem; padding: clamp(1.1rem, 3vw, 1.7rem); border: 1px solid rgba(214,174,72,.58); border-left: 4px solid #d6ae48; background: linear-gradient(120deg, rgba(42,49,35,.98), rgba(17,21,18,.98) 58%, rgba(105,82,26,.25)); box-shadow: 0 16px 36px rgba(0,0,0,.2); }
+.champion-banner::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 45%, rgba(255,255,255,.035) 50%, transparent 55%); }
+.champion-banner__heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.champion-banner__heading p { margin: 0; color: #aeb7a9; font-size: .72rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+.champion-banner__heading h2 { margin: .18rem 0 0; color: #f3cf6a; font-size: clamp(1.35rem, 3vw, 2rem); letter-spacing: .045em; text-transform: uppercase; }
+.champion-banner__grid { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: .75rem; }
+.champion-card { display: flex; align-items: center; gap: .85rem; min-width: 0; padding: .85rem 1rem; border: 1px solid rgba(153,255,0,.22); background: rgba(7,11,8,.62); }
+.champion-card__trophy { flex: 0 0 auto; display: grid; place-items: center; width: 2.15rem; height: 2.15rem; border: 1px solid rgba(214,174,72,.7); color: #f3cf6a; font-size: 1rem; }
+.champion-card div { min-width: 0; }
+.champion-card div > span { display: block; color: #aeb7a9; font-size: .66rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.champion-card strong { display: block; overflow-wrap: anywhere; margin-top: .12rem; color: #fff; font-size: clamp(1.15rem, 2.4vw, 1.65rem); line-height: 1.05; text-transform: uppercase; }
+.standings-row--champion > td { background: rgba(214,174,72,.095); border-top-color: rgba(214,174,72,.55); border-bottom-color: rgba(214,174,72,.55); }
+.standings-row--champion > td:first-child { box-shadow: inset 3px 0 #d6ae48; }
+.champion-badge { display: inline-flex; align-items: center; gap: .25rem; margin-left: .55rem; padding: .12rem .34rem; border: 1px solid rgba(214,174,72,.55); color: #f3cf6a; font-size: .6rem; font-weight: 900; letter-spacing: .06em; line-height: 1.2; text-transform: uppercase; vertical-align: .15em; white-space: nowrap; }
+
+.champion-confetti { position: fixed; z-index: 1200; inset: 0; overflow: hidden; pointer-events: none; }
+.champion-confetti__piece { --confetti-left: 50%; --confetti-delay: 0s; --confetti-duration: 3.4s; --confetti-drift: 0px; --confetti-rotation: 540deg; position: absolute; top: -1.2rem; left: var(--confetti-left); width: .48rem; height: .82rem; background: #99ff00; opacity: 0; animation: champion-confetti-fall var(--confetti-duration) cubic-bezier(.2,.65,.3,1) var(--confetti-delay) forwards; }
+.champion-confetti__piece--1 { width: .7rem; height: .38rem; background: #fff; }
+.champion-confetti__piece--2 { width: .42rem; height: .72rem; background: #d6ae48; }
+@keyframes champion-confetti-fall { 0% { opacity: 0; transform: translate3d(0,-4vh,0) rotate(0); } 9% { opacity: 1; } 100% { opacity: 0; transform: translate3d(var(--confetti-drift),105vh,0) rotate(var(--confetti-rotation)); } }
+
+@media (max-width: 600px) {
+  .champion-banner__heading { align-items: start; flex-direction: column; }
+  .champion-banner__grid { grid-template-columns: 1fr; }
+  .champion-card strong { font-size: 1.22rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .champion-confetti { display: none; }
+}
 .admin-season-editor-title { margin-top: 1.25rem; text-transform: uppercase; }
 .admin-season-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .75rem; }
 .admin-season-metrics > div { display: grid; gap: .2rem; padding: .8rem; border: 1px solid #41463b; background: #1b1e18; }

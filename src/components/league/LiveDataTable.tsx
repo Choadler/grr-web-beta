@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useId, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import type { DataLoader, TableRow } from '../../types/league'
+import type { DataLoader, DataResult, TableRow } from '../../types/league'
 import { copyPng, downloadCsv, type PngExportOptions } from '../../utils/tableExport'
 import { DataTable, EmptyTableRow } from './DataTable'
 import { ErrorState, LoadingState } from './States'
@@ -25,6 +25,7 @@ export function LiveDataTable({
   tableClassName,
   pngOptions,
   rowLink,
+  onResult,
 }: {
   title: string
   columns: LiveColumn[]
@@ -35,6 +36,7 @@ export function LiveDataTable({
   tableClassName?: string
   pngOptions?: PngExportOptions
   rowLink?: (row: TableRow) => string | undefined
+  onResult?: (result: DataResult) => void
 }) {
   const [rows, setRows] = useState<TableRow[]>([])
   const [query, setQuery] = useState('')
@@ -55,6 +57,7 @@ export function LiveDataTable({
         setRows(result.rows)
         setMessage(result.updated || result.label || '')
         setStatus('ready')
+        onResult?.(result)
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return
@@ -62,7 +65,7 @@ export function LiveDataTable({
         setStatus('error')
       })
     return () => controller.abort()
-  }, [loader, retry])
+  }, [loader, onResult, retry])
 
   const reload = () => {
     clearSuccessfulResponseCache()
@@ -188,7 +191,7 @@ export function LiveDataTable({
           const expanded = expandedRow === rowKey
           return (
             <Fragment key={rowKey}>
-              <tr className={rowClassName?.(row)}>
+              <tr className={[rowClassName?.(row), Number(row.champion) === 1 ? 'standings-row--champion' : ''].filter(Boolean).join(' ') || undefined}>
                 {columns.map((column) => (
                   <td className={column.cellClassName?.(row[column.key] ?? '', row)} key={column.key}>
                 {column.expandDetailsKey ? (
@@ -212,6 +215,7 @@ export function LiveDataTable({
                 ) : (
                   <>
                     {row[column.key]}
+                    {column.key === 'driver' && Number(row.champion) === 1 && <span className="champion-badge"><span aria-hidden="true">★</span> Champion</span>}
                     {column.key === 'driver' && Boolean(row.fastestLap) && (
                       <span className="fastest-lap-dot" title="Fastest lap">
                         <span className="sr-only"> Fastest lap</span>

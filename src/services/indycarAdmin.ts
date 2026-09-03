@@ -20,6 +20,7 @@ function localState(): IndyAdminState {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey) ?? '') as Partial<IndyAdminState>
     const state = { ...emptyAdminState, ...saved, points: saved.points ?? {}, results: saved.results ?? {} }
+    state.seasons = state.seasons.map((season) => ({ ...season, isComplete: season.isComplete === true }))
     for (const event of state.schedule) {
       if (state.results[event.id]?.length) continue
       try {
@@ -170,7 +171,10 @@ const formatRaceInterval = (value: string, laps: number, leaderLaps: number, pos
 export function loadLocalIndyPublic(): IndyPublicData | null {
   if (!import.meta.env.DEV) return null
   const state = localState()
-  const season = state.seasons.find((item) => item.status === 'active')
+  const requestedSeason = new URLSearchParams(window.location.search).get('season')
+  const season = requestedSeason
+    ? state.seasons.find((item) => item.id === requestedSeason && item.status !== 'draft')
+    : state.seasons.find((item) => item.status === 'active')
   if (!season) return null
   const config = state.points[season.id] ?? defaultIndyPoints
   const eventsForSeason = state.schedule.filter((item) => item.seasonId === season.id).sort((a, b) => a.round - b.round)

@@ -6,6 +6,7 @@ export type IndySeason = {
   id: string
   name: string
   status: IndySeasonStatus
+  isComplete: boolean
   raceTime: string
   timezone: string
 }

@@ -47,7 +47,14 @@ const record = (value: unknown) =>
 const localState = (): GtAdminState => {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey) ?? '') as Partial<GtAdminState>
-    return { ...emptyGtState, ...saved, classes: saved.classes ?? {}, points: saved.points ?? {}, results: saved.results ?? {} }
+    return {
+      ...emptyGtState,
+      ...saved,
+      seasons: (saved.seasons ?? []).map((season) => ({ ...season, isComplete: season.isComplete === true })),
+      classes: saved.classes ?? {},
+      points: saved.points ?? {},
+      results: saved.results ?? {},
+    }
   } catch {
     return structuredClone(emptyGtState)
   }

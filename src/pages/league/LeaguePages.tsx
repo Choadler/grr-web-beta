@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { DataTable, EmptyTableRow } from '../../components/league/DataTable'
 import { CupSportingCode } from '../../components/league/CupSportingCode'
@@ -38,6 +38,8 @@ import type { GtCareerProfile } from '../../services/dataSources'
 import type { CupPlayoffPayload } from '../../services/dataSources'
 import { shareGtCareerImage } from '../../utils/gtCareerExport'
 import { CupPenaltyReport } from '../../components/league/CupPenaltyReport'
+import { SeasonChampionCelebration } from '../../components/league/SeasonChampionCelebration'
+import type { SeasonChampionship } from '../../types/league'
 
 const cupNav: LeagueNavItem[] = [
   { label: 'Cup Sporting Code', href: '/pages/cup-series-sporting-code' },
@@ -96,11 +98,12 @@ type GtSeasonSummary = {
   id: string
   name: string
   status: string
+  isComplete: boolean | number
   champions?: { classKey: string; classLabel: string; driver: string }[]
 }
 
-type CupSeasonSummary = { id: string; name: string; status: string; champion?: string; races?: number; drivers?: number }
-type SeasonSummary = { id: string; name: string; status: string }
+type CupSeasonSummary = { id: string; name: string; status: string; isComplete: boolean | number; champion?: string; races?: number; drivers?: number }
+type SeasonSummary = { id: string; name: string; status: string; isComplete: boolean | number }
 function useCupSeasons() {
   const [seasons, setSeasons] = useState<CupSeasonSummary[]>([])
   useEffect(() => { const controller = new AbortController(); fetch('/api/cup?list=seasons', { signal: controller.signal }).then((response) => response.ok ? response.json() : Promise.reject()).then((payload: { seasons?: CupSeasonSummary[] }) => setSeasons(payload.seasons ?? [])).catch(() => undefined); return () => controller.abort() }, [])
@@ -152,6 +155,7 @@ function PageShell({
   eyebrow?: string
   compact?: boolean
   tight?: boolean
+  showChampionship?: boolean
   children: React.ReactNode
 }) {
   const config = leagueConfig[league]
@@ -330,6 +334,7 @@ type DataPageProps = {
   rowLink?: (row: TableRow) => string | undefined
   contentBeforeTable?: ReactNode
   tight?: boolean
+  showChampionship?: boolean
 }
 function DataPage({
   league,
@@ -347,8 +352,11 @@ function DataPage({
   rowLink,
   contentBeforeTable,
   tight,
+  showChampionship,
 }: DataPageProps) {
   const [activeFilter, setActiveFilter] = useState(0)
+  const [championship, setChampionship] = useState<SeasonChampionship>()
+  const handleResult = useCallback((result: { championship?: SeasonChampionship }) => setChampionship(result.championship), [])
   const activeLoader = loaders?.[activeFilter] ?? loader
   return (
     <PageShell league={league} title={title} eyebrow={eyebrow} compact tight={tight}>
@@ -372,6 +380,7 @@ function DataPage({
       )}
       {note && <p className="standings-legend">{note}</p>}
       {contentBeforeTable}
+      {showChampionship && <SeasonChampionCelebration championship={championship} />}
       {activeLoader ? (
         <LiveDataTable
           key={activeFilter}
@@ -382,6 +391,7 @@ function DataPage({
           rowClassName={rowClassName}
           tableClassName={tableClassName}
           rowLink={rowLink}
+          onResult={showChampionship ? handleResult : undefined}
         />
       ) : (
         <DataTable
@@ -464,6 +474,7 @@ export const CupStandingsPage = () => {
     search
     tight
     loader={cupStandings}
+    showChampionship
     contentBeforeTable={<><SeasonSelector seasons={seasons} />{seasonId ? <CupPlayoffHistory seasonId={seasonId} /> : null}</>}
     note={historical ? undefined : 'Chase-enabled seasons show clinch status from current SRH points and starts.'}
     rowClassName={(row) =>
@@ -647,9 +658,12 @@ export const GtStandingsPage = () => {
   const isTeam = mode === 'team'
   const title = `GT League ${selectedClass?.label ?? ''} ${isTeam ? 'Team' : 'Driver'} Standings`
   const seasons = useGtSeasons()
+  const [championship, setChampionship] = useState<SeasonChampionship>()
+  const handleResult = useCallback((result: { championship?: SeasonChampionship }) => setChampionship(result.championship), [])
 
   return <PageShell league="gt" title="GT League Standings" compact tight>
     <SeasonSelector seasons={seasons} />
+    <SeasonChampionCelebration championship={championship} />
     <div className="data-toolbar standings-view-controls">
       <fieldset className="filter-group standings-mode-switch">
         <legend>Standings type</legend>
@@ -684,6 +698,7 @@ export const GtStandingsPage = () => {
       loader={isTeam ? gtTeamStandings(selectedClass.key) : gtStandings(selectedClass.key)}
       search
       tableClassName="data-table--gt-standings"
+      onResult={handleResult}
     />}
   </PageShell>
 }
@@ -836,6 +851,7 @@ export const IndyStandingsPage = () => {
     title="GRR IndyCar Standings"
     eyebrow="Season 1"
     loader={indyStandings}
+    showChampionship
     search
     tight
     contentBeforeTable={<SeasonSelector seasons={seasons} />}

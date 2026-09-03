@@ -14,13 +14,13 @@ export async function onRequestGet({ env, request }) {
   const db = env.INDYCAR_DB
   const url = new URL(request.url)
   if (url.searchParams.get('list') === 'seasons' || url.searchParams.get('list') === 'schedule-seasons') {
-    const seasons = await db.prepare("SELECT id,name,status FROM indy_seasons WHERE status<>'draft' ORDER BY created_at DESC").all()
+    const seasons = await db.prepare("SELECT id,name,status,is_complete AS isComplete FROM indy_seasons WHERE status<>'draft' ORDER BY created_at DESC").all()
     return json({ seasons: seasons.results })
   }
   const requestedSeason = url.searchParams.get('season')
   const season = requestedSeason
-    ? await db.prepare("SELECT id,name,status,race_time AS raceTime,timezone FROM indy_seasons WHERE id=? AND status<>'draft' LIMIT 1").bind(requestedSeason).first()
-    : await db.prepare("SELECT id,name,status,race_time AS raceTime,timezone FROM indy_seasons WHERE status='active' LIMIT 1").first()
+    ? await db.prepare("SELECT id,name,status,is_complete AS isComplete,race_time AS raceTime,timezone FROM indy_seasons WHERE id=? AND status<>'draft' LIMIT 1").bind(requestedSeason).first()
+    : await db.prepare("SELECT id,name,status,is_complete AS isComplete,race_time AS raceTime,timezone FROM indy_seasons WHERE status='active' LIMIT 1").first()
   if (!season) return json({ error: requestedSeason ? 'That IndyCar season is not publicly available.' : 'No active in-house IndyCar season.' }, 404)
   if (url.searchParams.get('view') === 'schedule') {
     const scheduleData = await db.prepare(`SELECT e.id,e.round_number AS round,e.race_date AS date,e.track,e.laps,e.status,

@@ -9,7 +9,7 @@ async function state(db) {
   const [seasons, seasonClasses, points, schedule, assignments, teams, imports, results] = await Promise.all([
     db
       .prepare(
-        'SELECT id,name,status,race_time AS raceTime,timezone,drop_weeks AS dropWeeks,drop_start_round AS dropStartRound,legacy_roster_fallback AS legacyRosterFallback FROM gt_seasons ORDER BY created_at DESC',
+        'SELECT id,name,status,is_complete AS isComplete,race_time AS raceTime,timezone,drop_weeks AS dropWeeks,drop_start_round AS dropStartRound,legacy_roster_fallback AS legacyRosterFallback FROM gt_seasons ORDER BY created_at DESC',
       )
       .all(),
     db.prepare('SELECT season_id,class_key,label,sort_order FROM gt_season_classes ORDER BY season_id,sort_order').all(),
@@ -211,9 +211,9 @@ export async function onRequestPost({ request, env }) {
           .run()
       await db
         .prepare(
-          `INSERT INTO gt_seasons(id,name,status,race_time,timezone,drop_weeks,drop_start_round) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,status=excluded.status,race_time=excluded.race_time,timezone=excluded.timezone,drop_weeks=excluded.drop_weeks,drop_start_round=excluded.drop_start_round,updated_at=CURRENT_TIMESTAMP`,
+          `INSERT INTO gt_seasons(id,name,status,is_complete,race_time,timezone,drop_weeks,drop_start_round) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,status=excluded.status,is_complete=excluded.is_complete,race_time=excluded.race_time,timezone=excluded.timezone,drop_weeks=excluded.drop_weeks,drop_start_round=excluded.drop_start_round,updated_at=CURRENT_TIMESTAMP`,
         )
-        .bind(item.id, item.name, item.status, item.raceTime, item.timezone, dropWeeks, dropStartRound)
+        .bind(item.id, item.name, item.status, item.isComplete === true ? 1 : 0, item.raceTime, item.timezone, dropWeeks, dropStartRound)
         .run()
       if (!existing) {
         const sourceClasses = body.copyFrom

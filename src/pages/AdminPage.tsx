@@ -18,6 +18,7 @@ const newSeason = (): IndySeason => ({
   id: id(),
   name: 'IndyCar Season 1',
   status: 'draft',
+  isComplete: false,
   raceTime: '20:00',
   timezone: 'America/New_York',
 })
@@ -271,6 +272,11 @@ function SeasonEditor({
             <option value="active">Active</option>
             <option value="archived">Archived</option>
           </select>
+        </label>
+        <label className="admin-season-completion">
+          Championship state
+          <span><input type="checkbox" checked={season.isComplete} onChange={(event) => setSeason({ ...season, isComplete: event.target.checked })} /> Season results are final and champion is official</span>
+          <small>Only finalized seasons display champions and celebrate on public standings.</small>
         </label>
         <label>
           Race time

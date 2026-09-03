@@ -2,7 +2,7 @@ const json = (value, status = 200) => Response.json(value, { status, headers: { 
 
 async function state(db) {
   const [seasons, points, schedule, imports, results] = await Promise.all([
-    db.prepare('SELECT id,name,status,race_time AS raceTime,timezone FROM indy_seasons ORDER BY created_at DESC').all(),
+    db.prepare('SELECT id,name,status,is_complete AS isComplete,race_time AS raceTime,timezone FROM indy_seasons ORDER BY created_at DESC').all(),
     db.prepare('SELECT season_id,config_json FROM indy_points_configs').all(),
     db.prepare("SELECT id,season_id AS seasonId,round_number AS round,race_date AS date,track,laps,status,subsession_id AS subsessionId FROM indy_events ORDER BY race_date,round_number").all(),
     db.prepare('SELECT id,season_id AS seasonId,event_id AS eventId,subsession_id AS subsessionId,filename,imported_at AS importedAt FROM indy_imports ORDER BY imported_at').all(),
@@ -45,9 +45,9 @@ export async function onRequestPost({ request, env }) {
       const existing = await db.prepare('SELECT id,status FROM indy_seasons WHERE id=?').bind(item.id).first()
       if (existing?.status === 'active' && item.status !== 'active') return json({ error: 'Set another IndyCar season active before archiving the current public season.' }, 409)
       if (item.status === 'active') await db.prepare("UPDATE indy_seasons SET status='archived',updated_at=CURRENT_TIMESTAMP WHERE status='active' AND id<>?").bind(item.id).run()
-      await db.prepare(`INSERT INTO indy_seasons(id,name,status,race_time,timezone) VALUES(?,?,?,?,?)
-        ON CONFLICT(id) DO UPDATE SET name=excluded.name,status=excluded.status,race_time=excluded.race_time,timezone=excluded.timezone,updated_at=CURRENT_TIMESTAMP`)
-        .bind(item.id, item.name, item.status, item.raceTime, item.timezone).run()
+      await db.prepare(`INSERT INTO indy_seasons(id,name,status,is_complete,race_time,timezone) VALUES(?,?,?,?,?,?)
+        ON CONFLICT(id) DO UPDATE SET name=excluded.name,status=excluded.status,is_complete=excluded.is_complete,race_time=excluded.race_time,timezone=excluded.timezone,updated_at=CURRENT_TIMESTAMP`)
+        .bind(item.id, item.name, item.status, item.isComplete === true ? 1 : 0, item.raceTime, item.timezone).run()
       if (!existing && body.copyFrom) {
         const statements = []
         if (body.copy?.settings) {

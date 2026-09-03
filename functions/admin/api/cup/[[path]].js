@@ -6,7 +6,7 @@ const srhFetch = async (url) => {
   if (!response.ok) throw new Error(`SimRacerHub request failed (${response.status}).`)
   return response
 }
-const seasonState = async (db) => (await db.prepare('SELECT id,srh_season_id AS srhSeasonId,name,status,source_url AS sourceUrl,last_synced_at AS lastSyncedAt,sync_status AS syncStatus,sync_error AS syncError,chase_enabled AS chaseEnabled,regular_season_races AS regularSeasonRaces,chase_size AS chaseSize,max_points_per_race AS maxPointsPerRace FROM cup_seasons ORDER BY srh_season_id DESC').all()).results
+const seasonState = async (db) => (await db.prepare('SELECT id,srh_season_id AS srhSeasonId,name,status,is_complete AS isComplete,source_url AS sourceUrl,last_synced_at AS lastSyncedAt,sync_status AS syncStatus,sync_error AS syncError,chase_enabled AS chaseEnabled,regular_season_races AS regularSeasonRaces,chase_size AS chaseSize,max_points_per_race AS maxPointsPerRace FROM cup_seasons ORDER BY srh_season_id DESC').all()).results
 
 async function discover(db) {
   const html = await (await srhFetch(`https://simracerhub.com/series_seasons.php?series_id=${CUP_SRH_SERIES_ID}`)).text()
@@ -80,6 +80,13 @@ export async function onRequestPost({ env, request }) {
     if (body.action === 'sync') return json({ result: await syncSeason(db, Number(body.srhSeasonId)), seasons: await seasonState(db) })
     if (body.action === 'setActive') {
       await db.batch([db.prepare("UPDATE cup_seasons SET status='archived',updated_at=CURRENT_TIMESTAMP WHERE status='active'"), db.prepare("UPDATE cup_seasons SET status='active',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(String(body.seasonId))])
+      return json({ seasons: await seasonState(db) })
+    }
+    if (body.action === 'setComplete') {
+      const seasonId = String(body.seasonId ?? '')
+      if (!seasonId) return json({ error: 'A Cup season is required.' }, 400)
+      await db.prepare('UPDATE cup_seasons SET is_complete=?,updated_at=CURRENT_TIMESTAMP WHERE id=?')
+        .bind(body.isComplete === true ? 1 : 0, seasonId).run()
       return json({ seasons: await seasonState(db) })
     }
     if (body.action === 'configure') {

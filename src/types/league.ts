@@ -1,10 +1,24 @@
 export type CellValue = string | number
 export type TableRow = Record<string, CellValue>
 
+export type SeasonChampion = {
+  driver: string
+  label: string
+  classKey?: string
+}
+
+export type SeasonChampionship = {
+  seasonId: string
+  seasonName: string
+  isComplete: boolean
+  champions: SeasonChampion[]
+}
+
 export type DataResult = {
   rows: TableRow[]
   updated?: string
   label?: string
+  championship?: SeasonChampionship
 }
 
 export type DataLoader = (signal: AbortSignal) => Promise<DataResult>

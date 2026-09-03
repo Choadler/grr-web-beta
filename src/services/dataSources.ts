@@ -1,6 +1,6 @@
 import { publicEndpoints } from '../config/integrations'
 import { cupSchedule as cupCalendar } from '../config/schedules'
-import type { DataLoader, DataResult, RaceEventsLoader } from '../types/league'
+import type { DataLoader, DataResult, RaceEventsLoader, SeasonChampionship, TableRow } from '../types/league'
 import {
   adaptRecentResults,
   adaptSimRacerEvents,
@@ -17,7 +17,7 @@ type IndyPublicPayload = {
   schedule?: unknown[]
   standings?: unknown[]
   events?: unknown[]
-  season?: { name?: string }
+  season?: { id?: string; name?: string; isComplete?: boolean | number }
 }
 
 async function indyInHouse(signal: AbortSignal): Promise<IndyPublicPayload> {
@@ -35,7 +35,8 @@ type GtPublicPayload = {
   standings?: Record<string, unknown[]>
   teamStandings?: Record<string, unknown[]>
   events?: unknown[]
-  season?: { name?: string }
+  classes?: { key?: string; label?: string }[]
+  season?: { id?: string; name?: string; isComplete?: boolean | number }
 }
 
 type CupPublicPayload = {
@@ -44,12 +45,26 @@ type CupPublicPayload = {
   events?: unknown[]
   season?: {
     name?: string
+    id?: string
+    isComplete?: boolean | number
     chaseEnabled?: boolean | number
     regularSeasonRaces?: number
     chaseSize?: number
     maxPointsPerRace?: number
   }
 }
+
+const championship = (
+  season: { id?: string; name?: string; isComplete?: boolean | number } | undefined,
+  champions: SeasonChampionship['champions'],
+): SeasonChampionship | undefined => {
+  const isComplete = season?.isComplete === true || Number(season?.isComplete) === 1
+  if (!isComplete || !season?.id || !season.name || !champions.length) return undefined
+  return { seasonId: season.id, seasonName: season.name, isComplete: true, champions }
+}
+
+const championRow = (rows: TableRow[], completed: boolean) =>
+  rows.map((row) => completed && Number(row.rank) === 1 ? { ...row, champion: 1 } : row)
 
 async function cupInHouse(signal: AbortSignal): Promise<CupPublicPayload | null> {
   const season = typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get('season')
@@ -170,23 +185,31 @@ export const cupStandings: DataLoader = async (signal) => {
   const rows = (local.standings ?? []) as never[]
   const season = local.season
   const chaseEnabled = season?.chaseEnabled === undefined ? true : Boolean(season.chaseEnabled)
+  const completed = season?.isComplete === true || Number(season?.isComplete) === 1
+  const presentedRows = historical ? rows : addCupChaseStatus(rows, {
+    enabled: chaseEnabled,
+    regularSeasonRaces: season?.regularSeasonRaces,
+    chaseSize: season?.chaseSize,
+    maxPointsPerRace: season?.maxPointsPerRace,
+  })
+  const winner = presentedRows.find((row) => Number(row.rank) === 1)
   return {
-    rows: historical ? rows : addCupChaseStatus(rows, {
-      enabled: chaseEnabled,
-      regularSeasonRaces: season?.regularSeasonRaces,
-      chaseSize: season?.chaseSize,
-      maxPointsPerRace: season?.maxPointsPerRace,
-    }),
+    rows: championRow(presentedRows, completed),
     label: season?.name,
+    championship: championship(season, winner?.driver ? [{ driver: String(winner.driver), label: 'GRR Cup Series Champion' }] : []),
   }
 }
 export const cupRecentResults: DataLoader = async (signal) =>
   adaptRecentResults(await fetchJson(publicEndpoints.cup.recentResults, signal))
 export const indyStandings: DataLoader = async (signal) => {
   const local = await indyInHouse(signal)
+  const rows = Array.isArray(local.standings) ? (local.standings as TableRow[]) : []
+  const completed = local.season?.isComplete === true || Number(local.season?.isComplete) === 1
+  const winner = rows.find((row) => Number(row.rank) === 1)
   return {
-    rows: Array.isArray(local.standings) ? (local.standings as never[]) : [],
+    rows: championRow(rows, completed),
     label: local.season?.name,
+    championship: championship(local.season, winner?.driver ? [{ driver: String(winner.driver), label: 'GRR IndyCar Champion' }] : []),
   }
 }
 export const cupSchedule: DataLoader = async (signal) => {
@@ -254,20 +277,31 @@ export const gtStandings =
   async (signal) => {
     const local = await gtInHouse(signal)
     const rows = local?.standings?.[gtClassKey[classKey]]
-    return addBehindLeader({
-      rows: requireGtArray(rows, 'standings') as never[],
+    const completed = local.season?.isComplete === true || Number(local.season?.isComplete) === 1
+    const allChampions = (local.classes ?? []).flatMap((item) => {
+      const winner = local.standings?.[String(item.key)]?.find((row) => Number((row as TableRow).rank) === 1) as TableRow | undefined
+      return winner?.driver ? [{ driver: String(winner.driver), label: `${item.label ?? item.key} Champion`, classKey: String(item.key) }] : []
+    })
+    const result = addBehindLeader({
+      rows: championRow(requireGtArray(rows, 'standings') as TableRow[], completed),
       label: local?.season?.name,
     })
+    return { ...result, championship: championship(local.season, allChampions) }
   }
 export const gtTeamStandings =
   (classKey: keyof typeof gtClassKey): DataLoader =>
   async (signal) => {
     const local = await gtInHouse(signal)
     const rows = local?.teamStandings?.[gtClassKey[classKey]]
-    return addBehindLeader({
+    const allChampions = (local.classes ?? []).flatMap((item) => {
+      const winner = local.standings?.[String(item.key)]?.find((row) => Number((row as TableRow).rank) === 1) as TableRow | undefined
+      return winner?.driver ? [{ driver: String(winner.driver), label: `${item.label ?? item.key} Champion`, classKey: String(item.key) }] : []
+    })
+    const result = addBehindLeader({
       rows: requireGtArray(rows, 'team standings') as never[],
       label: local?.season?.name,
     })
+    return { ...result, championship: championship(local.season, allChampions) }
   }
 export const gtSchedule: DataLoader = async (signal) => {
   const local = await gtInHouse(signal)

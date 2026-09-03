@@ -65,12 +65,12 @@ async function loadGt({ env, request }) {
   const db = env.INDYCAR_DB
   const url = new URL(request.url)
   if (url.searchParams.get('list') === 'schedule-seasons') {
-    const seasons = await db.prepare("SELECT id,name,status FROM gt_seasons WHERE status<>'draft' ORDER BY created_at DESC").all()
+    const seasons = await db.prepare("SELECT id,name,status,is_complete AS isComplete FROM gt_seasons WHERE status<>'draft' ORDER BY created_at DESC").all()
     return json({ seasons: seasons.results })
   }
   if (url.searchParams.get('list') === 'seasons') {
     const [seasons, seasonResults, seasonEvents, seasonClasses] = await Promise.all([
-      observedAll(db.prepare("SELECT id,name,status,drop_weeks AS dropWeeks,drop_start_round AS dropStartRound FROM gt_seasons WHERE status<>'draft' ORDER BY created_at DESC"), env, '/api/gt?list=seasons', 'seasons'),
+      observedAll(db.prepare("SELECT id,name,status,is_complete AS isComplete,drop_weeks AS dropWeeks,drop_start_round AS dropStartRound FROM gt_seasons WHERE status<>'draft' ORDER BY created_at DESC"), env, '/api/gt?list=seasons', 'seasons'),
       observedAll(db.prepare(`SELECT r.season_id,r.customer_id,r.driver_name,r.class_key,r.class_position,r.event_id,r.total_points
         FROM gt_results r JOIN gt_seasons s ON s.id=r.season_id WHERE s.status<>'draft'`), env, '/api/gt?list=seasons', 'champion-results'),
       observedAll(db.prepare(`SELECT e.id,e.season_id,e.round_number AS round FROM gt_events e
@@ -100,7 +100,7 @@ async function loadGt({ env, request }) {
     }
     return json({ seasons: seasons.results.map((season) => ({
       ...season,
-      champions: championRows.filter((row) => row.seasonId === season.id),
+      champions: Number(season.isComplete) === 1 ? championRows.filter((row) => row.seasonId === season.id) : [],
     })) })
   }
   if (url.searchParams.get('list') === 'classes') {
@@ -279,8 +279,8 @@ async function loadGt({ env, request }) {
   const requestedSeason = url.searchParams.get('season')
   if (url.searchParams.get('view') === 'schedule') {
     const scheduleSeason = requestedSeason
-      ? await db.prepare("SELECT id,name,status,race_time AS raceTime,timezone FROM gt_seasons WHERE id=? AND status<>'draft' LIMIT 1").bind(requestedSeason).first()
-      : await db.prepare("SELECT id,name,status,race_time AS raceTime,timezone FROM gt_seasons WHERE status='active' LIMIT 1").first()
+      ? await db.prepare("SELECT id,name,status,is_complete AS isComplete,race_time AS raceTime,timezone FROM gt_seasons WHERE id=? AND status<>'draft' LIMIT 1").bind(requestedSeason).first()
+      : await db.prepare("SELECT id,name,status,is_complete AS isComplete,race_time AS raceTime,timezone FROM gt_seasons WHERE status='active' LIMIT 1").first()
     if (!scheduleSeason) return json({ error: requestedSeason ? 'That GT season is not publicly available.' : 'No active in-house GT season.' }, 404)
     const scheduleData = await db.prepare(`SELECT e.id AS eventId,e.round_number AS round,e.race_date AS date,e.track,e.status,
       (SELECT r.driver_name FROM gt_results r WHERE r.event_id=e.id AND r.class_key='gt3-am' ORDER BY r.class_position LIMIT 1) AS am,
@@ -294,8 +294,8 @@ async function loadGt({ env, request }) {
     })
   }
   const season = requestedSeason
-    ? await db.prepare("SELECT id,name,status,race_time AS raceTime,timezone,drop_weeks AS dropWeeks,drop_start_round AS dropStartRound FROM gt_seasons WHERE id=? AND status<>'draft' LIMIT 1").bind(requestedSeason).first()
-    : await db.prepare("SELECT id,name,status,race_time AS raceTime,timezone,drop_weeks AS dropWeeks,drop_start_round AS dropStartRound FROM gt_seasons WHERE status='active' LIMIT 1").first()
+    ? await db.prepare("SELECT id,name,status,is_complete AS isComplete,race_time AS raceTime,timezone,drop_weeks AS dropWeeks,drop_start_round AS dropStartRound FROM gt_seasons WHERE id=? AND status<>'draft' LIMIT 1").bind(requestedSeason).first()
+    : await db.prepare("SELECT id,name,status,is_complete AS isComplete,race_time AS raceTime,timezone,drop_weeks AS dropWeeks,drop_start_round AS dropStartRound FROM gt_seasons WHERE status='active' LIMIT 1").first()
   if (!season) return json({ error: requestedSeason ? 'That GT season is not publicly available.' : 'No active in-house GT season.' }, 404)
   const [classData, eventData, resultData] = await Promise.all([
     observedAll(db.prepare('SELECT class_key AS key,label,sort_order AS sortOrder FROM gt_season_classes WHERE season_id=? ORDER BY sort_order').bind(season.id), env, '/api/gt', 'classes'),

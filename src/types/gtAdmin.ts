@@ -7,6 +7,7 @@ export type GtSeason = {
   id: string
   name: string
   status: GtSeasonStatus
+  isComplete: boolean
   raceTime: string
   timezone: string
   dropWeeks: number
