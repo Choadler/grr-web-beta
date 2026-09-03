@@ -104,6 +104,9 @@ type GtSeasonSummary = {
 
 type CupSeasonSummary = { id: string; name: string; status: string; isComplete: boolean | number; champion?: string; races?: number; drivers?: number }
 type SeasonSummary = { id: string; name: string; status: string; isComplete: boolean | number }
+const championshipSignature = (value?: SeasonChampionship) => value
+  ? `${value.seasonId}:${value.seasonName}:${value.champions.map((champion) => `${champion.classKey ?? ''}:${champion.label}:${champion.driver}`).join('|')}`
+  : ''
 function useCupSeasons() {
   const [seasons, setSeasons] = useState<CupSeasonSummary[]>([])
   useEffect(() => { const controller = new AbortController(); fetch('/api/cup?list=seasons', { signal: controller.signal }).then((response) => response.ok ? response.json() : Promise.reject()).then((payload: { seasons?: CupSeasonSummary[] }) => setSeasons(payload.seasons ?? [])).catch(() => undefined); return () => controller.abort() }, [])
@@ -356,7 +359,9 @@ function DataPage({
 }: DataPageProps) {
   const [activeFilter, setActiveFilter] = useState(0)
   const [championship, setChampionship] = useState<SeasonChampionship>()
-  const handleResult = useCallback((result: { championship?: SeasonChampionship }) => setChampionship(result.championship), [])
+  const handleResult = useCallback((result: { championship?: SeasonChampionship }) => {
+    setChampionship((current) => championshipSignature(current) === championshipSignature(result.championship) ? current : result.championship)
+  }, [])
   const activeLoader = loaders?.[activeFilter] ?? loader
   return (
     <PageShell league={league} title={title} eyebrow={eyebrow} compact tight={tight}>
@@ -655,11 +660,17 @@ export const GtStandingsPage = () => {
   const [mode, setMode] = useState<'driver' | 'team'>('driver')
   const [activeClass, setActiveClass] = useState(0)
   const selectedClass = classes[activeClass] ?? classes[0]
+  const selectedClassKey = selectedClass?.key
   const isTeam = mode === 'team'
   const title = `GT League ${selectedClass?.label ?? ''} ${isTeam ? 'Team' : 'Driver'} Standings`
   const seasons = useGtSeasons()
   const [championship, setChampionship] = useState<SeasonChampionship>()
-  const handleResult = useCallback((result: { championship?: SeasonChampionship }) => setChampionship(result.championship), [])
+  const handleResult = useCallback((result: { championship?: SeasonChampionship }) => {
+    setChampionship((current) => championshipSignature(current) === championshipSignature(result.championship) ? current : result.championship)
+  }, [])
+  const standingsLoader = useMemo(() => selectedClassKey
+    ? (mode === 'team' ? gtTeamStandings(selectedClassKey) : gtStandings(selectedClassKey))
+    : undefined, [mode, selectedClassKey])
 
   return <PageShell league="gt" title="GT League Standings" compact tight>
     <SeasonSelector seasons={seasons} />
@@ -691,11 +702,11 @@ export const GtStandingsPage = () => {
       </fieldset>
     </div>
     {!isTeam && <p className="standings-legend">Drop(s) shows the round and points removed from each driver’s total. An absence counts as 0 points.</p>}
-    {selectedClass && <LiveDataTable
+    {selectedClass && standingsLoader && <LiveDataTable
       key={`${mode}-${selectedClass.key}`}
       title={title}
       columns={isTeam ? gtTeamStandingsColumns : gtDriverStandingsColumns}
-      loader={isTeam ? gtTeamStandings(selectedClass.key) : gtStandings(selectedClass.key)}
+      loader={standingsLoader}
       search
       tableClassName="data-table--gt-standings"
       onResult={handleResult}
